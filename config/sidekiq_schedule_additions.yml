@@ -1,0 +1,20 @@
+# Additions for whatever recurring-job mechanism Sure already uses -- sidekiq-cron and
+# sidekiq-scheduler use slightly different YAML shapes; this is the sidekiq-cron format.
+# If Sure instead uses `config/recurring.yml` (Rails 7.1's native Solid Queue style) or a
+# plain `whenever`/cron entry calling `rails runner`, translate accordingly -- check
+# config/initializers/sidekiq.rb or config/schedule.rb for the existing pattern first.
+
+kite_sync_portfolio:
+  cron: "*/20 * * * *"     # every 20 minutes during market hours is plenty; Kite data isn't tick-by-tick here
+  class: "Kite::BulkSyncSchedulerJob"
+  description: "Sync Zerodha equity holdings/positions for all active connections"
+
+kite_sync_mutual_funds:
+  cron: "0 */4 * * *"       # MF NAVs update once daily after market close; 4x/day is more than enough
+  class: "Kite::BulkMfSyncSchedulerJob"
+  description: "Sync Zerodha Coin mutual fund holdings for all active connections"
+
+kite_check_token_expiry:
+  cron: "*/15 * * * *"
+  class: "Kite::CheckTokenExpiryJob"
+  description: "Proactively flag expired Kite sessions as needs_reauth"
