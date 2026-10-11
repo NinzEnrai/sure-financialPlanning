@@ -3,18 +3,15 @@
 module Provider
   module Kite
     class TradeImporter
-      def initialize(kite_item)
+      def initialize(kite_item, kite_account)
         @kite_item = kite_item
-        @client = Client.new(kite_item)
+        @kite_account = kite_account
+        @client = kite_item.kite_client
       end
 
       def call
-        return unless kite_item.token_valid?
-
-        kite_account = kite_item.equity_account
         account = kite_account.current_account
-        
-        return unless account && !account.pending_deletion? && !account.disabled?
+        return unless account
 
         trades_data.each do |row|
           mic = HoldingsSync::EXCHANGE_TO_MIC[row["exchange"]] || row["exchange"]
@@ -25,15 +22,11 @@ module Provider
 
           import_trade!(account, security, row)
         end
-
-        kite_item.mark_active!
-      rescue Client::AuthenticationExpired
-        # Handled in Client
       end
 
       private
 
-      attr_reader :kite_item, :client
+      attr_reader :kite_item, :kite_account, :client
 
       def trades_data
         client.get("/trades")["data"] || []

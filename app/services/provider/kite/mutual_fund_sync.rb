@@ -3,18 +3,15 @@
 module Provider
   module Kite
     class MutualFundSync
-      def initialize(kite_item)
+      def initialize(kite_item, kite_account)
         @kite_item = kite_item
-        @client = Client.new(kite_item)
+        @kite_account = kite_account
+        @client = kite_item.kite_client
       end
 
       def call
-        return unless kite_item.token_valid?
-
-        kite_account = kite_item.mutual_fund_account
         account = kite_account.current_account
-        
-        return unless account && !account.pending_deletion? && !account.disabled?
+        return unless account
 
         as_of = Date.current
 
@@ -34,18 +31,16 @@ module Provider
           holding.save!
         end
 
+        kite_account.upsert_holdings_snapshot!(mf_holdings)
         kite_item.record_sync!(kind: :mf)
-        kite_item.mark_active!
-      rescue Client::AuthenticationExpired
-        # Handled in Client
       end
 
       private
 
-      attr_reader :kite_item, :client
+      attr_reader :kite_item, :kite_account, :client
 
       def mf_holdings
-        client.get("/mf/holdings")["data"] || []
+        @mf_holdings ||= client.get("/mf/holdings")["data"] || []
       end
 
       def find_or_create_fund(row)

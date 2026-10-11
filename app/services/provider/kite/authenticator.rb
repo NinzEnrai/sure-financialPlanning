@@ -43,7 +43,7 @@ module Provider
           # same-day-midnight-IST expiry so we proactively prompt re-auth rather than discover
           # a 403 mid-sync. Adjust if Zerodha's docs specify an exact expiry you want to trust instead.
           access_token_expires_at: Time.current.in_time_zone("Asia/Kolkata").end_of_day.utc,
-          status: "active",
+          status: :good,
           last_error: nil
         )
         connection

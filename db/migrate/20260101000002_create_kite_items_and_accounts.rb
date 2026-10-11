@@ -33,10 +33,13 @@ class CreateKiteItemsAndAccounts < ActiveRecord::Migration[7.1]
 
       t.datetime :access_token_issued_at
       t.datetime :access_token_expires_at
-      t.string   :status, null: false, default: "pending_auth"
-      # pending_auth | active | needs_reauth | rate_limited | error | disabled
-      t.boolean  :scheduled_for_deletion, default: false # mirrors plaid_items/snaptrade_items
-      t.date     :sync_start_date                        # mirrors the sync_start_date pattern used elsewhere
+      # CONFIRMED: matches plaid_items/snaptrade_items' `status` convention exactly --
+      # string column, enum in the model, default "good". "requires_update" covers both
+      # "needs Zerodha re-login" and "something's wrong, needs attention" -- Kite's daily
+      # token expiry doesn't need its own DB-level status beyond that, `last_error` carries detail.
+      t.string   :status, null: false, default: "good"
+      t.boolean  :scheduled_for_deletion, default: false
+      t.date     :sync_start_date
       t.datetime :last_synced_at
       t.datetime :last_mf_synced_at
       t.text     :last_error
@@ -44,9 +47,7 @@ class CreateKiteItemsAndAccounts < ActiveRecord::Migration[7.1]
 
       t.timestamps
     end
-    add_check_constraint :kite_items,
-      "status IN ('pending_auth','active','needs_reauth','rate_limited','error','disabled')",
-      name: "kite_items_status_check"
+    add_check_constraint :kite_items, "status IN ('good','requires_update')", name: "kite_items_status_check"
     add_index :kite_items, :family_id, unique: true
 
     create_table :kite_accounts, id: :uuid, default: -> { "gen_random_uuid()" } do |t|
@@ -56,10 +57,16 @@ class CreateKiteItemsAndAccounts < ActiveRecord::Migration[7.1]
       t.string  :account_status, default: "active"
       t.decimal :current_balance, precision: 19, scale: 4
       t.string  :currency, default: "INR"
+      t.jsonb   :raw_payload, default: {}
       t.jsonb   :raw_holdings_payload, default: {}
       t.datetime :last_holdings_sync
       t.timestamps
     end
     add_index :kite_accounts, [:kite_item_id, :segment], unique: true
+
+    # `account_providers` already supports this polymorphic linkage (provider_type: "KiteAccount",
+    # provider_id: kite_accounts.id, account_id: <Account>) per SnaptradeAccount's identical use --
+    # no new migration needed on that table, KiteAccount just needs to be a valid `provider_type`
+    # value, which is a Ruby-level concern (the model's class name), not a schema one.
   end
 end
