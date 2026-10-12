@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_08_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_12_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -1945,6 +1945,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_120000) do
     t.index ["plaid_id"], name: "index_plaid_items_on_plaid_id", unique: true
   end
 
+  create_table "planning_settings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.decimal "annual_growth_rate_pct", precision: 5, scale: 2, default: "7.0", null: false
+    t.jsonb "category_buckets", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.uuid "family_id", null: false
+    t.decimal "fire_withdrawal_rate_pct", precision: 5, scale: 2, default: "4.0", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_planning_settings_on_family_id", unique: true
+  end
+
   create_table "properties", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "area_unit"
     t.integer "area_value"
@@ -3063,6 +3073,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_120000) do
   add_foreign_key "plaid_accounts", "plaid_items"
   add_foreign_key "plaid_items", "families"
   add_foreign_key "plaid_items", "users", column: "owner_id", on_delete: :nullify
+  add_foreign_key "planning_settings", "families"
   add_foreign_key "push_subscriptions", "users"
   add_foreign_key "questrade_accounts", "questrade_items"
   add_foreign_key "questrade_items", "families"

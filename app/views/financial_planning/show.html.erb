@@ -1,0 +1,27 @@
+<%# Financial Planning: four read-only projections derived from the family's
+    existing ledger. Header + card grid follows the Plan hub's shape. %>
+<div class="@container space-y-6 pb-6 lg:pb-12">
+  <header>
+    <div class="flex items-center gap-2">
+      <h1 class="text-2xl font-semibold text-primary"><%= t(".title") %></h1>
+      <%= render DS::Pill.new(label: t("shared.preview"), size: :md) %>
+    </div>
+    <p class="text-sm text-secondary mt-1"><%= t(".subtitle") %></p>
+  </header>
+
+  <div class="grid grid-cols-1 @3xl:grid-cols-2 gap-4 items-stretch">
+    <%= render "financial_planning/savings_rate", rate: @savings_rate,
+                                                 year_to_date: @year_to_date_savings_rate %>
+    <%= render "financial_planning/fire_progress", fire: @fire_progress %>
+  </div>
+
+  <%# Only the analyzer follows @period; savings rate, FIRE and the projection
+      are anchored to today / trailing windows. %>
+  <div class="flex justify-end">
+    <%= render UI::PeriodPicker.new(selected: @period, url: financial_planning_path) %>
+  </div>
+
+  <%= render "financial_planning/budget_analyzer", analyzer: @budget_analyzer, period: @period %>
+
+  <%= render "financial_planning/wealth_projector", projector: @projector %>
+</div>

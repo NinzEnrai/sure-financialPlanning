@@ -1,0 +1,67 @@
+<%# locals: (projector:) %>
+<%# 10-year net worth projection. Every point is modelled, so the line is
+    dashed throughout and the opening balance is drawn as a fact. %>
+<%= render DS::Card.new do %>
+  <div class="flex items-center justify-between gap-3">
+    <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+    <%= icon "trending-up", size: "sm", color: "success" %>
+  </div>
+
+  <p class="text-sm text-secondary mt-1"><%= t(".subtitle") %></p>
+
+  <% points = projector.points %>
+  <% if points.size < 2 %>
+    <div class="h-52 flex items-center justify-center">
+      <p class="text-secondary text-sm"><%= t(".no_data") %></p>
+    </div>
+  <% else %>
+    <div class="w-full h-64 mt-4 privacy-sensitive"
+      data-controller="wealth-projection-chart"
+      data-wealth-projection-chart-aria-label-value="<%= t(".chart_aria") %>"
+      data-wealth-projection-chart-year-prefix-value="<%= t(".year_prefix") %>"
+      data-wealth-projection-chart-data-value="<%= {
+        currency: Current.family.currency,
+        currency_symbol: Money.new(0, Current.family.currency).currency.symbol,
+        description: t(".chart_description"),
+        points: points.map { |point|
+          {
+            date: point.date.to_s,
+            year: point.year,
+            balance: point.balance.to_f,
+            balance_formatted: format_money(point.balance_money(Current.family.currency)),
+            balance_label: format_money(point.balance_money(Current.family.currency))
+          }
+        }
+      }.to_json %>">
+    </div>
+  <% end %>
+
+  <div class="mt-4 pt-3 border-t border-subdued grid grid-cols-1 @md:grid-cols-3 gap-3">
+    <div>
+      <p class="text-xs text-secondary"><%= t(".today") %></p>
+      <p class="text-sm font-medium text-primary tabular-nums privacy-sensitive">
+        <%= format_money(projector.opening_balance && Money.new(projector.opening_balance, Current.family.currency), precision: 0) %>
+      </p>
+    </div>
+
+    <div>
+      <p class="text-xs text-secondary"><%= t(".savings_rate") %></p>
+      <p class="text-sm font-medium text-primary tabular-nums">
+        <% if projector.savings_rate_percent.nil? %>
+          <span class="text-subdued"><%= t(".unavailable") %></span>
+        <% else %>
+          <%= number_to_percentage(projector.savings_rate_percent, precision: 1) %>
+        <% end %>
+      </p>
+    </div>
+
+    <div>
+      <p class="text-xs text-secondary"><%= t(".growth_rate") %></p>
+      <p class="text-sm font-medium text-primary tabular-nums">
+        <%= number_to_percentage(projector.growth_rate_pct, precision: 1) %>
+      </p>
+    </div>
+  </div>
+
+  <p class="text-xs text-subdued mt-3"><%= t(".assumptions") %></p>
+<% end %>

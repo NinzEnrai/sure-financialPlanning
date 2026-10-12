@@ -138,6 +138,21 @@ module ApplicationHelper
     end
   end
 
+  # Planning projections ride alongside Plan rather than replacing it -- Plan
+  # owns budgets and goals, this page only reads the ledger. Preview-gated, so
+  # the entry drops out of the nav entirely without the flag.
+  def financial_planning_nav_item
+    preview_gated_nav_item(
+      {
+        name: t("layouts.application.nav.financial_planning"),
+        path: financial_planning_path,
+        icon: "trending-up",
+        icon_custom: false,
+        active: page_active?(financial_planning_path)
+      }
+    )
+  end
+
   # Wrapper around I18n.l to support custom date formats
   def format_date(object, format = :default, options = {})
     date = object.to_date

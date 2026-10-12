@@ -1,0 +1,53 @@
+---
+en:
+  financial_planning:
+    title: Financial Planning
+    subtitle: Savings rate, budget split, FIRE progress and a long-term projection — all derived from your transactions.
+    bucket_updated: Category bucket updated
+    setting_updated: Planning settings updated
+    category_not_found: That category is not part of this family.
+    savings_rate:
+      title: Savings Rate
+      this_month: This month
+      year_to_date: Year to date
+      unavailable: No data
+      savings_of: "%{amount} saved"
+      target_hint: The 50/30/20 guideline puts 20% of income into savings.
+      no_income: No income recorded for this month yet.
+      bar_label: "%{label} savings rate"
+    budget_analyzer:
+      title: 50/30/20 Budget
+      unavailable: No data
+      target_of: "Target %{target}"
+      net_income: Net income
+      unassigned_title: Unassigned categories
+      unassigned_body: "%{count} categories (%{amount}) are not in Needs, Wants or Savings and are excluded from the split."
+    fire_progress:
+      title: FIRE Progress
+      net_worth: Current net worth
+      bar_label: Progress toward financial independence
+      unavailable: No data
+      progress: "%{percent} of target"
+      eta: "~%{years} yrs"
+      annual_expenses: Average annual expenses
+      target: FIRE target
+      rule: Rule
+      rule_value: "%{multiple}x at %{rate}"
+      remaining: Remaining
+    wealth_projector:
+      title: Wealth Projection
+      subtitle: Where current savings could take you over the next 10 years.
+      no_data: Not enough history to project yet.
+      today: Net worth today
+      savings_rate: 6-month savings rate
+      growth_rate: Assumed growth
+      assumptions: Assumes your current monthly savings and growth rate continue unchanged. Actual returns vary and this is not financial advice.
+      unavailable: No data
+      chart_aria: Projected net worth over the next ten years
+      chart_description: A line chart of projected net worth from the current balance over a ten year horizon.
+      year_prefix: "Year "
+  planning_setting:
+    buckets:
+      needs: Needs
+      wants: Wants
+      savings: Savings

@@ -7,6 +7,7 @@ es:
       resize_right_sidebar: Redimensionar la barra lateral del asistente
       skip_to_main: Saltar al contenido principal
       nav:
+        financial_planning: Patrimonio
         assistant: Asistente
         budgets: Presupuestos
         home: Inicio

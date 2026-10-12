@@ -3,6 +3,7 @@ ca:
   layouts:
     application:
       nav:
+        financial_planning: Patrimoni
         assistant: Assistent
         budgets: Pressupostos
         home: Inici

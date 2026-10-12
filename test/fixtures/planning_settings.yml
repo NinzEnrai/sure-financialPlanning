@@ -1,0 +1,11 @@
+active_family:
+  family: dylan_family
+  fire_withdrawal_rate_pct: 4.0
+  annual_growth_rate_pct: 7.0
+  category_buckets: {}
+
+custom_rates:
+  family: empty
+  fire_withdrawal_rate_pct: 3.5
+  annual_growth_rate_pct: 9.0
+  category_buckets: {}

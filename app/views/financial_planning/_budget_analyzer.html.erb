@@ -1,0 +1,71 @@
+<%# locals: (analyzer:, period:) %>
+<%# 50/30/20 split of the selected period's spending. Each bucket is scored
+    against its target share of net income — needs and wants as ceilings,
+    savings as a floor. %>
+<%= render DS::Card.new do %>
+  <div class="flex items-center justify-between gap-3">
+    <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+    <%= icon "scale", size: "sm", color: "default" %>
+  </div>
+
+  <p class="text-sm text-secondary mt-1"><%= period.comparison_label %></p>
+
+  <%# Proportional bar across all three buckets, so the shape of the month is
+      legible before any number is read. Iterated in fixed bucket order rather
+      than by size so the segments stay in the same place every render and the
+      row list below reads as a legend. %>
+  <div class="flex h-1.5 rounded-full overflow-hidden bg-surface-inset mt-4">
+    <% analyzer.buckets.each do |bucket| %>
+      <% next unless bucket.share_pct&.positive? %>
+      <div class="<%= bucket.key == "needs" ? "bg-info" : (bucket.key == "wants" ? "bg-warning" : "bg-success") %>"
+           style="width: <%= bucket.share_pct %>%"></div>
+    <% end %>
+  </div>
+
+  <div class="mt-4 divide-y divide-subdued">
+    <% analyzer.buckets.each do |bucket| %>
+      <% tone = bucket.key == "needs" ? :info : (bucket.key == "wants" ? :warning : :success) %>
+      <div class="py-3 flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-primary"><%= t("planning_setting.buckets.#{bucket.key}") %></p>
+          <p class="text-xs text-secondary tabular-nums privacy-sensitive">
+            <%= t(".target_of", target: number_to_percentage(bucket.target_share_pct, precision: 0)) %>
+          </p>
+        </div>
+
+        <div class="text-right shrink-0">
+          <p class="text-sm font-medium text-primary tabular-nums privacy-sensitive">
+            <%= format_money(bucket.amount_money) %>
+          </p>
+          <% if bucket.share_pct.nil? %>
+            <p class="text-xs text-subdued"><%= t(".unavailable") %></p>
+          <% else %>
+            <p class="text-xs tabular-nums <%= bucket.on_track? ? "text-success" : "text-destructive" %>">
+              <%= number_to_percentage(bucket.share_pct, precision: 1) %>
+            </p>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="pb-3">
+        <%= render DS::ProgressBar.new(percent: bucket.share_pct, tone: tone) %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="mt-2 pt-3 border-t border-subdued flex items-center justify-between gap-3">
+    <p class="text-sm text-secondary"><%= t(".net_income") %></p>
+    <p class="text-sm font-medium text-primary tabular-nums privacy-sensitive">
+      <%= format_money(analyzer.income_money) %>
+    </p>
+  </div>
+
+  <% unassigned = analyzer.unassigned_categories %>
+  <% if unassigned.any? %>
+    <%= render DS::Note.new(title: t(".unassigned_title")) do %>
+      <%= t(".unassigned_body",
+             count: unassigned.size,
+             amount: format_money(Money.new(unassigned.sum { |e| e[:total].to_f }, Current.family.currency))) %>
+    <% end %>
+  <% end %>
+<% end %>

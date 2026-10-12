@@ -4,6 +4,7 @@ pl:
     application:
       insights: Analizy
       nav:
+        financial_planning: Majątek
         assistant: Asystent
         bills: Rachunki
         budgets: Budżety

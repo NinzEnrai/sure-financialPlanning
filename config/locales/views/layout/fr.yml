@@ -4,6 +4,7 @@ fr:
     application:
       insights: Analyses
       nav:
+        financial_planning: Patrimoine
         assistant: Assistant
         bills: Factures
         budgets: Budgets

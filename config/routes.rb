@@ -456,6 +456,14 @@ Rails.application.routes.draw do
   # Hub page fronting budgets + goals under a single "Plan" nav entry.
   resource :plan, only: :show
 
+  # Planning projections derived from the existing ledger (savings rate,
+  # 50/30/20 split, FIRE progress, wealth projection).
+  resource :financial_planning, only: :show, controller: "financial_planning" do
+    get :projection
+    patch :setting, action: :update_setting
+    patch :bucket, action: :update_bucket
+  end
+
   resources :budgets, only: %i[index show edit update], param: :month_year do
     post :copy_previous, on: :member
     get :picker, on: :collection

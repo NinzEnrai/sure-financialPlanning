@@ -1,67 +1,78 @@
-# frozen_string_literal: true
-
-# Backs the new "Financial Planning & Projections" tab. Kept as a single controller with
-# a few member-ish actions since each sub-feature (savings rate / goals / FIRE / allocation)
-# is read-mostly and cheap to compute on each request -- split into separate controllers
-# later if any of these views grow complex enough to warrant it (goals CRUD especially,
-# once you add edit/delete UI, should probably move to its own GoalsController).
+# Read-only planning view: savings rate, 50/30/20 split, FIRE progress and a
+# 10-year wealth projection. Every figure is derived from the family's existing
+# ledger, so this controller only assembles POROs and hands them to the view.
 class FinancialPlanningController < ApplicationController
-  before_action :set_family
+  # Declared before `include Periodable` so the preview gate runs ahead of
+  # `set_period`, which may persist a `?period=` onto the user.
+  before_action :require_preview_features!
+  include Periodable
 
-  def index
-    @savings = FinancialPlanning::SavingsRateCalculator.new(@family).summary
-    @savings_series = FinancialPlanning::SavingsRateCalculator.new(@family).monthly_series(months: 12)
-    @goals = @family.financial_goals.order(:target_date)
-    @allocation = @family.planning_setting ? FinancialPlanning::AssetAllocationComparator.new(@family).compare : []
+  def show
+    @savings_rate = FinancialPlanning::SavingsRate.new(Current.family, period: current_month_period, user: Current.user)
+    @year_to_date_savings_rate = FinancialPlanning::SavingsRate.new(Current.family, period: year_to_date_period, user: Current.user)
+
+    @budget_analyzer = FinancialPlanning::BudgetAnalyzer.new(Current.family, period: @period, user: Current.user)
+
+    @fire_progress = FinancialPlanning::FireProgress.new(Current.family, user: Current.user)
+    @projector = FinancialPlanning::WealthProjector.new(Current.family, user: Current.user)
   end
 
-  def savings_rate
-    months = params[:months].to_i.clamp(1, 36).nonzero? || 12
-    render json: FinancialPlanning::SavingsRateCalculator.new(@family).monthly_series(months: months)
-  end
-
-  def fire_simulator
-    settings = @family.planning_setting || @family.build_planning_setting
-    simulator = FinancialPlanning::FireSimulator.new(@family, settings: settings)
-
-    result = simulator.simulate(
-      current_net_worth: params[:net_worth]&.to_d,
-      monthly_savings: params[:monthly_savings]&.to_d
-    )
+  # Drives the projection chart. Kept as a separate action so the series can be
+  # re-fetched when the horizon or assumptions change without re-rendering the
+  # page. `private` amounts are already scoped to the signed-in family.
+  def projection
+    points = FinancialPlanning::WealthProjector.new(Current.family, user: Current.user).points
 
     render json: {
-      years_to_fire: result.years_to_fire,
-      fire_number: result.fire_number,
-      projection: result.projection.map(&:to_h)
+      years: points.map { |point| point.year },
+      balances: points.map { |point| point.balance.to_s("F") },
+      currency: Current.family.currency
     }
   end
 
-  def create_goal
-    goal = @family.financial_goals.new(goal_params)
-    if goal.save
-      redirect_to financial_planning_path, notice: "Goal created."
+  # Category -> bucket assignment, made inline from the analyzer. Scoped to the
+  # signed-in family's categories so a submitted id from another family can't
+  # be used to write into this family's settings.
+  def update_bucket
+    category = Current.family.categories.find_by(id: bucket_params[:category_id])
+    return redirect_to(financial_planning_path, alert: t(".category_not_found")) if category.nil?
+
+    setting = Current.family.planning_setting || Current.family.build_planning_setting
+    # Keyed by category id, valued by bucket -- the inverse silently fails the
+    # model's validation, so the override looks ignored instead of rejected.
+    buckets = setting.category_buckets.merge(category.id.to_s => bucket_params[:bucket].to_s)
+
+    if setting.update(category_buckets: buckets)
+      redirect_to financial_planning_path, notice: t(".bucket_updated")
     else
-      redirect_to financial_planning_path, alert: goal.errors.full_messages.to_sentence
+      redirect_to financial_planning_path, alert: setting.errors.full_messages.to_sentence
     end
   end
 
-  def goal_projection
-    goal = @family.financial_goals.find(params[:id])
-    projector = FinancialPlanning::GoalProjector.new(goal)
-    render json: {
-      required_monthly_contribution: projector.required_monthly_contribution,
-      projected_balance: projector.projected_balance
-    }
+  def update_setting
+    setting = Current.family.planning_setting || Current.family.build_planning_setting
+
+    if setting.update(setting_params)
+      redirect_to financial_planning_path, notice: t(".setting_updated")
+    else
+      redirect_to financial_planning_path, alert: setting.errors.full_messages.to_sentence
+    end
   end
 
   private
+    def bucket_params
+      params.permit(:category_id, :bucket)
+    end
 
-  def set_family
-    @family = current_family # ASSUMPTION: matches existing controllers' auth helper
-  end
+    def current_month_period
+      Period.current_month_for(Current.family)
+    end
 
-  def goal_params
-    params.require(:financial_goal).permit(:name, :goal_type, :target_amount, :target_date,
-                                            :linked_account_id, :priority)
-  end
+    def year_to_date_period
+      Period.from_key("current_year")
+    end
+
+    def setting_params
+      params.require(:planning_setting).permit(:fire_withdrawal_rate_pct, :annual_growth_rate_pct)
+    end
 end

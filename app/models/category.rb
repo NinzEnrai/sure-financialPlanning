@@ -380,6 +380,14 @@ class Category < ApplicationRecord
     self.class.localized_default_name_for(name)
   end
 
+  # The `models.category.defaults.*` key this category was built from, or nil
+  # for one the family created themselves. Matches on the stored name across
+  # every supported locale, since a bootstrapped category persists whichever
+  # translation was current at the time.
+  def default_i18n_key
+    self.class.send(:default_category_translation_key_for, name)
+  end
+
   def display_name_with_parent
     subcategory? ? "#{parent.display_name} > #{display_name}" : display_name
   end

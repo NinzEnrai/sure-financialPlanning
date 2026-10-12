@@ -1,0 +1,58 @@
+<%# locals: (fire:) %>
+<%# FIRE progress: current net worth against the 4%-rule target, derived from
+    average annual expenses over the trailing year. %>
+<%= render DS::Card.new do %>
+  <div class="flex items-center justify-between gap-3">
+    <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+    <%= icon "flame", size: "sm", color: "warning" %>
+  </div>
+
+  <div class="mt-4 space-y-1">
+    <p class="text-xs text-secondary"><%= t(".net_worth") %></p>
+    <p class="text-3xl font-medium text-primary tabular-nums privacy-sensitive">
+      <%= format_money(fire.current_net_worth_money) %>
+    </p>
+  </div>
+
+  <div class="mt-4">
+    <%= render DS::ProgressBar.new(
+          percent: fire.percent,
+          tone: fire.achieved? ? :success : :warning,
+          label: t(".bar_label")
+        ) %>
+  </div>
+
+  <div class="mt-2 flex items-center justify-between gap-3">
+    <p class="text-xs text-secondary tabular-nums">
+      <% if fire.percent.nil? %>
+        <%= t(".unavailable") %>
+      <% else %>
+        <%= t(".progress", percent: number_to_percentage(fire.percent, precision: 1)) %>
+      <% end %>
+    </p>
+    <% if fire.months_to_target %>
+      <%= render DS::Pill.new(label: t(".eta", years: (fire.months_to_target / 12.0).ceil),
+                             tone: :info, size: :sm, marker: false) %>
+    <% end %>
+  </div>
+
+  <div class="mt-4 pt-3 border-t border-subdued space-y-2">
+    <%= render DS::DetailRow.new(label: t(".annual_expenses")) do %>
+      <span class="privacy-sensitive"><%= format_money(fire.average_annual_expenses_money, precision: 0) %></span>
+    <% end %>
+
+    <%= render DS::DetailRow.new(label: t(".target")) do %>
+      <span class="privacy-sensitive"><%= format_money(fire.target_money, precision: 0) %></span>
+    <% end %>
+
+    <%= render DS::DetailRow.new(label: t(".rule")) do %>
+      <span class="tabular-nums"><%= t(".rule_value", multiple: fire.multiple, rate: number_to_percentage(fire.withdrawal_rate_pct, precision: 1)) %></span>
+    <% end %>
+
+    <% unless fire.achieved? %>
+      <%= render DS::DetailRow.new(label: t(".remaining")) do %>
+        <span class="privacy-sensitive"><%= format_money(fire.remaining_money, precision: 0) %></span>
+      <% end %>
+    <% end %>
+  </div>
+<% end %>

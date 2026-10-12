@@ -4,6 +4,7 @@ tr:
     application:
       insights: İçgörüler
       nav:
+        financial_planning: Servet
         assistant: Asistan
         budgets: Bütçeler
         goals: Hedefler

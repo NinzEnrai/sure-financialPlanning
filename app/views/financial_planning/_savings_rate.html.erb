@@ -1,0 +1,45 @@
+<%# locals: (rate:, year_to_date:) %>
+<%# Savings rate = (income - expenses) / income, for the current month and for
+    the year to date. Both figures come from the same IncomeStatement scoping,
+    so they can be compared directly. %>
+<%= render DS::Card.new do %>
+  <div class="flex items-center justify-between gap-3">
+    <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+    <%= icon "piggy-bank", size: "sm", color: "success" %>
+  </div>
+
+  <div class="mt-4 grid grid-cols-1 @md:grid-cols-2 gap-4">
+    <% [ [ t(".this_month"), rate ], [ t(".year_to_date"), year_to_date ] ].each do |label, figure| %>
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <p class="text-xs text-secondary"><%= label %></p>
+        <p class="text-3xl font-medium text-primary tabular-nums privacy-sensitive">
+          <% if figure.percent.nil? %>
+            <span class="text-lg text-subdued"><%= t(".unavailable") %></span>
+          <% else %>
+            <%= number_to_percentage(figure.percent, precision: 1) %>
+          <% end %>
+        </p>
+        <p class="text-xs text-secondary tabular-nums privacy-sensitive">
+          <%= t(".savings_of", amount: format_money(figure.savings_money)) %>
+        </p>
+      </div>
+    <% end %>
+  </div>
+
+  <% if rate.income.positive? %>
+    <div class="mt-4">
+      <%= render DS::ProgressBar.new(
+            percent: rate.percent,
+            tone: rate.percent >= 20 ? :success : :warning,
+            label: t(".bar_label", label: t(".this_month"))
+          ) %>
+    </div>
+
+    <p class="text-xs text-subdued mt-2"><%= t(".target_hint") %></p>
+  <% else %>
+    <div class="mt-4">
+      <%= render DS::ProgressBar.new(percent: nil, tone: :neutral) %>
+      <p class="text-xs text-subdued mt-2"><%= t(".no_income") %></p>
+    </div>
+  <% end %>
+<% end %>

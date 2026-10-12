@@ -3,6 +3,7 @@ ru:
   layouts:
     application:
       nav:
+        financial_planning: Богатство
         assistant: Ассистент
         budgets: Бюджеты
         goals: Цели
