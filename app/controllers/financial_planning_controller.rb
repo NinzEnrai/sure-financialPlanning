@@ -58,7 +58,17 @@ class FinancialPlanningController < ApplicationController
     setting = Current.family.planning_setting || Current.family.build_planning_setting
     # Keyed by category id, valued by bucket -- the inverse silently fails the
     # model's validation, so the override looks ignored instead of rejected.
-    buckets = setting.category_buckets.merge(category.id.to_s => bucket_params[:bucket].to_s)
+    buckets = setting.category_buckets.dup
+
+    if reset_bucket?
+      # Dropping the key is what "back to the default" means. Writing a sentinel
+      # instead would leave a permanent override that shadows the built-in
+      # mapping forever, and `category_buckets` validates values against BUCKETS
+      # so there is no legal way to spell "no override" as a value.
+      buckets.delete(category.id.to_s)
+    else
+      buckets[category.id.to_s] = bucket_params[:bucket].to_s
+    end
 
     if setting.update(category_buckets: buckets)
       redirect_to financial_planning_path, notice: t(".bucket_updated")
@@ -80,6 +90,13 @@ class FinancialPlanningController < ApplicationController
   private
     def bucket_params
       params.permit(:category_id, :bucket)
+    end
+
+    # The bucket select offers "back to default" alongside the three buckets, so
+    # "unassigned" has to be distinguishable from a real bucket without being
+    # submitted as a value the model would accept.
+    def reset_bucket?
+      bucket_params[:bucket].to_s == PlanningSetting::RESET_BUCKET
     end
 
     def current_month_period

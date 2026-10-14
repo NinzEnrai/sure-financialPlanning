@@ -68,4 +68,8 @@
              amount: format_money(Money.new(unassigned.sum { |e| e[:total].to_f }, Current.family.currency))) %>
     <% end %>
   <% end %>
+
+  <%= render "financial_planning/bucket_picker",
+             analyzer: analyzer,
+             setting: Current.family.planning_setting || Current.family.build_planning_setting %>
 <% end %>

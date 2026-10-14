@@ -93,6 +93,37 @@ class FinancialPlanning::BudgetAnalyzer
     spend_by_category.reject { |entry| entry[:bucket].nil? }
   end
 
+  # Every category the family owns, for the bucket picker -- not just the ones
+  # that spent this period. Assigning a bucket before the first purchase is the
+  # point of the picker; waiting for a transaction to categorise would mean the
+  # default silently decided the first one.
+  #
+  # Spending categories lead, largest first, because they are the ones currently
+  # moving the split. The rest follow alphabetically so they stay findable
+  # without being buried under whatever happened to spend this month.
+  #
+  # Subcategories are excluded because their parent row already carries their
+  # spend, so the parent and the child would otherwise appear as two rows
+  # competing to be assigned.
+  def bucketed_categories
+    @bucketed_categories ||= begin
+      spent = spend_by_category.to_h { |entry| [ entry[:category].id, entry[:total].to_f ] }
+
+      family.categories
+        .reject(&:subcategory?)
+        .sort_by { |category| [ spent.key?(category.id) ? 0 : 1, -(spent[category.id] || 0), category.name.to_s.downcase ] }
+        .map do |category|
+          {
+            category: category,
+            bucket: planning_setting.bucket_for(category, key: category.default_i18n_key),
+            default_bucket: PlanningSetting::DEFAULT_BUCKETS[category.default_i18n_key],
+            overridden: planning_setting.bucket_override?(category),
+            total: spent[category.id] || 0
+          }
+        end
+    end
+  end
+
   # Every category that spent in the period, bucketed, largest first.
   def spend_by_category
     @spend_by_category ||= expense_category_totals.map do |ct|

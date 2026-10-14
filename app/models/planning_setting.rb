@@ -7,6 +7,42 @@ class PlanningSetting < ApplicationRecord
   BUCKETS = %w[needs wants savings].freeze
   TARGET_SHARE_PCT = { "needs" => 50, "wants" => 30, "savings" => 20 }.freeze
 
+  # Submitted by the bucket picker to mean "drop my override and go back to the
+  # built-in mapping". Deliberately not a member of BUCKETS: the model validates
+  # that every stored value is a real bucket, so a reset has to be expressed as
+  # an absent key rather than as a value to store.
+  RESET_BUCKET = "__default__".freeze
+
+  # The flavours of financial independence, and what each one assumes.
+  #
+  # `withdrawal_rate_pct` is the default a family gets when they pick the
+  # variant. It is a starting point, not a lock -- a family who tunes the rate by
+  # hand keeps their value, because the form only overwrites it on the transition
+  # into a new variant.
+  #
+  # The rates are the commonly-cited numbers for each style rather than a claim
+  # about anyone's circumstances:
+  #
+  #   lean      ~30x -- deliberately austere, so a lower rate still covers it
+  #   coast     25x, but the goal is reaching it *by an age* rather than at any
+  #             age, then coasting to retirement on growth alone
+  #   barista   ~15x -- the portfolio only has to stretch part-time work over the
+  #             gap, so the target is deliberately lower
+  #   standard  25x -- the classic 4% rule
+  #   fat       ~33x -- a richer lifestyle funded by a lower rate
+  #
+  # `needs_target_age` marks Coast FIRE as the one variant measured against a
+  # date rather than a multiple.
+  FIRE_VARIANTS = {
+    "lean" => { withdrawal_rate_pct: 3.3, needs_target_age: false },
+    "coast" => { withdrawal_rate_pct: 4.0, needs_target_age: true },
+    "barista" => { withdrawal_rate_pct: 6.5, needs_target_age: false },
+    "standard" => { withdrawal_rate_pct: 4.0, needs_target_age: false },
+    "fat" => { withdrawal_rate_pct: 3.0, needs_target_age: false }
+  }.freeze
+
+  DEFAULT_FIRE_VARIANT = "standard".freeze
+
   # Default bucket for each of Sure's built-in categories. Keyed by the exact
   # value Category#default_i18n_key returns -- the full I18n key, not the short
   # suffix -- because a default category persists a translated name and a family

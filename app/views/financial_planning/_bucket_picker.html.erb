@@ -1,0 +1,84 @@
+<%# locals: (analyzer:, setting:) %>
+<%# Bucket assignment, per category. The analyzer card only reports totals, so
+    this is where a family decides that their gym and hobbies are needs rather
+    than wants.
+
+    Each row is its own auto-submitting form: a change to one category shouldn't
+    resubmit the other twenty, and a single form over the whole list would put
+    every untouched category's value back on top of the family's real overrides.
+
+    The "default" option drops the override rather than storing a sentinel, so a
+    category released back to Sure's built-in mapping stops shadowing it. %>
+<%= render DS::Disclosure.new(variant: :card_inset, class: "mt-4") do |disclosure| %>
+  <% disclosure.with_summary_content do %>
+    <div class="flex items-center gap-2">
+      <%= icon "sliders-horizontal", size: "sm", color: "secondary" %>
+      <p class="text-sm font-medium text-primary"><%= t(".title") %></p>
+      <% if setting.category_buckets.any? %>
+        <%= render DS::Pill.new(label: t(".override_count", count: setting.category_buckets.size),
+                               tone: :info, size: :sm, marker: false) %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <p class="text-xs text-secondary mt-3"><%= t(".description") %></p>
+
+  <div class="mt-3 divide-y divide-subdued">
+    <% analyzer.bucketed_categories.each do |entry| %>
+      <% category = entry[:category] %>
+      <% selected = entry[:overridden] ? entry[:bucket] : PlanningSetting::RESET_BUCKET %>
+
+      <div class="py-2.5 flex items-center justify-between gap-3">
+        <div class="min-w-0 flex items-center gap-2">
+          <% if category.lucide_icon %>
+            <span style="color: <%= category.color %>">
+              <%= icon category.lucide_icon, size: "sm", color: "current" %>
+            </span>
+          <% else %>
+            <span class="text-xs uppercase text-secondary w-4 text-center"><%= category.display_name.first %></span>
+          <% end %>
+          <div class="min-w-0">
+            <p class="text-sm text-primary truncate"><%= category.name %></p>
+            <p class="text-xs text-subdued tabular-nums">
+              <% if entry[:total].positive? %>
+                <%= t(".spent", amount: format_money(Money.new(entry[:total], Current.family.currency), precision: 0)) %>
+              <% else %>
+                <%= t(".no_spend") %>
+              <% end %>
+            </p>
+          </div>
+        </div>
+
+        <%= styled_form_with url: bucket_financial_planning_path,
+                             method: :patch,
+                             class: "shrink-0",
+                             data: { controller: "auto-submit-form" } do |form| %>
+          <%= form.hidden_field :category_id, value: category.id %>
+
+          <%# The label carries the effective bucket as well as the override
+              state, so a category reassigned away from its default reads as
+              "Needs" rather than as a silently-ignored choice. %>
+          <% default_label = if entry[:default_bucket]
+                t(".reset_to", bucket: t("planning_setting.buckets.#{entry[:default_bucket]}"))
+              else
+                t(".reset_unassigned")
+              end %>
+
+          <%= form.select :bucket,
+              options_for_select(
+                [ [ default_label, PlanningSetting::RESET_BUCKET ] ] +
+                  PlanningSetting::BUCKETS.map { |b| [ t("planning_setting.buckets.#{b}"), b ] },
+                selected
+              ),
+              {},
+              class: "text-xs rounded-lg border border-primary bg-container-inset text-primary px-2 py-1.5",
+              aria: { label: t(".label_for", name: category.name) } %>
+
+          <%= form.submit t(".apply"), class: "sr-only" %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <p class="text-xs text-subdued mt-3"><%= t(".footnote") %></p>
+<% end %>
