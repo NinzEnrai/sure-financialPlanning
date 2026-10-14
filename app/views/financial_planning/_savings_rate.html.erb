@@ -1,7 +1,11 @@
 <%# locals: (rate:, year_to_date:) %>
-<%# Savings rate = (income - expenses) / income, for the current month and for
-    the year to date. Both figures come from the same IncomeStatement scoping,
-    so they can be compared directly. %>
+<%# Cash savings rate for the current month and for the year to date, both from
+    the same IncomeStatement scoping so they compare directly.
+
+    Contributions into investments are held apart from spending: the headline is
+    cash only, and the "incl. investments" line below it shows what was actually
+    kept once investing is counted. Every figure on a tile comes from one
+    SavingsRate instance, so they can't disagree with each other. %>
 <%= render DS::Card.new do %>
   <div class="flex items-center justify-between gap-3">
     <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
@@ -20,11 +24,59 @@
           <% end %>
         </p>
         <p class="text-xs text-secondary tabular-nums privacy-sensitive">
-          <%= t(".savings_of", amount: format_money(figure.savings_money)) %>
+          <%= t(".savings_of", amount: format_money(figure.cash_savings_money)) %>
         </p>
+
+        <% if figure.invested.positive? %>
+          <div class="pt-1 mt-1 border-t border-subdued space-y-1">
+            <p class="text-xs text-secondary tabular-nums privacy-sensitive">
+              <%= t(".invested_of", amount: format_money(figure.invested_money)) %>
+            </p>
+            <p class="text-xs text-secondary tabular-nums privacy-sensitive">
+              <% if figure.total_percent.nil? %>
+                <%= t(".total_saved_amount", amount: format_money(figure.savings_money)) %>
+              <% else %>
+                <%= t(".total_saved", percent: number_to_percentage(figure.total_percent, precision: 1), amount: format_money(figure.savings_money)) %>
+              <% end %>
+            </p>
+          </div>
+        <% end %>
       </div>
     <% end %>
   </div>
+
+  <%# Twelve months of both rates on one axis. The dashed line never sits below
+      the solid one -- investing is a way of saving -- so the vertical gap between
+      them is that month's investing made visible. %>
+  <% monthly = rate.monthly_series(months: 12) %>
+  <% if monthly.size >= 2 %>
+    <div class="w-full h-56 mt-4 privacy-sensitive"
+      data-controller="savings-rate-chart"
+      data-savings-rate-chart-aria-label-value="<%= t(".chart_aria") %>"
+      data-savings-rate-chart-month-format-value="<%= t(".chart_month") %>"
+      data-savings-rate-chart-solid-label-value="<%= t(".chart_solid") %>"
+      data-savings-rate-chart-dashed-label-value="<%= t(".chart_dashed") %>"
+      data-savings-rate-chart-data-value="<%= {
+        currency: Current.family.currency,
+        description: t(".chart_description"),
+        series: monthly.map { |row|
+          {
+            date: row[:date].to_s,
+            tooltip_date: l(row[:date], format: "%B %Y"),
+            # to_f, not the raw value: a BigDecimal rides through #to_json as a
+            # *string*, and the chart then does d3.max over strings, which
+            # compares lexicographically and makes the subtraction NaN -- the
+            # whole plot silently disappears while the legend still draws.
+            percent: row[:percent]&.to_f,
+            total_percent: row[:total_percent]&.to_f,
+            cash_label: format_money(Money.new(row[:cash_savings], Current.family.currency), precision: 0),
+            total_label: format_money(Money.new(row[:savings], Current.family.currency), precision: 0)
+          }
+        }
+      }.to_json %>">
+    </div>
+    <p class="text-xs text-subdued mt-2"><%= t(".chart_note") %></p>
+  <% end %>
 
   <% if rate.income.positive? %>
     <div class="mt-4">

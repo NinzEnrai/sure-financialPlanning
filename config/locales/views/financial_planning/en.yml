@@ -12,9 +12,18 @@ en:
       year_to_date: Year to date
       unavailable: No data
       savings_of: "%{amount} saved"
+      invested_of: "%{amount} invested"
+      total_saved: "%{percent} saved (%{amount}) incl. investments"
+      total_saved_amount: "%{amount} saved incl. investments"
       target_hint: The 50/30/20 guideline puts 20% of income into savings.
       no_income: No income recorded for this month yet.
       bar_label: "%{label} savings rate"
+      chart_aria: Monthly savings rate over the last twelve months
+      chart_description: Two lines over twelve months. The solid line is the share of income kept as cash. The dashed line is the same figure counting money moved into investments, which is why it never sits below the solid one.
+      chart_month: "%b"
+      chart_solid: Saved
+      chart_dashed: Saved incl. investments
+      chart_note: A month with no income recorded is left blank rather than drawn as 0%, because a rate against no income cannot be computed.
     budget_analyzer:
       title: 50/30/20 Budget
       unavailable: No data
