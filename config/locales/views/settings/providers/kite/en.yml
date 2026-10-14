@@ -1,0 +1,15 @@
+---
+en:
+  settings:
+    providers:
+      taglines:
+        kite: Sync your Zerodha equity and Coin mutual fund holdings directly, read-only.
+      kite_panel:
+        connected: Zerodha is connected. Your portfolio is syncing.
+        expired: Your Zerodha session has expired. Log in again to resume syncing.
+        login_button: Log in to Zerodha
+        disconnect: Disconnect
+        disconnect_confirm: Remove the Zerodha connection? Synced holdings will be unlinked from your accounts.
+        daily_hint: Zerodha sessions expire daily, so reconnect once per trading day to keep your portfolio syncing.
+        accounts_link: View linked accounts
+        credentials_missing: Zerodha API credentials are not set on this server. Add KITE_API_KEY and KITE_API_SECRET to the environment and restart the app.

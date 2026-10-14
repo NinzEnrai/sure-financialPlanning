@@ -1,0 +1,10 @@
+---
+en:
+  kite:
+    callbacks:
+      # Lazy lookup from Kite::CallbacksController, so these resolve under
+      # kite.callbacks.* -- not settings.kite_connections.*.
+      connected: Zerodha connected! Your portfolio is syncing now.
+      cancelled: The Zerodha login was cancelled or failed.
+      login_failed: "Could not log in to Zerodha: %{message}"
+      unexpected: Something went wrong completing the Zerodha connection.

@@ -70,6 +70,18 @@ Sidekiq.configure_server do |config|
   rescue => e
     Rails.logger.error("[AutoSyncScheduler] Failed to initialize: #{e.message}")
   end
+
+  # Zerodha Kite recurring jobs. Registered separately from AutoSyncScheduler
+  # because their schedules are fixed rather than user-configurable, and they
+  # are safe to register unconditionally: KiteItem.syncable gates the actual
+  # work, so these tick harmlessly until a family completes its daily login.
+  config.on(:startup) do
+    Kite::SyncScheduler.sync!
+    Rails.logger.info("[Kite::SyncScheduler] Initialized Kite cron jobs")
+  rescue => e
+    # Never fatal: a family without Zerodha must still boot.
+    Rails.logger.error("[Kite::SyncScheduler] Failed to initialize: #{e.message}")
+  end
 end
 
 Sidekiq.configure_client do |config|

@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
-module Provider
+require "cgi"
+require "digest"
+
+class Provider
   module Kite
     # Handles the Kite Connect login handshake:
     #   1. #login_url            -> send the user here
@@ -51,7 +54,7 @@ module Provider
 
       private
 
-      attr_reader :connection
+        attr_reader :connection
     end
   end
 end

@@ -130,6 +130,11 @@ module SettingsHelper
     when "questrade"
       return { status: :off } unless @questrade_items&.any?
       sync_based_summary(key)
+    when "kite"
+      # Kite is one item per family rather than a collection, so load_provider_items
+      # wraps it in an array -- same shape as every other panel here.
+      return { status: :off } unless @kite_items&.any?
+      sync_based_summary(key)
     else
       { status: :off }
     end

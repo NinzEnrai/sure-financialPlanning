@@ -1,0 +1,60 @@
+<div id="kite-providers-panel" class="space-y-4">
+  <%# Credentials are read from KITE_API_KEY / KITE_API_SECRET in the
+      environment, never stored, so there is nothing to save here -- only the
+      daily Zerodha login to hand off. %>
+  <% kite_item = @kite_item || Current.family.kite_item %>
+
+  <% if KiteItem.credentials_configured? %>
+    <% if kite_item&.persisted? && kite_item.token_valid? %>
+      <%= render DS::Alert.new(variant: :success) do %>
+        <p><%= t(".connected") %></p>
+      <% end %>
+    <% elsif kite_item&.persisted? && kite_item.requires_update? %>
+      <%= render DS::Alert.new(variant: :warning) do %>
+        <p><%= t(".expired") %></p>
+        <% if kite_item.last_error.present? %>
+          <p class="text-sm"><%= kite_item.last_error %></p>
+        <% end %>
+      <% end %>
+    <% end %>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <%= render DS::Link.new(
+            text: t(".login_button"),
+            href: connect_settings_kite_connection_path,
+            variant: "primary",
+            icon: "external-link"
+          ) %>
+
+      <% if kite_item&.persisted? %>
+        <%= button_to t(".disconnect"),
+                      settings_kite_connection_path,
+                      method: :delete,
+                      class: "inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-destructive hover:bg-destructive/10 rounded-lg",
+                      form: { data: { turbo_confirm: t(".disconnect_confirm") } } %>
+      <% end %>
+    </div>
+
+    <p class="text-sm text-secondary"><%= t(".daily_hint") %></p>
+
+    <% if kite_item&.persisted? %>
+      <div class="flex items-center gap-2">
+        <% if kite_item.token_valid? %>
+          <div class="w-2 h-2 bg-success rounded-full"></div>
+        <% else %>
+          <div class="w-2 h-2 bg-surface-inset rounded-full"></div>
+        <% end %>
+        <p class="text-sm text-secondary">
+          <%= kite_item.sync_status_summary %>
+          <% if kite_item.accounts.any? %>
+            <%= link_to t(".accounts_link"), accounts_path, class: "text-link underline" %>
+          <% end %>
+        </p>
+      </div>
+    <% end %>
+  <% else %>
+    <%= render DS::Alert.new(variant: :warning) do %>
+      <p><%= t(".credentials_missing") %></p>
+    <% end %>
+  <% end %>
+</div>

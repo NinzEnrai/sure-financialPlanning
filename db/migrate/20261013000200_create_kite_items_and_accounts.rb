@@ -8,26 +8,35 @@
 # they map to two different `Account` records on your side -- one Investment account for equities,
 # one for mutual funds -- same way snaptrade_accounts has one row per brokerage sub-account).
 #
-# GAP: I don't have your `account_providers` table definition (it's referenced by
-# `holdings.account_provider_id` but wasn't in the schema excerpt you shared, since the paste
-# started at `family_documents` alphabetically -- `account_providers` sorts earlier). The newer
-# providers in your app (SnapTrade, Mercury, etc.) appear to link into `accounts` through
-# `account_providers` rather than a direct FK column on `accounts` itself (only plaid_accounts and
-# simplefin_accounts get a direct FK per your `add_foreign_key "accounts", ...` list). Once you
-# share `account_providers`' columns (and ideally the SnapTrade model, since it's architecturally
-# closest to Kite -- both are brokerage-holdings providers), I'll wire `kite_accounts` into it the
-# same way rather than leaving that connection unspecified.
-class CreateKiteItemsAndAccounts < ActiveRecord::Migration[7.1]
+# CONFIRMED against db/schema.rb: `account_providers` has the (provider_type, provider_id,
+# account_id) polymorphic columns plus a unique index on each pair, so KiteAccount links into
+# `accounts` the same way SnaptradeAccount does. No change needed on that table -- KiteAccount
+# only has to be a valid `provider_type` value, which is a Ruby-level concern (the model's
+# class name), not a schema one.
+#
+# An earlier `kite_connections` migration was dropped: it stored the same api_key/api_secret/
+# access_token as this table, and nothing referenced it. One credential store, not two.
+class CreateKiteItemsAndAccounts < ActiveRecord::Migration[8.1]
   def change
     create_table :kite_items, id: :uuid, default: -> { "gen_random_uuid()" } do |t|
-      t.references :family, type: :uuid, null: false, foreign_key: true
+      # One item per family. The uniqueness is declared here rather than as a
+      # separate add_index below, because t.references already emits an index
+      # named index_kite_items_on_family_id -- a standalone add_index on the
+      # same column would collide on that name.
+      t.references :family, type: :uuid, null: false, foreign_key: true, index: { unique: true }
       t.string   :name # user-facing label, e.g. "Zerodha" -- mirrors plaid_items.name / snaptrade_items.name
 
-      # Rails ActiveRecord::Encryption via `encrypts` in the model, same pattern your
-      # plaid_items.access_token / snaptrade_items.snaptrade_user_secret already use
-      # (plain `string`/`text` columns, no `encrypted_` prefix needed).
-      t.string   :api_key
-      t.string   :api_secret
+      # Deliberately NO api_key / api_secret columns. Those are deployment-wide,
+      # long-lived and set once, so they live in the environment
+      # (KITE_API_KEY / KITE_API_SECRET) and never touch the database. Anything
+      # in a column ends up in pg_dump backups and in any restore onto another
+      # machine; the daily session token below is the only secret persisted, and
+      # it expires every trading day.
+      #
+      # access_token is encrypted via `encrypts` in the model when ActiveRecord
+      # encryption is configured (plain `:text` column, no `encrypted_` prefix
+      # needed). It falls back to plaintext when encryption is not configured,
+      # which is acceptable only because of that day-scoped lifetime.
       t.text     :access_token
       t.string   :kite_user_id
 
@@ -48,7 +57,6 @@ class CreateKiteItemsAndAccounts < ActiveRecord::Migration[7.1]
       t.timestamps
     end
     add_check_constraint :kite_items, "status IN ('good','requires_update')", name: "kite_items_status_check"
-    add_index :kite_items, :family_id, unique: true
 
     create_table :kite_accounts, id: :uuid, default: -> { "gen_random_uuid()" } do |t|
       t.references :kite_item, type: :uuid, null: false, foreign_key: true
@@ -62,11 +70,6 @@ class CreateKiteItemsAndAccounts < ActiveRecord::Migration[7.1]
       t.datetime :last_holdings_sync
       t.timestamps
     end
-    add_index :kite_accounts, [:kite_item_id, :segment], unique: true
-
-    # `account_providers` already supports this polymorphic linkage (provider_type: "KiteAccount",
-    # provider_id: kite_accounts.id, account_id: <Account>) per SnaptradeAccount's identical use --
-    # no new migration needed on that table, KiteAccount just needs to be a valid `provider_type`
-    # value, which is a Ruby-level concern (the model's class name), not a schema one.
+    add_index :kite_accounts, [ :kite_item_id, :segment ], unique: true
   end
 end

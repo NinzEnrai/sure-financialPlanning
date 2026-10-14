@@ -1,0 +1,13 @@
+---
+en:
+  models:
+    kite_item:
+      sync_status:
+        no_accounts: No Zerodha accounts connected yet
+        # `synced` is pluralized on count. `synced_with_setup` is not: it is
+        # called with linked/unlinked and no count:, and a one/other pair there
+        # would make I18n return the raw hash instead of a string.
+        synced:
+          one: 1 Zerodha account connected
+          other: "%{count} Zerodha accounts connected"
+        synced_with_setup: "%{linked} Zerodha accounts connected, %{unlinked} still need setup"

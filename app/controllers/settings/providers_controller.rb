@@ -213,7 +213,8 @@ class Settings::ProvidersController < ApplicationController
       { key: "trade_republic", title: "Trade Republic",  turbo_id: "trade-republic", partial: "trade_republic_panel" },
       { key: "indexa_capital", title: "Indexa Capital",  turbo_id: "indexa_capital", partial: "indexa_capital_panel" },
       { key: "sophtron",       title: "Sophtron",        turbo_id: "sophtron",       partial: "sophtron_panel" },
-      { key: "questrade",      title: "Questrade",       turbo_id: "questrade",      partial: "questrade_panel" }
+      { key: "questrade",      title: "Questrade",       turbo_id: "questrade",      partial: "questrade_panel" },
+      { key: "kite",           title: "Zerodha",        turbo_id: "kite",           partial: "kite_panel" }
     ].freeze
 
     FAMILY_PANEL_KEYS = FAMILY_PANELS.map { |p| p[:key] }.freeze
@@ -244,7 +245,8 @@ class Settings::ProvidersController < ApplicationController
       "trading212"     => "Trading212Item",
       "trade_republic" => "TradeRepublicItem",
       "indexa_capital" => "IndexaCapitalItem",
-      "sophtron"       => "SophtronItem"
+      "sophtron"       => "SophtronItem",
+      "kite"           => "KiteItem"
     }.freeze
 
     def load_provider_items(provider_key)
@@ -297,6 +299,11 @@ class Settings::ProvidersController < ApplicationController
         @sophtron_items = Current.family.sophtron_items.ordered
       when "questrade"
         @questrade_items = Current.family.questrade_items.active.ordered
+      when "kite"
+        # One Zerodha login per family, so a single optional item rather than a
+        # collection. Wrapped in an array so the shared panel-loading code can
+        # treat it like every other provider.
+        @kite_items = [ Current.family.kite_item ].compact
       end
     end
 
@@ -380,6 +387,7 @@ class Settings::ProvidersController < ApplicationController
         "onchain_wallet" => @onchain_wallet_items,
         "snaptrade"      => @snaptrade_items,
         "questrade"      => @questrade_items,
+        "kite"           => @kite_items,
         "ibkr"           => @ibkr_items,
         "trading212"     => @trading212_items,
         "trade_republic" => @trade_republic_items,

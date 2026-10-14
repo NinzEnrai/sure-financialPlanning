@@ -1,5 +1,13 @@
-# Additions for whatever recurring-job mechanism Sure already uses -- translate to
-# config/recurring.yml or your existing cron pattern if this app doesn't use sidekiq-cron.
+# SUPERSEDED by Kite::SyncScheduler (services/kite_sync_scheduler.rb), which
+# registers these same two jobs with sidekiq-cron using the same
+# Sidekiq::Cron::Job.create pattern as AutoSyncScheduler.
+#
+# This file is kept only as the record of the intended schedules. Nothing reads
+# it. To finish wiring the Kite integration, add a `Kite::SyncScheduler.sync!`
+# call next to the `AutoSyncScheduler.sync!` call in
+# config/initializers/sidekiq.rb's Sidekiq.configure_server startup block --
+# but only after the kite files have been promoted out of wip/, or the boot
+# will fail on an unresolved constant.
 
 kite_sync_portfolio:
   cron: "*/20 * * * *"   # covers equity holdings/positions, Coin MF, and trade history in one pass

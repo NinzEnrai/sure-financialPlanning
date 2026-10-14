@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Provider
+class Provider
   module Kite
     class MutualFundSync
       def initialize(kite_item, kite_account)
@@ -13,6 +13,12 @@ module Provider
         account = kite_account.current_account
         return unless account
 
+        # Same reason as HoldingsSync: provider-authored rows must carry the
+        # AccountProvider link or the balance materializer treats them as
+        # calculated rows and the unlinker cannot detach them.
+        account_provider = account.account_providers.find_by(provider_type: "KiteAccount")
+        return if account_provider.nil?
+
         as_of = Date.current
 
         mf_holdings.each do |row|
@@ -24,6 +30,7 @@ module Provider
           next if holding.persisted? && holding.security_locked?
 
           holding.external_id = "kite_mf:#{row['folio']}:#{security.amfi_scheme_code}"
+          holding.account_provider_id = account_provider.id
           holding.qty = units
           holding.price = nav
           holding.amount = (units * nav).round(2)
@@ -37,22 +44,22 @@ module Provider
 
       private
 
-      attr_reader :kite_item, :kite_account, :client
+        attr_reader :kite_item, :kite_account, :client
 
-      def mf_holdings
-        @mf_holdings ||= client.get("/mf/holdings")["data"] || []
-      end
-
-      def find_or_create_fund(row)
-        scheme_code = row["tradingsymbol"] || row["fund"]
-        Security.find_or_create_by!(amfi_scheme_code: scheme_code) do |sec|
-          sec.ticker = scheme_code
-          sec.name = row["fund"]
-          sec.isin = row["isin"]
-          sec.is_mutual_fund = true
-          sec.country_code = "IN"
+        def mf_holdings
+          @mf_holdings ||= client.get("/mf/holdings")["data"] || []
         end
-      end
+
+        def find_or_create_fund(row)
+          scheme_code = row["tradingsymbol"] || row["fund"]
+          Security.find_or_create_by!(amfi_scheme_code: scheme_code) do |sec|
+            sec.ticker = scheme_code
+            sec.name = row["fund"]
+            sec.isin = row["isin"]
+            sec.is_mutual_fund = true
+            sec.country_code = "IN"
+          end
+        end
     end
   end
 end

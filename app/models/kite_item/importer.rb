@@ -20,6 +20,8 @@ class KiteItem::Importer
     Provider::Kite::TradeImporter.new(kite_item, equity_account).call
     Provider::Kite::MutualFundSync.new(kite_item, mf_account).call
 
+    schedule_balance_syncs
+
     kite_item.mark_active!
   rescue Provider::Kite::Client::AuthenticationExpired
     # KiteItem already moved to requires_update inside the client; nothing further to do.
@@ -30,5 +32,18 @@ class KiteItem::Importer
 
   private
 
-  attr_reader :kite_item, :sync
+    attr_reader :kite_item, :sync
+
+    # An Investment account's balance is *derived* from its holdings by
+    # Balance::Materializer, not stored directly. Writing holdings alone leaves
+    # the account reading 0.00 -- invisible in the accounts list and excluded
+    # from net worth, FIRE and the wealth projection. Enqueueing the account
+    # sync is what turns the new holdings into a balance.
+    def schedule_balance_syncs
+      kite_item.accounts.each do |account|
+        next if account.syncing?
+
+        account.sync_later(parent_sync: sync)
+      end
+    end
 end

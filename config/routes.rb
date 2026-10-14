@@ -162,6 +162,10 @@ Rails.application.routes.draw do
     end
   end
 
+  # Zerodha redirects here after the daily login. This exact URL has to be
+  # registered as the "Redirect URL" on the user's Kite Connect developer app.
+  get "kite/callback", to: "kite/callbacks#show", as: :kite_callback
+
   resources :snaptrade_items, only: [ :index, :show, :destroy ] do
     collection do
       get :preload_accounts
@@ -406,6 +410,13 @@ Rails.application.routes.draw do
     resource :ai_prompts, only: %i[show update]
     resource :llm_usage, only: :show
     resource :guides, only: :show
+    # Zerodha Connect. One login per family, so a singular resource. Credentials
+    # come from the environment, so there is no create/update action -- only the
+    # page, the login hand-off and disconnect. `show` (not `edit`) so the page
+    # sits at /settings/kite_connection, matching the other settings resources.
+    resource :kite_connection, controller: "kite_connections", only: %i[show destroy] do
+      get :connect, on: :collection
+    end
     get "bank_sync", to: redirect("/settings/providers", status: 301)
     resource :providers, only: %i[show update] do
       collection do

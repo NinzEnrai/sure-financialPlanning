@@ -1,0 +1,48 @@
+<%= content_for :page_title, t("settings.kite_connections.title") %>
+
+<%= settings_section(
+      title: t("settings.kite_connections.connection_title"),
+      subtitle: t("settings.kite_connections.section_subtitle")
+    ) do %>
+  <div class="space-y-4">
+    <% if @item.persisted? && @item.token_valid? %>
+      <%= render DS::Alert.new(variant: :success) do %>
+        <p><%= t("settings.kite_connections.connected_alert") %></p>
+      <% end %>
+    <% elsif @item.persisted? && @item.requires_update? %>
+      <%= render DS::Alert.new(variant: :warning) do %>
+        <p><%= t("settings.kite_connections.expired_alert") %></p>
+        <% if @item.last_error.present? %>
+          <p class="text-sm"><%= @item.last_error %></p>
+        <% end %>
+      <% end %>
+    <% end %>
+
+    <%# Zerodha's session token dies at the next trading day's login-window reset,
+        so "connected" is a daily state rather than a permanent one. %>
+    <% if @item.credentials_configured? %>
+      <div class="flex items-center gap-2 flex-wrap">
+        <%= render DS::Link.new(
+              text: t("settings.kite_connections.login_button"),
+              href: connect_settings_kite_connection_path,
+              variant: "primary",
+              icon: "external-link"
+            ) %>
+
+        <% if @item.persisted? %>
+          <%= button_to t("settings.kite_connections.disconnect_button"),
+                        settings_kite_connection_path,
+                        method: :delete,
+                        class: "btn btn--ghost text-destructive",
+                        form: { data: { turbo_confirm: t("settings.kite_connections.disconnect_confirm") } } %>
+        <% end %>
+      </div>
+
+      <p class="text-sm text-secondary"><%= t("settings.kite_connections.daily_login_hint") %></p>
+    <% else %>
+      <%= render DS::Alert.new(variant: :warning) do %>
+        <p><%= t("settings.kite_connections.credentials_missing") %></p>
+      <% end %>
+    <% end %>
+  </div>
+<% end %>

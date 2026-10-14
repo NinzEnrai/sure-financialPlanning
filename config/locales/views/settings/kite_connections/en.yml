@@ -1,0 +1,19 @@
+---
+en:
+  settings:
+    kite_connections:
+      title: Zerodha (Kite Connect)
+      connection_title: Zerodha connection
+      section_subtitle: Zerodha's session expires each trading day, so reconnecting daily keeps your portfolio syncing.
+      login_button: Log in to Zerodha
+      disconnect_button: Disconnect
+      disconnect_confirm: Remove the Zerodha connection? Synced holdings will be unlinked from your accounts.
+      daily_login_hint: Zerodha sessions expire daily, so reconnect once per trading day to keep your portfolio syncing.
+      connected_alert: Zerodha is connected. Your portfolio is syncing.
+      expired_alert: Your Zerodha session has expired. Log in again to resume syncing.
+      credentials_missing: Zerodha API credentials are not set on this server. Add KITE_API_KEY and KITE_API_SECRET to the environment and restart the app.
+      connected: Zerodha connected! Your portfolio is syncing now.
+      not_configured: Zerodha is not set up on this server yet.
+      cancelled: The Zerodha login was cancelled or failed.
+      login_failed: "Could not log in to Zerodha: %{message}"
+      removed: Zerodha connection removed.
