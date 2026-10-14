@@ -141,6 +141,32 @@ class IncomeStatement
     totals(transactions_scope: scope, date_range: period.date_range)
   end
 
+  # Cash invested (SIPs, transfers into brokerage/crypto accounts, round-ups)
+  # for a period, separated out of the expense total by kind. Expense totals
+  # still include these amounts; this exists so a caller can tell saving into
+  # investments apart from money actually spent, without changing how the
+  # statement classifies anything. Same scoping as `totals_for`, so the amount
+  # returned is always a subset of that period's `expense_money`.
+  def investment_contributions_total(period, account_ids: nil)
+    cache_key = [ period.start_date, period.end_date, account_ids&.sort ]
+
+    @investment_contributions_totals ||= {}
+    @investment_contributions_totals[cache_key] ||= Rails.cache.fetch([
+      "income_statement", "investment_contributions_total", family.id, user&.id,
+      included_account_ids_hash, cache_key, *cache_freshness_key
+    ]) do
+      scope = family.transactions.visible.excluding_pending.in_period(period)
+      scope = scope.where(entries: { account_id: account_ids }) if account_ids.present?
+
+      InvestmentContributionsTotal.new(
+        family,
+        transactions_scope: scope,
+        date_range: period.date_range,
+        included_account_ids: included_account_ids
+      ).call
+    end
+  end
+
   # Accounts actually reflected in totals/totals_for: visible, not excluded
   # from reports, not tax-advantaged, and (when scoped to a user) included in
   # that user's finances. Callers offering an account filter (e.g. a
