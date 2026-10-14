@@ -87,6 +87,60 @@ class FinancialPlanning::FireProgress
     planning_setting.fire_withdrawal_rate_pct.to_f
   end
 
+  # Coast FIRE is measured against a date rather than a multiple: the question is
+  # not "when do I get there" but "will it be there by the year I picked".
+  def coast_fire?
+    planning_setting.coast_fire?
+  end
+
+  def target_year
+    planning_setting.fire_target_year
+  end
+
+  # End of the target year, so a family gets all of it rather than being judged
+  # against 1 January.
+  def target_date
+    return nil unless coast_fire? && target_year
+
+    Date.new(target_year, 12, 31)
+  end
+
+  # Months to that date. Nil once the year has gone -- there is no horizon left
+  # to measure against, and a negative month count would report a family as
+  # "on track" for a date that has already passed.
+  def months_until_target_date
+    date = target_date
+    return nil if date.nil?
+
+    months = ((date.year - Date.current.year) * 12) + (date.month - Date.current.month)
+    months.negative? ? nil : months
+  end
+
+  # What the projection says net worth will be by the target date.
+  def projected_balance_at_target_date
+    months = months_until_target_date
+    return nil if months.nil?
+
+    simulator.balance_after_months(months)
+  end
+
+  def projected_balance_at_target_date_money
+    months = months_until_target_date
+    return nil if months.nil?
+
+    simulator.balance_after_months_money(months, currency)
+  end
+
+  # Nil when there's nothing to compare against: no target date, no horizon, or
+  # no savings pace to project. The view renders a placeholder rather than
+  # guessing -- "on track" against an unmeasurable date is worse than silence.
+  def coast_on_track?
+    projected = projected_balance_at_target_date
+    return nil if projected.nil?
+
+    projected >= target
+  end
+
   private
     attr_reader :balance_sheet, :income_statement, :planning_setting
 

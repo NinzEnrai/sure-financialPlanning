@@ -227,7 +227,70 @@ test "assigns a category bucket override to the family" do
     assert_equal 8.0, setting.annual_growth_rate_pct.to_f
   end
 
-  test "reports validation errors instead of persisting bad rates" do
+  test "switching FIRE variant carries that variant's withdrawal rate" do
+    setting = planning_settings(:active_family)
+
+    patch setting_financial_planning_path, params: {
+      planning_setting: { fire_variant: "fat" }
+    }
+
+    assert_redirected_to financial_planning_path
+    setting.reload
+    assert_equal "fat", setting.fire_variant
+    # A lower rate is the whole point of Fat FIRE; leaving the number at the 4%
+    # rule would move the label and nothing else.
+    assert_equal PlanningSetting::FIRE_VARIANTS.fetch("fat")[:withdrawal_rate_pct],
+      setting.fire_withdrawal_rate_pct.to_f
+  end
+
+test "re-saving the same variant keeps a hand-tuned rate" do
+    setting = planning_settings(:active_family)
+    setting.update!(fire_variant: "standard", fire_withdrawal_rate_pct: 3.7)
+
+    patch setting_financial_planning_path, params: {
+      planning_setting: { fire_variant: "standard", fire_withdrawal_rate_pct: 3.7 }
+    }
+
+    assert_equal 3.7, setting.reload.fire_withdrawal_rate_pct.to_f
+  end
+
+test "coast fire requires a target age" do
+    setting = planning_settings(:active_family)
+    setting.update!(fire_variant: "standard", fire_target_year: nil)
+
+    patch setting_financial_planning_path, params: { planning_setting: { fire_variant: "coast" } }
+
+    assert_redirected_to financial_planning_path
+    assert_equal "standard", setting.reload.fire_variant, "an invalid variant must not be persisted"
+  end
+
+test "coast fire saves with a target age" do
+    setting = planning_settings(:active_family)
+
+    patch setting_financial_planning_path, params: {
+      planning_setting: { fire_variant: "coast", fire_target_year: Date.current.year + 5 }
+    }
+
+    assert_redirected_to financial_planning_path
+    setting.reload
+    assert_equal "coast", setting.fire_variant
+    assert_equal Date.current.year + 5, setting.fire_target_year
+  end
+
+test "switching away from coast keeps the target age" do
+    setting = planning_settings(:active_family)
+    setting.update!(fire_variant: "coast", fire_target_year: Date.current.year + 5)
+
+    patch setting_financial_planning_path, params: { planning_setting: { fire_variant: "standard" } }
+
+    setting.reload
+    assert_equal "standard", setting.fire_variant
+    # Kept rather than wiped: switching back to Coast is normal, and the age is
+    # valid for the other variants, so there is nothing to gain by destroying it.
+    assert_equal Date.current.year + 5, setting.fire_target_year
+  end
+
+test "reports validation errors instead of persisting bad rates" do
     setting = planning_settings(:active_family)
 
     patch setting_financial_planning_path, params: {

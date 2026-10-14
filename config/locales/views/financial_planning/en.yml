@@ -54,6 +54,27 @@ en:
       rule: Rule
       rule_value: "%{multiple}x at %{rate}"
       remaining: Remaining
+      assumptions_title: Assumptions
+      variant_label: Type of FIRE
+      target_year_label: Target year
+      coast_target_date: Projected by %{year}
+      coast_date_passed: That year has already passed
+      coast_behind: On this pace you would miss the target age. Raising the savings rate, or extending the target age, would close the gap.
+      variants:
+        lean: Lean FIRE
+        coast: Coast FIRE
+        barista: Barista FIRE
+        standard: Standard FIRE
+        fat: Fat FIRE
+        lean_body: Fund a deliberately modest lifestyle, so a lower withdrawal rate still covers it.
+        coast_body: Reach the number by an age of your choosing, then coast to retirement on growth alone.
+        barista_body: Roughly 15x annual expenses, with part-time work covering the gap.
+        standard_body: The classic 4% rule — 25x your annual expenses.
+        fat_body: A richer lifestyle, funded by a lower withdrawal rate.
+      withdrawal_label: Withdrawal rate (% per year)
+      growth_label: Assumed annual growth (%)
+      save: Save assumptions
+      assumptions_hint: The withdrawal rate sets the target (annual expenses divided by the rate). The growth rate is what the wealth projection above assumes.
     wealth_projector:
       title: Wealth Projection
       subtitle: Where current savings could take you over the next 10 years.

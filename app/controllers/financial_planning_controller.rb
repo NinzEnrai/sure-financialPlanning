@@ -79,8 +79,26 @@ class FinancialPlanningController < ApplicationController
 
   def update_setting
     setting = Current.family.planning_setting || Current.family.build_planning_setting
+    attrs = setting_params
 
-    if setting.update(setting_params)
+    variant = attrs[:fire_variant].presence
+    if variant.present? && variant != setting.fire_variant
+      # Switching variant carries that variant's rate with it, otherwise picking
+      # "Fat FIRE" would silently leave the number at the 4% rule and the target
+      # unchanged -- the family would see the label change and nothing else. A
+      # hand-tuned rate survives because the form only overwrites on a *change*
+      # of variant.
+      attrs = attrs.merge(
+        fire_withdrawal_rate_pct: PlanningSetting::FIRE_VARIANTS.fetch(variant)[:withdrawal_rate_pct]
+      )
+    end
+
+    # The target year only means anything for Coast FIRE, but it is deliberately
+    # left in place for the other variants rather than cleared: switching away
+    # and back is a normal thing to do, and wiping it would make the family
+    # retype it. It stays valid there, and PlanningSetting only *requires* it
+    # when the variant is coast.
+    if setting.update(attrs)
       redirect_to financial_planning_path, notice: t(".setting_updated")
     else
       redirect_to financial_planning_path, alert: setting.errors.full_messages.to_sentence

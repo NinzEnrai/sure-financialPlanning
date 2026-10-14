@@ -79,8 +79,33 @@ class PlanningSetting < ApplicationRecord
 
   validates :fire_withdrawal_rate_pct, :annual_growth_rate_pct,
             numericality: { greater_than: 0, less_than_or_equal_to: 100 }
+  validates :fire_variant, inclusion: { in: FIRE_VARIANTS.keys }
+  validates :fire_target_year,
+            numericality: {
+              only_integer: true,
+              greater_than_or_equal_to: Date.current.year,
+              less_than_or_equal_to: Date.current.year + 60
+            },
+            allow_nil: true
   validate :category_buckets_are_known_buckets
   validate :category_buckets_belong_to_family
+
+  # Coast FIRE is the one variant measured against a date, so a target year is
+  # meaningless for the rest -- and required for it, because without one there is
+  # nothing to measure progress toward.
+  validate :coast_fire_requires_a_target_year
+
+  def fire_variant_config
+    FIRE_VARIANTS.fetch(fire_variant.presence || DEFAULT_FIRE_VARIANT)
+  end
+
+  def coast_fire?
+    fire_variant == "coast"
+  end
+
+  def needs_target_age?
+    fire_variant_config[:needs_target_age]
+  end
 
   # Cash needed to sustain the family's current lifestyle indefinitely at the
   # configured withdrawal rate. 25x at 4% -- the number the FIRE progress bar
@@ -127,6 +152,13 @@ class PlanningSetting < ApplicationRecord
   end
 
   private
+    def coast_fire_requires_a_target_year
+      return unless coast_fire?
+      return if fire_target_year.present?
+
+      errors.add(:fire_target_year, "is required for Coast FIRE, which targets a number by a date")
+    end
+
     def withdrawal_rate
       BigDecimal(fire_withdrawal_rate_pct.to_s) / 100
     end

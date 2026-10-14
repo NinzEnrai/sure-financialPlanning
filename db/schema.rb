@@ -1987,9 +1987,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_000100) do
     t.jsonb "category_buckets", default: {}, null: false
     t.datetime "created_at", null: false
     t.uuid "family_id", null: false
+    t.integer "fire_target_year"
+    t.string "fire_variant", default: "standard", null: false
     t.decimal "fire_withdrawal_rate_pct", precision: 5, scale: 2, default: "4.0", null: false
     t.datetime "updated_at", null: false
     t.index ["family_id"], name: "index_planning_settings_on_family_id", unique: true
+    t.check_constraint "fire_target_year IS NULL OR fire_target_year >= 2000 AND fire_target_year <= 2200", name: "planning_settings_fire_target_year_range"
   end
 
   create_table "properties", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
