@@ -9,10 +9,13 @@
     <p class="text-sm text-secondary mt-1"><%= t(".subtitle") %></p>
   </header>
 
+  <%# The FIRE card edits the family's saved assumptions, so it needs the
+      PlanningSetting record rather than deriving them again. %>
   <div class="grid grid-cols-1 @3xl:grid-cols-2 gap-4 items-stretch">
     <%= render "financial_planning/savings_rate", rate: @savings_rate,
                                                  year_to_date: @year_to_date_savings_rate %>
-    <%= render "financial_planning/fire_progress", fire: @fire_progress %>
+    <%= render "financial_planning/fire_progress", fire: @fire_progress,
+                                                  setting: @planning_setting %>
   </div>
 
   <%# Only the analyzer follows @period; savings rate, FIRE and the projection

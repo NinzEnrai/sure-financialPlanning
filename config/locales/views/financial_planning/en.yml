@@ -22,6 +22,17 @@ en:
       net_income: Net income
       unassigned_title: Unassigned categories
       unassigned_body: "%{count} categories (%{amount}) are not in Needs, Wants or Savings and are excluded from the split."
+    bucket_picker:
+      title: Customise buckets
+      description: Tell Sure which bucket each category belongs to. Needs and wants are ceilings, savings is a floor.
+      override_count: "%{count} customised"
+      spent: "%{amount} this period"
+      no_spend: Nothing spent this period
+      reset_to: "Default (%{bucket})"
+      reset_unassigned: Default (unassigned)
+      apply: Apply
+      label_for: Bucket for %{name}
+      footnote: Choosing a bucket overrides Sure's built-in mapping for that category. Choosing the default removes the override and lets the mapping apply again.
     fire_progress:
       title: FIRE Progress
       net_worth: Current net worth
@@ -46,6 +57,10 @@ en:
       chart_aria: Projected net worth over the next ten years
       chart_description: A line chart of projected net worth from the current balance over a ten year horizon.
       year_prefix: "Year "
+      monthly_investment: Monthly investment
+      monthly_investment_hint: Drag to explore what a different monthly contribution would do. Your actual pace comes from the Savings Rate card above.
+      annual_growth: Assumed annual growth
+      projected_balance: Balance after 10 years
   planning_setting:
     buckets:
       needs: Needs

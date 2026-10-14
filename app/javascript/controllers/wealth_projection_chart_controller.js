@@ -62,6 +62,14 @@ export default class extends Controller {
     }
   }
 
+  // Public: lets the compound calculator re-project without a page reload.
+  // Merges the new series into the existing value so the pre-rendered
+  // currency/aria strings the server shipped are preserved.
+  render(data) {
+    this.dataValue = { ...(this.dataValue || {}), ...data };
+    this._draw();
+  }
+
   _draw() {
     const root = this.element;
     root.innerHTML = "";

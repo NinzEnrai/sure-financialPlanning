@@ -17,12 +17,13 @@ class FinancialPlanning::WealthProjector
 
   attr_reader :family, :years, :opening_balance, :monthly_contribution
 
-  def initialize(family, user: nil, years: DEFAULT_YEARS, opening_balance: nil, monthly_contribution: nil)
+  def initialize(family, user: nil, years: DEFAULT_YEARS, opening_balance: nil, monthly_contribution: nil, growth_rate: nil)
     @family = family
     @user = user || Current.user
     @years = years
     @opening_balance = opening_balance
     @monthly_contribution = monthly_contribution
+    @growth_rate = growth_rate
   end
 
   def opening_balance
@@ -41,7 +42,10 @@ class FinancialPlanning::WealthProjector
   end
 
   def growth_rate_pct
-    (planning_setting.growth_rate * 100).round(2)
+    # Through #growth_rate rather than planning_setting directly, so the
+    # calculator's override is reflected in the displayed rate too -- not just in
+    # the projected balances.
+    (growth_rate * 100).round(2)
   end
 
   # Year 0 is today, so the chart starts from the net worth the family actually
@@ -58,6 +62,16 @@ class FinancialPlanning::WealthProjector
 
   def final_balance
     points.last.balance
+  end
+
+  # Currency-wrapped accessors for the views. The projector works in bare
+  # numbers so the maths stays exact; formatting is the view's job.
+  def final_balance_money(currency = family.currency)
+    Money.new(final_balance, currency)
+  end
+
+  def monthly_contribution_money(currency = family.currency)
+    Money.new(monthly_contribution, currency)
   end
 
   def months_to_target(target)
@@ -81,6 +95,18 @@ class FinancialPlanning::WealthProjector
     (years_needed * 12).ceil
   end
 
+  # Balance the projection reaches +months+ from now, at the current savings
+  # pace and growth rate. Coast FIRE needs a balance at a *date* rather than a
+  # date at which the number is hit, and the annual `points` series can't answer
+  # "what will this be at age 42".
+  def balance_after_months(months)
+    projected_balance(months / 12.0)
+  end
+
+  def balance_after_months_money(months, currency = family.currency)
+    Money.new(balance_after_months(months), currency)
+  end
+
   private
     attr_reader :user
 
@@ -93,8 +119,10 @@ class FinancialPlanning::WealthProjector
       )
     end
 
+    # A caller-supplied rate wins, so the compound calculator can explore a rate
+    # without persisting it. Falls back to the family's saved assumption.
     def growth_rate
-      planning_setting.growth_rate
+      @growth_rate || planning_setting.growth_rate
     end
 
     def balance_sheet
@@ -113,7 +141,14 @@ class FinancialPlanning::WealthProjector
       factor = (1 + growth_rate)**offset
 
       compounded = opening_balance * factor
-      contributions = annual * ((factor - 1) / growth_rate)
+      # The annuity term is a division by g, so at a zero growth rate it is 0/0
+      # rather than a number. Reachable: the compound calculator's growth slider
+      # bottoms out at 0%, and the NaN would silently blank the whole chart.
+      contributions = if growth_rate.zero?
+        annual * offset
+      else
+        annual * ((factor - 1) / growth_rate)
+      end
 
       (compounded + contributions).round(2)
     end
