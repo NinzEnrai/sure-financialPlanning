@@ -65,9 +65,11 @@
 
       <div class="flex items-baseline justify-between gap-2 pt-2 border-t border-subdued">
         <p class="text-xs text-secondary"><%= t(".projected_balance") %></p>
-        <p class="text-sm font-medium text-primary tabular-nums privacy-sensitive"
+        <p class="text-lg font-semibold text-primary tabular-nums privacy-sensitive"
           data-compound-calculator-target="outcome"><%= format_money(projector.final_balance_money(currency), precision: 0) %></p>
       </div>
+
+      <p class="text-xs text-subdued"><%= t(".slider_hint") %></p>
     </div>
 
     <div class="w-full h-64 mt-4 privacy-sensitive"

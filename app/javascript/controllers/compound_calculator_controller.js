@@ -77,6 +77,10 @@ export default class extends Controller {
     if (this.hasContributionTarget) params.set("monthly_contribution", this.contributionTarget.value);
     if (this.hasGrowthTarget) params.set("growth_rate_pct", this.growthTarget.value);
 
+    // Visual feedback: the chart is about to change, so the reader knows the
+    // drag is doing something rather than wondering whether it registered.
+    this._setUpdating(true);
+
     try {
       const response = await fetch(`${url}?${params.toString()}`, {
         headers: { Accept: "application/json" },
@@ -96,7 +100,14 @@ export default class extends Controller {
       }));
 
       const chart = this._chartController();
-      if (chart) chart.render({ points });
+      if (chart) {
+        chart.render({ points });
+      } else {
+        // The chart controller isn't connected yet (or the slider moved before
+        // Stimulus wired everything up). Log it so a silent failure doesn't read
+        // as "the slider does nothing".
+        console.warn("[compound-calculator] wealth-projection-chart controller not found on the chart target");
+      }
 
       if (this.hasOutcomeTarget) {
         this.outcomeTarget.textContent = data.final_balance_label ?? "";
@@ -105,6 +116,17 @@ export default class extends Controller {
       // A failed re-projection leaves the previous series on screen rather than
       // blanking the chart, which would read as "your net worth is zero".
       console.error("[compound-calculator] projection refresh failed", error);
+    } finally {
+      this._setUpdating(false);
+    }
+  }
+
+  _setUpdating(updating) {
+    if (this.hasOutcomeTarget) {
+      this.outcomeTarget.classList.toggle("opacity-50", updating);
+    }
+    if (this.hasChartTarget) {
+      this.chartTarget.classList.toggle("opacity-60", updating);
     }
   }
 

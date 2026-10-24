@@ -91,6 +91,7 @@ en:
       monthly_investment_hint: Drag to explore what a different monthly contribution would do. Your actual pace comes from the Savings Rate card above.
       annual_growth: Assumed annual growth
       projected_balance: Balance after 10 years
+      slider_hint: Drag the sliders above to see how a different monthly contribution or growth rate changes the projection. The chart and the figure update live.
   planning_setting:
     buckets:
       needs: Needs
