@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# bin/deploy — one-command deploy for a bare-metal (systemd) Sure instance.
+#
+# Usage: bin/deploy
+#
+# Pulls the latest code from origin, rebuilds assets, runs migrations, and
+# restarts the web + worker services. Designed for a box where gems live in
+# vendor/bundle and are managed by BUNDLE_DEPLOYMENT=1.
+#
+# This script is the single source of truth for deploying. The post-merge git
+# hook (.githooks/post-merge) calls it automatically after `git pull`.
+set -euo pipefail
+
+# --- environment -------------------------------------------------------------
+ENV_FILE="${ENV_FILE:-/etc/sure/.env}"
+if [ ! -f "$ENV_FILE" ]; then
+  echo "ERROR: env file not found at $ENV_FILE" >&2
+  echo "       set ENV_FILE=/path/to/.env to override" >&2
+  exit 1
+fi
+
+set -a
+# shellcheck disable=SC1090
+source "$ENV_FILE"
+set +a
+
+export BUNDLE_DEPLOYMENT=1
+export BUNDLE_WITHOUT=development
+export RAILS_ENV="${RAILS_ENV:-production}"
+export PATH="/root/.rbenv/shims:/root/.rbenv/bin:/usr/bin:/usr/local/bin:$PATH"
+
+cd "$(dirname "$0")/.."
+REPO_ROOT="$(pwd)"
+
+# --- preflight -------------------------------------------------------------
+echo "==> preflight"
+
+# Required env vars
+for var in SECRET_KEY_BASE POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB REDIS_URL; do
+  if [ -z "${!var:-}" ]; then
+    echo "ERROR: $var is not set in $ENV_FILE" >&2
+    exit 1
+  fi
+done
+echo "    env vars OK"
+
+# Gems
+if ! bundle check >/dev/null 2>&1; then
+  echo "==> bundle install (gems missing or out of date)"
+  bundle install --jobs 4
+else
+  echo "    gems up to date"
+fi
+
+# --- pull ------------------------------------------------------------------
+echo "==> git pull"
+git pull origin main
+echo "    now at: $(git log --oneline -1)"
+
+# --- assets ---------------------------------------------------------------
+echo "==> tailwindcss:build"
+bin/rails tailwindcss:build
+
+echo "==> assets:precompile"
+bin/rails assets:precompile
+
+# --- migrations -----------------------------------------------------------
+# Explicit db:migrate, never db:prepare. db:prepare loads db/schema.rb on an
+# empty schema_migrations table and silently stamps every migration as applied.
+echo "==> db:migrate"
+bin/rails db:migrate
+
+# --- restart --------------------------------------------------------------
+echo "==> restarting services"
+systemctl restart sure sure-worker
+sleep 5
+systemctl is-active sure sure-worker
+
+echo "==> smoke test"
+curl -s -o /dev/null -w "HTTP %{http_code}\n" http://127.0.0.1:3000/
+
+echo "==> deploy complete"

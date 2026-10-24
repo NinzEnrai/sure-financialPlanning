@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# .githooks/post-merge — auto-deploy after `git pull`.
+#
+# Activated once per clone with:
+#   git config core.hooksPath .githooks
+#
+# Runs bin/deploy, which pulls, rebuilds assets, migrates, and restarts.
+# If you want to pull without deploying (e.g. to inspect a branch), use
+# `git pull --no-ff` or set DEPLOY_SKIP=1.
+set -euo pipefail
+
+if [ "${DEPLOY_SKIP:-0}" = "1" ]; then
+  echo "post-merge: DEPLOY_SKIP=1, skipping deploy"
+  exit 0
+fi
+
+exec bin/deploy
