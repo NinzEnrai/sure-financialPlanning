@@ -308,7 +308,12 @@ class Provider::YahooFinance < Provider
           end_date: end_date
         )
 
-        raise Error, "Failed to fetch security prices: #{prices_response.error.message}" unless prices_response.success?
+        # fetch_security_prices wraps its body in with_provider_response, so a total
+    # failure (network, timeout, parse error) comes back as a failed response
+    # rather than nil. Guard anyway: a nil here would otherwise surface as an
+    # unrelated NoMethodError and mask the real cause.
+    raise Error, "Failed to fetch security prices: no response" if prices_response.nil?
+    raise Error, "Failed to fetch security prices: #{prices_response.error.message}" unless prices_response.success?
 
         prices = prices_response.data
         if prices.length == 1
@@ -342,6 +347,12 @@ class Provider::YahooFinance < Provider
         "interval" => "1d",
         "includeAdjustedClose" => true
       })
+
+      # fetch_authenticated_chart returns nil when every request failed (network
+      # error, timeout, or a 5xx). Treat that as "no data" rather than letting
+      # data.dig crash on nil and propagate an unrelated NoMethodError up the
+      # stack, which would mask the real cause in the logs.
+      raise Error, "No chart data returned for #{symbol}" if data.nil?
 
       chart_data = data.dig("chart", "result", 0)
 
@@ -936,7 +947,7 @@ class Provider::YahooFinance < Provider
         faraday.headers["Pragma"] = "no-cache"
 
         # Set reasonable timeouts
-        faraday.options.timeout = 10
+        faraday.options.timeout = 5
         faraday.options.open_timeout = 5
       end
     end
@@ -946,11 +957,11 @@ class Provider::YahooFinance < Provider
     end
 
     def max_retries
-      ENV.fetch("YAHOO_FINANCE_MAX_RETRIES", 5).to_i
+      ENV.fetch("YAHOO_FINANCE_MAX_RETRIES", 2).to_i
     end
 
     def retry_interval
-      ENV.fetch("YAHOO_FINANCE_RETRY_INTERVAL", 1.0).to_f
+      ENV.fetch("YAHOO_FINANCE_RETRY_INTERVAL", 0.5).to_f
     end
 
     def min_request_interval
@@ -1071,7 +1082,7 @@ class Provider::YahooFinance < Provider
         faraday.headers["User-Agent"] = random_user_agent
         faraday.headers["Accept"] = "*/*"
         faraday.headers["Accept-Language"] = "en-US,en;q=0.9"
-        faraday.options.timeout = 10
+        faraday.options.timeout = 5
         faraday.options.open_timeout = 5
       end
     end
@@ -1098,7 +1109,7 @@ class Provider::YahooFinance < Provider
         faraday.headers["Pragma"] = "no-cache"
         faraday.headers["Cookie"] = cookie
 
-        faraday.options.timeout = 10
+        faraday.options.timeout = 5
         faraday.options.open_timeout = 5
       end
     end
