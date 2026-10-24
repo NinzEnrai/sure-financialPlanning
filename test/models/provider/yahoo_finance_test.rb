@@ -817,11 +817,14 @@ class Provider::YahooFinanceTest < ActiveSupport::TestCase
   # ================================
 
   test "max_retries returns default value" do
-    assert_equal 5, @provider.send(:max_retries)
+    # Reduced from 5 to 2: Yahoo Finance has been blocking automated
+    # requests, and 5 retries with backoff compounded into multi-minute
+    # hangs during price syncs. Operators can raise it via the env var.
+    assert_equal 2, @provider.send(:max_retries)
   end
 
   test "retry_interval returns default value" do
-    assert_equal 1.0, @provider.send(:retry_interval)
+    assert_equal 0.5, @provider.send(:retry_interval)
   end
 
   test "min_request_interval returns default value" do
