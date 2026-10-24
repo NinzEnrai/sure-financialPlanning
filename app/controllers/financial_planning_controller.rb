@@ -8,6 +8,15 @@ class FinancialPlanningController < ApplicationController
   include Periodable
 
   def show
+    # Reverse proxies in front of self-hosted instances (nginx, Caddy, Tailscale
+    # Serve) cache aggressively, and a stale HTML page is worse than a slow one:
+    # it references asset fingerprints that no longer exist and renders as an
+    # unstyled, half-functional page. no-store keeps the document fresh without
+    # disabling caching of the fingerprinted assets underneath.
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+
     @savings_rate = FinancialPlanning::SavingsRate.new(Current.family, period: current_month_period, user: Current.user)
     @year_to_date_savings_rate = FinancialPlanning::SavingsRate.new(Current.family, period: year_to_date_period, user: Current.user)
 
@@ -28,6 +37,10 @@ class FinancialPlanningController < ApplicationController
   # dragging a slider re-projects without persisting anything -- the saved
   # PlanningSetting is only consulted when a param is absent or unparseable.
   def projection
+    # The calculator re-projects on every slider drag; a cached answer would
+    # make the slider feel broken even though the server computed a new one.
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+
     projector = FinancialPlanning::WealthProjector.new(
       Current.family,
       user: Current.user,
