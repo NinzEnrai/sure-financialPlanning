@@ -1,6 +1,6 @@
 # PROJECT DETAILS — Sure Finance (NinzEnrai/sure-financialPlanning)
 
-Comprehensive context document. Last updated: 2026-10-24. Commit: 68ff97df5.
+Comprehensive context document. Last updated: 2026-10-25. Commit: a8375ff02.
 
 ## 1. Identity
 
@@ -12,7 +12,7 @@ Comprehensive context document. Last updated: 2026-10-24. Commit: 68ff97df5.
 - Auth: session cookies, Current.user / Current.family (never current_user)
 - Multi-tenant: family_id scoping everywhere; Current.family
 
-## 2. What Was Built (11 commits ahead of upstream, all pushed)
+## 2. What Was Built (12 commits ahead of upstream, all pushed)
 
 ### Commit 1: 8bbd3be2e — Complete Zerodha Kite Connect integration
 - Promoted out of wip/ into app/; migrations re-dated 20261013000100/20261013000200
@@ -60,7 +60,7 @@ Comprehensive context document. Last updated: 2026-10-24. Commit: 68ff97df5.
 - PlanningSetting::RESET_BUCKET = "__default__"
 - locale keys
 
-### Commit 6: ad59913e3 — FIRE variants + Coast FIRE
+### Commit 6: ad59913e3 — FIRE assumptions form and variants, incl. Coast FIRE
 - Migration: fire_variant (string, default "standard"), fire_target_year (integer)
 - PlanningSetting::FIRE_VARIANTS: lean/coast/barista/standard/fat with withdrawal rates
 - FireProgress: coast_fire?, target_year, target_date, months_until_target_date, projected_balance_at_target_date, coast_on_track?
@@ -94,6 +94,9 @@ Comprehensive context document. Last updated: 2026-10-24. Commit: 68ff97df5.
 ### Commit 11: 68ff97df5 — Yahoo Finance test defaults update
 - Updated test expectations to match new defaults
 
+### Commit 12: a8375ff02 — Update PROJECT_DETAILS.md
+- Updated with complete project status
+
 ## 3. Deployment Environment (LXC bare metal)
 
 - Host: Proxmox LXC, hostname `sure`, IP 192.168.1.100
@@ -123,10 +126,10 @@ Comprehensive context document. Last updated: 2026-10-24. Commit: 68ff97df5.
 - KITE_API_KEY, KITE_API_SECRET
 - EXCHANGE_RATE_PROVIDER=frankfurter (was yahoo_finance — WRONG, fixed)
 - SECURITIES_PROVIDER=yahoo_finance (price quotes, separate from FX)
-- RAILS_SERVE_STATIC_FILES=true (added — was missing, caused broken UI)
+- RAILS_SERVE_STATIC_FILES=true (was missing — caused broken UI)
 
 ### db:prepare trap
-- db:prepare loads db/schema.rb when DB is empty, stamping schema_migrations without running migrations
+- db:prepare loads db/schema.rb when DB is empty, stamping schema_migrations without running
 - Always verify with db:migrate:status after deploy
 
 ### Deploy procedure (now automated)
@@ -232,9 +235,10 @@ bin/deploy does: pull, tailwindcss:build, assets:precompile, db:migrate, restart
 - auto_submit_form_controller.js — reused for bucket picker
 
 ### Design System
-- Functional tokens: bg-container, text-primary, border-primary, bg-warning/10, text-destructive
+- Functional tokens only: bg-container, text-primary, border-primary, bg-warning/10, text-destructive
+- No raw Tailwind palette classes or hex literals
 - DS::* primitives: Card, Pill, ProgressBar, Disclosure, Note, DetailRow, etc.
-- icon helper (never lucide_icon directly)
+- icon helper, never lucide_icon directly
 - t() for all user-facing strings
 - Scale tokens, not arbitrary px
 
@@ -295,13 +299,9 @@ db:prepare loads db/schema.rb instead of running migrations when DB is empty —
 - Minitest + fixtures (not RSpec, except rswag for OpenAPI)
 - Financial planning: 87 tests, 248 assertions, 0 failures
 - Kite: kite_item_test, kite_account_test
-- Full suite: 11,673 runs, 53,600 assertions, 6 failures + 2 errors (all pre-existing)
-- Pre-existing failures (Windows CRLF only, pass on Linux CI):
-  - 3× AccountStatementTest (PDF xref)
-  - Provider::FamilyGeneratorTest (generated controller)
-  - RecurringTransaction::PipelineTest (database.yml)
-  - 2× Pdf::TextExtractorTest (PDF fixtures)
-  - 1× SnaptradeAccount::ActivitiesProcessorTest (float precision)
+- Full suite: 11,673 runs, 53,600 assertions
+- 8 pre-existing failures (all Windows CRLF or Snaptrade float precision)
+- My work introduced 0 new failures
 
 ## 11. Known Issues / Gotchas
 
@@ -315,7 +315,7 @@ db:prepare loads db/schema.rb instead of running migrations when DB is empty —
 8. Yahoo Finance price provider hangs (>15 min)
 9. XIRR + Indian capital gains blocked (need Zerodha Nextra for history)
 10. Family currency was USD, switched to INR
-11. /opt/sure is not a git repo (deployed via tarball) — now converted to git clone
+11. /opt/sure is now a git clone (was tarball)
 12. sure.creds is plaintext with DB password (security concern)
 13. /opt/sure-old is a March 2026 deploy (Rails 7.2) — NOT a valid rollback
 14. 512MB hosts: demo data generator OOMs
@@ -325,6 +325,8 @@ db:prepare loads db/schema.rb instead of running migrations when DB is empty —
 18. Wealth projection chart render() method added for calculator
 19. Family#balance_sheet memoization survives reload — noted but not fixed
 20. Yahoo Finance fetch_cookie_and_crumb makes requests that may hang
+21. Reverse proxy at finance.lan caches aggressively — cache-busting headers added
+22. SECURITIES_PROVIDER=yahoo_finance is set (price quotes, separate from FX) — may hang
 
 ## 12. Security Notes
 
@@ -338,14 +340,15 @@ db:prepare loads db/schema.rb instead of running migrations when DB is empty —
 - Brakeman clean (0 errors, 0 warnings)
 - RuboCop clean on touched files
 - Postgres password exposed in chat (ZRunWrdeFyz7R) — rotation recommended
+- .env.example updated with Kite config documentation
 
 ## 13. What's NOT Built Yet
 
 - Customisable 50/30/20 targets (only category assignment, not target %)
 - XIRR + Indian capital gains (blocked on Zerodha Nextra)
 - Visual verification of savings split by user (needs preview_features)
-- Yahoo Finance full integration (reduced hang risk, but needs testing)
-- XIRR/tax UI (Portfolio::Xirr exists but isn't wired to any view)
+- Yahoo Finance full integration (reduced hang risk, needs testing)
+- XIRR/tax UI (Portfolio::Xirr exists but isn't wired)
 - Price history UI (Security::Price exists but no view)
 - Document EXCHANGE_RATE_PROVIDER in .env.local.example
 
@@ -382,6 +385,7 @@ app/
   models/kite_account.rb
   models/provider/kite_adapter.rb
   models/provider/kite/{holdings_sync,mutual_fund_sync}.rb
+  models/provider/yahoo_finance.rb
   models/planning_setting.rb
   views/financial_planning/
     show.html.erb
@@ -395,6 +399,9 @@ db/migrate/20261013000100_*.rb
 db/migrate/20261013000200_*.rb
 db/migrate/20261014000100_*.rb
 lib/indian_number_formatter.rb
+bin/deploy
+.githooks/post-merge
+PROJECT_DETAILS.md
 wip/kite/ (deleted Syncer, SyncCompleteEvent; README explaining removal)
 
 ## 16. API Endpoints (financial planning)
@@ -428,23 +435,7 @@ docker run --rm --network suretest -v "/path/to/repo:/rails" -w /rails \
 - Zerodha redirect URL: https://jarvis.taildc6d46.ts.net/kite/callback
 - Tailscale serve on port 3000 (Windows side)
 
-## 19. What's Pending
-
-- Deploy to LXC (tarball ready, now converted to git clone)
-- Visual verification of savings split by user (needs preview_features toggle)
-- Rotate the exposed Kite api_secret
-- Rotate the exposed Postgres password
-- Build XIRR + Indian capital gains tax (blocked on Zerodha Nextra)
-- Yahoo Finance full integration (reduced hang risk, needs testing)
-- XIRR/tax UI (Portfolio::Xirr exists but isn't wired)
-- Price history UI (Security::Price exists but no view)
-- Document EXCHANGE_RATE_PROVIDER in .env.local.example
-- Fix 5 pre-existing CRLF test failures (Windows only, pass on Linux)
-- Yahoo Finance hang investigation (reduced timeouts, needs testing)
-- Family#balance_sheet memoization bug (noted but not fixed)
-- Customisable 50/30/20 targets (only category assignment, not target %)
-
-## 20. Key Gotchas for DeepSeek
+## 19. Key Gotchas for DeepSeek
 
 1. Always use `Current.user` and `Current.family`, never `current_user` or `current_family`
 2. Family tenancy: every query must be scoped to `Current.family`
@@ -454,7 +445,7 @@ docker run --rm --network suretest -v "/path/to/repo:/rails" -w /rails \
 6. `Float#to_s("F")` raises — use BigDecimal
 7. `ExchangeRate.rates_for` falls back to rate=1 with logged warning if no rate found
 8. `IncomeStatement::ScopedTransactionsQuery#converted_amount_sql` uses LEFT JOIN with COALESCE(er.rate, 1) — strict exact-date match
-9. Kite tokens are day-scoped; stuck pending Sync silently blocks sync_later forever
+9. Kite tokens are day-scoped; stuck pending Sync blocks sync_later forever
 10. The reverse proxy at finance.lan caches aggressively — use cache-busting headers
 11. Yahoo Finance hangs — do not set SECURITIES_PROVIDERS=yahoo_finance yet
 12. `Family#income_statement` is NOT memoized (unlike balance_sheet)
@@ -471,3 +462,93 @@ docker run --rm --network suretest -v "/path/to/repo:/rails" -w /rails \
 23. `Account::MarketDataImporter` syncs required exchange rates for foreign-currency accounts
 24. `DebugLogEntry.capture(...)` for support-relevant failures
 25. `Current.user` and `Current.family` are set by middleware, not controller helpers
+26. `positive_param` parses as BigDecimal (not Float) to avoid `Float#to_s("F")` raising
+27. `toRate()` coercion in savings_rate_chart_controller.js prevents NaN from BigDecimal→string
+28. `render()` method in wealth_projection_chart_controller.js merges data and redraws
+29. `Family#balance_sheet` memoization survives `reload` — use `Family.find` for fresh instances
+30. `PlanningSetting::FIRE_VARIANTS` has 5 variants with different withdrawal rates
+31. Coast FIRE uses target year, not age (no birth date in schema)
+32. `FinancialPlanning::HoldingsCostBasisSeries` uses per-account latest date (not shared date)
+33. `FinancialPlanning::HoldingsCostBasisSeries` converts via `ExchangeRate.rates_for`
+34. `FinancialPlanning::BudgetAnalyzer#bucketed_categories` lists all family categories
+35. `PlanningSetting#bucket_for` prefers override, falls back to DEFAULT_BUCKETS
+36. `FinancialPlanning::SavingsRate#invested` = max(recorded transfers, holdings cost basis delta)
+37. `FinancialPlanning::SavingsRate#expenses` = total_expenses - recorded contributions
+38. `FinancialPlanning::SavingsRate#cash_savings` = income - total_expenses
+39. `FinancialPlanning::SavingsRate#savings` = cash_savings + invested
+40. `FinancialPlanning::SavingsRate#percent` = cash_savings / income (nil if no income)
+41. `FinancialPlanning::SavingsRate#total_percent` = savings / income (nil if no income)
+
+## 21. What's Pending
+
+- Deploy to LXC (now converted to git clone, git pull works)
+- Visual verification of savings split by user (needs preview_features toggle)
+- Rotate the exposed Kite api_secret
+- Rotate the exposed Postgres password
+- Build XIRR + Indian capital gains tax (blocked on Zerodha Nextra)
+- Yahoo Finance full integration (reduced hang risk, needs testing)
+- XIRR/tax UI (Portfolio::Xirr exists but isn't wired)
+- Price history UI (Security::Price exists but no view)
+- Document EXCHANGE_RATE_PROVIDER in .env.local.example
+- Fix 5 pre-existing CRLF test failures (Windows only, pass on Linux)
+- Yahoo Finance hang investigation (reduced timeouts, needs testing)
+- Family#balance_sheet memoization bug (noted but not fixed)
+- Customisable 50/30/20 targets (only category assignment, not target %)
+- Delete /opt/sure-pre-git on LXC (frees ~544MB)
+- Convert /opt/sure to stay git (done — it's now a clone)
+- Update Zerodha redirect URL to production URL
+- Enable preview features for dj.mukult@gmail.com (done)
+- Document SECURITIES_PROVIDER vs SECURITIES_PROVIDERS (singular vs plural)
+
+## 22. Key Gotchas for DeepSeek
+
+1. Always use `Current.user` and `Current.family`, never `current_user` or `current_family`
+2. Family tenancy: every query must be scoped to `Current.family`
+3. `Family#balance_sheet` memoizes per user and survives `reload` — use `Family.find` for fresh instances
+4. `db:prepare` stamps schema_migrations without running migrations on empty DB
+5. BigDecimal rides through `#to_json` as a string — coerce with `.to_f` in views
+6. `Float#to_s("F")` raises — use BigDecimal
+7. `ExchangeRate.rates_for` falls back to rate=1 with logged warning if no rate found
+8. `IncomeStatement::ScopedTransactionsQuery#converted_amount_sql` uses LEFT JOIN with COALESCE(er.rate, 1) — strict exact-date match
+9. Kite tokens are day-scoped; stuck pending Sync blocks sync_later forever
+10. The reverse proxy at finance.lan caches aggressively — use cache-busting headers
+11. Yahoo Finance hangs — do not set SECURITIES_PROVIDERS=yahoo_finance yet
+12. `Family#income_statement` is NOT memoized (unlike balance_sheet)
+13. `PlanningSetting#bucket_for` prefers override, falls back to DEFAULT_BUCKETS
+14. `PlanningSetting::RESET_BUCKET = "__default__"` is a sentinel, not a real bucket
+15. `FinancialPlanning::SavingsRate#invested` caps at income when income positive
+16. `FinancialPlanning::WealthProjector#growth_rate_pct` routes through growth_rate (not planning_setting directly)
+17. `FinancialPlanning::WealthProjector#projected_balance` guards against zero growth
+18. `FinancialPlanning::FireProgress` Coast FIRE uses target year, not age
+19. `Portfolio::Xirr` and `Portfolio::FlowClassifier` exist but aren't wired to views
+20. `Security::Price` model exists for price history but no UI
+21. `Security::Provided` has `find_or_fetch_price` and `import_provider_prices`
+22. `ImportMarketDataJob` runs daily at market close, imports prices for all securities
+23. `Account::MarketDataImporter` syncs required exchange rates for foreign-currency accounts
+24. `DebugLogEntry.capture(...)` for support-relevant failures
+25. `Current.user` and `Current.family` are set by middleware, not controller helpers
+26. `positive_param` parses as BigDecimal (not Float) to avoid `Float#to_s("F")` raising
+27. `toRate()` coercion in savings_rate_chart_controller.js prevents NaN from BigDecimal→string
+28. `render()` method in wealth_projection_chart_controller.js merges data and redraws
+29. `Family#balance_sheet` memoization survives `reload` — use `Family.find` for fresh instances
+30. `PlanningSetting::FIRE_VARIANTS` has 5 variants with different withdrawal rates
+31. Coast FIRE uses target year, not age (no birth date in schema)
+32. `FinancialPlanning::HoldingsCostBasisSeries` uses per-account latest date (not shared date)
+33. `FinancialPlanning::HoldingsCostBasisSeries` converts via `ExchangeRate.rates_for`
+34. `FinancialPlanning::BudgetAnalyzer#bucketed_categories` lists all family categories
+35. `PlanningSetting#bucket_for` prefers override, falls back to DEFAULT_BUCKETS
+36. `FinancialPlanning::SavingsRate#invested` = max(recorded transfers, holdings cost basis delta)
+37. `FinancialPlanning::SavingsRate#expenses` = total_expenses - recorded contributions
+38. `FinancialPlanning::SavingsRate#cash_savings` = income - total_expenses
+39. `FinancialPlanning::SavingsRate#savings` = cash_savings + invested
+40. `FinancialPlanning::SavingsRate#percent` = cash_savings / income (nil if no income)
+41. `FinancialPlanning::SavingsRate#total_percent` = savings / income (nil if no income)
+42. `PlanningSetting#fire_variant` defaults to "standard"
+43. `PlanningSetting#coast_fire?` checks if variant is "coast"
+44. `FinancialPlanning::FireProgress#coast_on_track?` compares projection at target date against target
+45. `FinancialPlanning::WealthProjector#balance_after_months` projects balance at a specific month offset
+46. `FinancialPlanning::BudgetAnalyzer#to_donut_segments` creates donut chart segments
+47. `FinancialPlanning::BudgetAnalyzer#bucketed_categories` lists all family categories with effective bucket
+48. `PlanningSetting::FIRE_VARIANTS` withdrawal rates: lean 3.3, coast 4.0, barista 6.5, standard 4.0, fat 3.0
+49. `FinancialPlanning::FireProgress#months_until_target_date` returns nil if target year has passed
+50. `FinancialPlanning::FireProgress#projected_balance_at_target_date` uses WealthProjector#balance_after_months
