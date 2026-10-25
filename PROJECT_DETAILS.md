@@ -258,8 +258,8 @@ bin/deploy does: pull, tailwindcss:build, assets:precompile, db:migrate, restart
 ## 8. Environment Variables
 
 ### Required (LXC)
-- KITE_API_KEY=xz5jbn2v6n8em5ce
-- KITE_API_SECRET=wrrwtg1eo33khipzxha45w3ab8y0qfkc (rotate — was exposed in chat)
+- KITE_API_KEY=<redacted — see /etc/sure/.env>
+- KITE_API_SECRET=<redacted — see /etc/sure/.env; rotate, see §12>
 - EXCHANGE_RATE_PROVIDER=frankfurter (without this, all currencies convert at rate 1)
 - SECRET_KEY_BASE (must not change between deploys)
 - POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, DB_HOST, DB_PORT
@@ -339,7 +339,7 @@ db:prepare loads db/schema.rb instead of running migrations when DB is empty —
 - X-Api-Key auth pattern for API endpoints
 - Brakeman clean (0 errors, 0 warnings)
 - RuboCop clean on touched files
-- Postgres password exposed in chat (ZRunWrdeFyz7R) — rotation recommended
+- Postgres password was exposed in chat and now also in this file's git history — rotate it and keep it only in /etc/sure/.env
 - .env.example updated with Kite config documentation
 
 ## 13. What's NOT Built Yet
