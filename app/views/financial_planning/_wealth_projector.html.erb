@@ -44,6 +44,7 @@
           step="<%= step %>"
           value="<%= suggested.round %>"
           data-compound-calculator-target="contribution"
+          autocomplete="off"
           aria-describedby="calc-contribution-hint">
         <p id="calc-contribution-hint" class="text-xs text-subdued mt-1"><%= t(".monthly_investment_hint") %></p>
       </div>
@@ -60,7 +61,8 @@
           max="25"
           step="0.5"
           value="<%= projector.growth_rate_pct %>"
-          data-compound-calculator-target="growth">
+          data-compound-calculator-target="growth"
+          autocomplete="off">
       </div>
 
       <div class="flex items-baseline justify-between gap-2 pt-2 border-t border-subdued">
@@ -70,27 +72,28 @@
       </div>
 
       <p class="text-xs text-subdued"><%= t(".slider_hint") %></p>
-    </div>
 
-    <div class="w-full h-64 mt-4 privacy-sensitive"
-      data-controller="wealth-projection-chart"
-      data-compound-calculator-target="chart"
-      data-wealth-projection-chart-aria-label-value="<%= t(".chart_aria") %>"
-      data-wealth-projection-chart-year-prefix-value="<%= t(".year_prefix") %>"
-      data-wealth-projection-chart-data-value="<%= {
-        currency: currency,
-        currency_symbol: Money.new(0, currency).currency.symbol,
-        description: t(".chart_description"),
-        points: points.map { |point|
-          {
-            date: point.date.to_s,
-            year: point.year,
-            balance: point.balance.to_f,
-            balance_formatted: format_money(point.balance_money(currency)),
-            balance_label: format_money(point.balance_money(currency))
+      <div class="w-full h-64 privacy-sensitive"
+        data-controller="wealth-projection-chart"
+        data-compound-calculator-target="chart"
+        data-wealth-projection-chart-aria-label-value="<%= t(".chart_aria") %>"
+        data-wealth-projection-chart-year-prefix-value="<%= t(".year_prefix") %>"
+        data-wealth-projection-chart-number-format-value="<%= Current.family&.number_format || "western" %>"
+        data-wealth-projection-chart-data-value="<%= {
+          currency: currency,
+          currency_symbol: Money.new(0, currency).currency.symbol,
+          description: t(".chart_description"),
+          points: points.map { |point|
+            {
+              date: point.date.to_s,
+              year: point.year,
+              balance: point.balance.to_f,
+              balance_formatted: format_money(point.balance_money(currency)),
+              balance_label: format_money(point.balance_money(currency))
+            }
           }
-        }
-      }.to_json %>">
+        }.to_json %>">
+      </div>
     </div>
   <% end %>
 

@@ -162,6 +162,6 @@ class FinancialPlanningController < ApplicationController
       pct = positive_param(key)
       return nil if pct.nil?
 
-      pct / 100.0
+      pct / 100
     end
 end

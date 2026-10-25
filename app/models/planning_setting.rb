@@ -132,7 +132,7 @@ class PlanningSetting < ApplicationRecord
   end
 
   def growth_rate
-    annual_growth_rate_pct.to_f / 100
+    BigDecimal(annual_growth_rate_pct.to_s.presence || "0") / 100
   end
 
   # The bucket a category belongs to, preferring the family's own override.

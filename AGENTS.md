@@ -1,5 +1,9 @@
 # Repository guidance
 
+## Communication style
+
+The repository owner is not a professional programmer. Explain what a change does and why it matters in plain language, define jargon the first time it appears, and keep answers short and concrete. When the owner needs to make a decision, state the options and the trade-off in one sentence each.
+
 ## Working in the repository
 
 - Read [architecture and conventions](docs/llm-guides/architecture.md) before changing code, and the relevant [task guides](docs/llm-guides/README.md).
