@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Sure Engineering Standards",
+    "description": "Injects the Sure (Rails 8 / Hotwire / PostgreSQL) engineering rules into agent sessions working in the Sure checkout."
+  }
+}

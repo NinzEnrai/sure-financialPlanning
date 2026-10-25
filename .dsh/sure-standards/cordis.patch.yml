@@ -1,0 +1,8 @@
+# Bundle patch for @local/sure-standards.
+# Inserts one Host plugin row; all behaviour lives in index.js.
+- insert:
+    - id: sure-standards
+      name: '@local/sure-standards'
+      config:
+        sectionName: sure_engineering_standards
+        order: 120
