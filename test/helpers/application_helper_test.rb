@@ -1,6 +1,12 @@
 require "test_helper"
 
 class ApplicationHelperTest < ActionView::TestCase
+  # format_money reads Current.family, so every test here must leave the
+  # thread-local session the way it found it.
+  setup { @original_session = Current.session }
+
+  teardown { Current.session = @original_session }
+
   test "#icon normalizes icon names to lowercase" do
     capture = []
 
@@ -117,4 +123,59 @@ class ApplicationHelperTest < ActionView::TestCase
 
     assert_equal [ "SGD", "USD", "EUR" ], currency_picker_options_for_family(family, extra: "EUR")
   end
+
+  # --- Digit grouping follows the family's number_format preference. ---
+  # format_money is the single display path for money in the app, so the
+  # preference is wired in here rather than at every call site.
+
+  test "#format_money groups in thousands for a western family" do
+    use_family(number_format: "western")
+
+    assert_equal "$1,234,567.00", format_money(Money.new(1_234_567, :usd))
+  end
+
+  test "#format_money groups in lakhs and crores for an Indian family" do
+    use_family(number_format: "lakh_crore")
+
+    assert_equal "$12,34,567.00", format_money(Money.new(1_234_567, :usd))
+  end
+
+  test "#format_money reads one crore as 1,00,00,000" do
+    use_family(number_format: "lakh_crore")
+
+    assert_equal "$1,00,00,000", format_money(Money.new(10_000_000, :usd), precision: 0)
+  end
+
+  # precision: and format: must survive the grouping change, which is why the
+  # pattern rides through Money#format instead of bypassing it.
+  test "#format_money keeps precision and the locale's own delimiter style" do
+    use_family(number_format: "lakh_crore")
+
+    assert_equal "$12,34,567", format_money(Money.new(1_234_567.4, :usd), precision: 0)
+    # Polish groups with a space, so the Indian pattern inserts a space too —
+    # the grouping is lakh/crore, the separator stays what that locale uses.
+    assert_equal "12 34 567,00 zł", format_money(Money.new(1_234_567, :pln), locale: :pl)
+  end
+
+  test "#format_money keeps a negative sign and leaves ungrouped amounts alone" do
+    use_family(number_format: "lakh_crore")
+
+    assert_equal "-$12,34,567.00", format_money(Money.new(-1_234_567, :usd))
+    assert_equal "$1,000.00", format_money(Money.new(1000, :usd))
+    assert_equal "$99.00", format_money(Money.new(99, :usd))
+  end
+
+  test "#format_money returns nil for nil under either grouping" do
+    use_family(number_format: "lakh_crore")
+
+    assert_nil format_money(nil)
+  end
+
+  private
+
+    def use_family(number_format:)
+      family = families(:dylan_family)
+      family.update!(number_format: number_format)
+      Current.session = family.users.first.sessions.create!
+    end
 end

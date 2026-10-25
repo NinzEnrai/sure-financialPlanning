@@ -183,8 +183,17 @@ module ApplicationHelper
     family_moniker_plural.downcase
   end
 
+  # Indian digit grouping: the last three digits stand alone, then groups of two
+  # going left (1,23,45,67,890). Passed through to number_to_currency, which only
+  # applies it to the integer part, so precision:/format:/locale options still work.
+  INDIAN_DELIMITER_PATTERN = /(\d)(?=(\d\d)+(\d)(?!\d))/.freeze
+
   def format_money(number_or_money, options = {})
     return nil unless number_or_money
+
+    if Current.family&.number_format == "lakh_crore"
+      options = options.merge(delimiter_pattern: INDIAN_DELIMITER_PATTERN)
+    end
 
     Money.new(number_or_money).format(options)
   end

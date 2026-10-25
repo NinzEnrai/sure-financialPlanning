@@ -32,6 +32,37 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "es", @user.reload.locale
   end
 
+  # The preferences screen submits through this controller, not through
+  # Settings::PreferencesController, so number_format must be permitted here or
+  # the number-format select silently never saves.
+  test "can update the family number format" do
+    patch user_url(@user), params: {
+      user: {
+        redirect_to: "preferences",
+        family_attributes: {
+          id: @user.family.id,
+          number_format: "lakh_crore"
+        }
+      }
+    }
+
+    assert_equal "lakh_crore", @user.family.reload.number_format
+  end
+
+  test "an invalid number format is rejected rather than saved" do
+    patch user_url(@user), params: {
+      user: {
+        redirect_to: "preferences",
+        family_attributes: {
+          id: @user.family.id,
+          number_format: "european"
+        }
+      }
+    }
+
+    assert_equal "western", @user.family.reload.number_format
+  end
+
   test "admin can update enabled family currencies" do
     patch user_url(@user), params: {
       user: {

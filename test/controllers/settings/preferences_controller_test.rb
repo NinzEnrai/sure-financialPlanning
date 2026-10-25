@@ -11,6 +11,18 @@ class Settings::PreferencesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  # The number_format select is the only way to switch a family out of western
+  # grouping, so both choices must actually reach the page.
+  test "renders the number format select with both groupings" do
+    get settings_preferences_url
+
+    assert_response :success
+    assert_select "select[name='user[family_attributes][number_format]']" do
+      assert_select "option[value='western']", text: I18n.t("settings.preferences.show.number_formats.western")
+      assert_select "option[value='lakh_crore']", text: I18n.t("settings.preferences.show.number_formats.lakh_crore")
+    end
+  end
+
   test "group moniker uses group currencies copy and hides legacy currency field" do
     users(:family_admin).family.update!(moniker: "Group")
 

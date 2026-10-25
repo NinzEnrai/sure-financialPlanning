@@ -27,6 +27,10 @@ export default class extends Controller {
     data: Object,
     ariaLabel: { type: String, default: "Net worth projection" },
     yearPrefixValue: { type: String, default: "" },
+    // The family's digit-grouping preference ("western" or "lakh_crore").
+    // Only axis ticks are affected; tooltips and the end-of-line label use
+    // pre-formatted server strings.
+    numberFormat: { type: String, default: "western" },
   };
 
   connect() {
@@ -352,9 +356,21 @@ export default class extends Controller {
   _fmtMoneyShort(amount, data) {
     const symbol = data.currency_symbol || "$";
     const abs = Math.abs(amount);
-    if (abs >= 1_000_000) return `${symbol}${(amount / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-    if (abs >= 1_000) return `${symbol}${(amount / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
+
+    if (this.numberFormatValue === "lakh_crore") {
+      // Lakh = 100,000; crore = 10,000,000. Below a lakh, fall through to plain digits.
+      if (abs >= 10_000_000) return `${symbol}${this._trimZero(amount / 10_000_000)}Cr`;
+      if (abs >= 100_000) return `${symbol}${this._trimZero(amount / 100_000)}L`;
+      return `${symbol}${Math.round(amount).toLocaleString()}`;
+    }
+
+    if (abs >= 1_000_000) return `${symbol}${this._trimZero(amount / 1_000_000)}M`;
+    if (abs >= 1_000) return `${symbol}${this._trimZero(amount / 1_000)}K`;
     return `${symbol}${Math.round(amount).toLocaleString()}`;
+  }
+
+  _trimZero(value) {
+    return value.toFixed(1).replace(/\.0$/, "");
   }
 
   _id() {

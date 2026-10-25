@@ -189,6 +189,11 @@ en:
         country: Country
         currency: Currency
         date_format: Date format
+        number_format: Number format
+        number_format_hint: How thousands are grouped in amounts.
+        number_formats:
+          lakh_crore: Indian (lakh/crore) — 12,34,567
+          western: Western — 1,234,567
         general_subtitle: Configure your preferences
         general_title: General
         default_period: Default Period

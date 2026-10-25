@@ -665,6 +665,29 @@ class FamilyTest < ActiveSupport::TestCase
     assert_raises(ArgumentError) { family.resolved_categorization_provider }
   end
 
+  # number_format only changes digit grouping for display, so a typo must be
+  # rejected here rather than rendering untouched western amounts forever.
+  test "number_format accepts the two supported groupings" do
+    family = families(:dylan_family)
+
+    Family::NUMBER_FORMATS.each do |format|
+      family.number_format = format
+      assert family.valid?, "#{format} should be accepted"
+    end
+  end
+
+  test "number_format rejects an unsupported grouping" do
+    family = families(:dylan_family)
+    family.number_format = "european"
+
+    assert_not family.valid?
+    assert_includes family.errors[:number_format], "is not included in the list"
+  end
+
+  test "number_format defaults to western so existing families are unchanged" do
+    assert_equal "western", Family.new.number_format
+  end
+
   private
     def set_preview_features(user, enabled)
       user.update!(preferences: (user.preferences || {}).merge("preview_features_enabled" => enabled))

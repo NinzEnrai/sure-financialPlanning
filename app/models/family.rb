@@ -33,6 +33,11 @@ class Family < ApplicationRecord
   ].freeze
 
 
+  # Display-only digit grouping preference. "western" groups in thousands
+  # (1,234,567); "lakh_crore" groups in lakhs/crores (12,34,567). Independent of
+  # the family's base currency: an Indian reader parses a USD figure in lakhs too.
+  NUMBER_FORMATS = %w[western lakh_crore].freeze
+
   MONIKERS = [ "Family", "Group" ].freeze
   ASSISTANT_TYPES = %w[builtin external].freeze
 
@@ -158,6 +163,7 @@ class Family < ApplicationRecord
 
   validates :locale, inclusion: { in: I18n.available_locales.map(&:to_s) }
   validates :date_format, inclusion: { in: DATE_FORMATS.map(&:last) }
+  validates :number_format, inclusion: { in: NUMBER_FORMATS }
   validates :month_start_day, inclusion: { in: 1..28 }
   validates :moniker, inclusion: { in: MONIKERS }
   validates :assistant_type, inclusion: { in: ASSISTANT_TYPES }

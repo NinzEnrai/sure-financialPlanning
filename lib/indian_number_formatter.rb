@@ -19,28 +19,37 @@ module IndianNumberFormatter
   module_function
 
   def format(amount, symbol: nil, decimals: 2)
+    amount = BigDecimal(amount.to_s) unless amount.is_a?(Numeric)
     negative = amount.negative?
-    whole, fraction = amount.abs.round(decimals).to_s.split(".")
+    rounded = amount.abs.round(decimals)
+
+    # Integer#to_s never carries a ".", so split the rounded value from its
+    # digits rather than from to_s — otherwise whole rupees lose their paise.
+    whole = rounded.to_i.to_s
+    fraction = decimals.positive? ? sprintf("%.#{decimals}f", rounded).split(".").last : nil
 
     grouped = group_indian(whole)
-    formatted = fraction && decimals.positive? ? "#{grouped}.#{fraction.ljust(decimals, '0')}" : grouped
-    formatted = "-#{formatted}" if negative
-    symbol ? "#{symbol}#{formatted}" : formatted
+    formatted = fraction ? "#{grouped}.#{fraction}" : grouped
+    # Sign before the symbol, matching number_to_currency's negative_format.
+    prefix = negative ? "-#{symbol}" : symbol.to_s
+    "#{prefix}#{formatted}"
   end
 
   # Compact form for dashboards/cards: "1.23 Cr", "45.00 L", "8,200"
   def compact(amount, symbol: nil)
+    amount = BigDecimal(amount.to_s) unless amount.is_a?(Numeric)
     abs = amount.abs
     value, suffix =
       if abs >= CRORE
-        [amount / CRORE.to_f, "Cr"]
+        [ amount / CRORE.to_f, "Cr" ]
       elsif abs >= LAKH
-        [amount / LAKH.to_f, "L"]
+        [ amount / LAKH.to_f, "L" ]
       else
         return format(amount, symbol: symbol, decimals: 0)
       end
 
-    text = "#{format('%.2f', value)} #{suffix}"
+    # Kernel#format explicitly: bare format() here is this module's own method.
+    text = "#{Kernel.format('%.2f', value)} #{suffix}"
     symbol ? "#{symbol}#{text}" : text
   end
 

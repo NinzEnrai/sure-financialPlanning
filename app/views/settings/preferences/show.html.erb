@@ -16,6 +16,10 @@
             Family::DATE_FORMATS,
             { label: t(".date_format") },
             { data: { auto_submit_form_target: "auto" } } %>
+        <%= family_form.select :number_format,
+            Family::NUMBER_FORMATS.map { |format| [ t(".number_formats.#{format}"), format ] },
+            { label: t(".number_format"), help_text: t(".number_format_hint") },
+            { data: { auto_submit_form_target: "auto" } } %>
         <%= form.select :default_account_order,
             AccountOrder.all.map { |order| [ order.label, order.key ] },
             { label: t(".default_account_order") },
