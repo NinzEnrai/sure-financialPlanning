@@ -58,6 +58,10 @@ class Provider
             sec.isin = row["isin"]
             sec.is_mutual_fund = true
             sec.country_code = "IN"
+            # AMFI scheme codes are numeric MF identifiers, not exchange tickers:
+            # sending one to a stock provider returns nothing. mfapi serves the
+            # official AMFI daily NAV for exactly this code.
+            sec.price_provider = "mfapi"
           end
         end
     end

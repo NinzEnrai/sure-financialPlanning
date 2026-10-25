@@ -160,17 +160,30 @@ module Security::Provided
 
   # Public method: resolves the provider for this specific security.
   # Uses the security's assigned price_provider if available and configured.
-  # Falls back to the first enabled provider only when no specific provider
-  # was ever assigned. When an assigned provider becomes unavailable, returns
-  # nil so the security is skipped rather than queried against an incompatible
-  # provider (e.g. MFAPI scheme codes sent to TwelveData).
+  # Falls back to an inferred provider for securities created before
+  # price_provider was recorded, then to the first enabled provider only when
+  # nothing can be inferred. When an assigned provider becomes unavailable,
+  # returns nil so the security is skipped rather than queried against an
+  # incompatible provider (e.g. MFAPI scheme codes sent to TwelveData).
   def price_data_provider
     if price_provider.present?
       assigned = self.class.provider_for(price_provider)
       return assigned if assigned.present?
       return nil # assigned provider is unavailable — don't silently fall back
     end
-    self.class.providers.first
+
+    self.class.provider_for(inferred_price_provider) || self.class.providers.first
+  end
+
+  # Every holding Kite has already imported carries no price_provider, so those
+  # securities used to resolve to whichever provider happened to be enabled
+  # first. For mutual funds that is fatal: an AMFI scheme code (e.g. "125497")
+  # is not a ticker, so a stock provider returns nothing and the NAV never
+  # updates. Infer from data we already store rather than requiring a backfill.
+  def inferred_price_provider
+    return "mfapi" if amfi_scheme_code.present?
+    return "yahoo_finance" if country_code == "IN"
+    nil
   end
 
   # Returns the health status of this security's provider link.

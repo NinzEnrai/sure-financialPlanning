@@ -77,6 +77,9 @@ class Provider
             sec.name = row["tradingsymbol"]
             sec.isin = row["isin"]
             sec.country_code = "IN"
+            # Kite supplies holdings and trades, not prices. Daily closes come
+            # from Yahoo, which serves .NS/.BO for the Indian exchanges.
+            sec.price_provider = "yahoo_finance"
           end
         end
     end

@@ -153,6 +153,53 @@ class Security::ProvidedTest < ActiveSupport::TestCase
     assert_equal fallback_provider, @security.price_data_provider
   end
 
+  # Every holding Kite imported before price_provider was recorded carries no
+  # assignment. An AMFI scheme code is not a ticker, so resolving to whichever
+  # stock provider happened to be enabled first meant the NAV never updated.
+  test "price_data_provider infers mfapi for an AMFI scheme code with no assignment" do
+    mfapi = mock("mfapi_provider")
+    Security.stubs(:provider_for).with("mfapi").returns(mfapi)
+
+    @security.update!(price_provider: nil, amfi_scheme_code: "125497", country_code: "IN")
+
+    assert_equal mfapi, @security.price_data_provider
+  end
+
+  test "price_data_provider infers yahoo_finance for an Indian equity with no assignment" do
+    yahoo = mock("yahoo_provider")
+    Security.stubs(:provider_for).with("yahoo_finance").returns(yahoo)
+
+    @security.update!(price_provider: nil, amfi_scheme_code: nil, country_code: "IN")
+
+    assert_equal yahoo, @security.price_data_provider
+  end
+
+  # A scheme code is the stronger signal: a fund is also country_code "IN".
+  test "price_data_provider prefers mfapi over yahoo for an Indian fund" do
+    mfapi = mock("mfapi_provider")
+    Security.stubs(:provider_for).with("mfapi").returns(mfapi)
+    Security.stubs(:provider_for).with("yahoo_finance").returns(nil)
+
+    @security.update!(price_provider: nil, amfi_scheme_code: "125497", country_code: "IN")
+
+    assert_equal mfapi, @security.price_data_provider
+  end
+
+  test "an explicit price_provider still wins over the inferred one" do
+    assigned = mock("assigned_provider")
+    Security.stubs(:provider_for).with("tiingo").returns(assigned)
+
+    @security.update!(price_provider: "tiingo", amfi_scheme_code: "125497", country_code: "IN")
+
+    assert_equal assigned, @security.price_data_provider
+  end
+
+  test "inference yields nothing for a security with no Indian or AMFI markers" do
+    @security.update!(price_provider: nil, amfi_scheme_code: nil, country_code: "US")
+
+    assert_nil @security.inferred_price_provider
+  end
+
   test "import_provider_details logs provider metadata failures to debug log" do
     provider = mock("provider")
     provider.stubs(:class).returns(Provider::TwelveData)
