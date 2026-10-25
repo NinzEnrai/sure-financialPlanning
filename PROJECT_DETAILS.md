@@ -552,3 +552,239 @@ docker run --rm --network suretest -v "/path/to/repo:/rails" -w /rails \
 48. `PlanningSetting::FIRE_VARIANTS` withdrawal rates: lean 3.3, coast 4.0, barista 6.5, standard 4.0, fat 3.0
 49. `FinancialPlanning::FireProgress#months_until_target_date` returns nil if target year has passed
 50. `FinancialPlanning::FireProgress#projected_balance_at_target_date` uses WealthProjector#balance_after_months
+
+---
+
+# 20. Session Handoff (2026-10-25) — graph fix done, INR formatting half-wired
+
+Written so a new session (different model provider) can resume without re-investigating.
+All work below is **uncommitted on `main`**. Nothing has been pushed.
+
+## 20.1 What is finished and verified
+
+**Graph did not respond to sliders — FIXED.**
+Root cause: in `app/views/financial_planning/_wealth_projector.html.erb`, the chart
+`<div>` sat *outside* the element carrying `data-controller="compound-calculator"`
+(the controller's wrapper closed just before it). A Stimulus target must be a
+descendant of its controller's element, so `data-compound-calculator-target="chart"`
+never resolved and `render()` was never called. The chart is now nested inside that
+wrapper. Two range inputs also gained `autocomplete="off"` and the file gained a
+trailing newline to satisfy ERB lint.
+
+**Float precision in growth-rate math — FIXED.**
+- `app/models/planning_setting.rb` — `growth_rate` now `BigDecimal(...) / 100`
+  instead of `to_f / 100`.
+- `app/controllers/financial_planning_controller.rb` — `ratio_param` now `/ 100`
+  instead of `/ 100.0`.
+The projector itself already used `BigDecimal` throughout.
+
+**Verified results (Docker, image code — no Windows bind mount):**
+- `bin/rails test` on financial-planning suite: **104 runs, 279 assertions, 0 failures, 0 errors**
+- `bin/brakeman --no-pager`: **0 warnings, 0 errors**
+- `bundle exec erb_lint _wealth_projector.html.erb`: **no errors**
+- `bin/rubocop` on changed Ruby files: **no offenses**
+
+**Caveat on what that covers.** Those runs happened AFTER the ERB fix and the two
+BigDecimal edits, so those three are genuinely verified. The `Family::NUMBER_FORMATS`
+constant and validation were added *after* that test run and are therefore **NOT yet
+tested**. The next session must run the suite before trusting them. Risk is low — every
+existing family gets the column default `"western"`, so the new inclusion validation
+should pass — but it is unverified, not verified.
+
+**`AGENTS.md`** — added a "Communication style" section (owner is not a professional
+programmer; explain in plain language, define jargon, keep answers short).
+
+## 20.2 What is INCOMPLETE — resume here
+
+`families.number_format` (values `"western"` | `"lakh_crore"`, default `"western"`,
+DB check constraint already exists from `db/migrate/20261013000100_add_indian_market_support.rb`).
+`lib/indian_number_formatter.rb` already implements `.format` and `.compact`.
+Nothing was consuming either yet. Steps 1–2 below are DONE; 3–7 are NOT.
+
+1. **DONE** `app/models/family.rb` — added `NUMBER_FORMATS = %w[western lakh_crore].freeze`
+   and `validates :number_format, inclusion: { in: NUMBER_FORMATS }` (next to the
+   existing `date_format` validation).
+
+2. **DONE** `lib/indian_number_formatter.rb` — already existed; unchanged.
+
+3. **TODO** `app/controllers/users_controller.rb:117` — add `:number_format` to
+   `family_attrs`. This is the actual save path; `Settings::PreferencesController#update`
+   only writes *user* preferences and is NOT where family settings land.
+
+4. **TODO** `app/helpers/application_helper.rb:186` — `format_money` currently does
+   `Money.new(number_or_money).format(options)`. Add Indian grouping when
+   `Current.family&.number_format == "lakh_crore"`. Recommended low-risk approach:
+   pass `delimiter_pattern: INDIAN_GROUPING` through to `number_to_currency` rather
+   than bypassing `Money`, so existing `precision:`/`format:` options keep working.
+   Pattern: `/(\d+?)(?=(\d\d)+(\d)(?!\d))/` → `1,23,45,67,890`.
+
+5. **TODO** `app/views/settings/preferences/show.html.erb:15` — add a
+   `family_form.select :number_format, Family::NUMBER_FORMATS ...` next to the existing
+   `:date_format` select. Note the form uses `data: { controller: "auto-submit-form" }`.
+
+6. **TODO** `config/locales/views/settings/en.yml:191` — add label keys beside the
+   existing `date_format:` key. Other locales can fall back to English for now.
+
+7. **TODO** `app/javascript/controllers/wealth_projection_chart_controller.js:352` —
+   `_fmtMoneyShort` hardcodes K/M. Needs L/Cr when the family uses lakh_crore. Pass the
+   setting in via a new `data-wealth-projection-chart-number-format-value`. Tooltips and
+   the end-of-line label already use server-sent `balance_formatted`, so only axis ticks
+   need JS work.
+
+8. **TODO tests** — no `test/lib/indian_number_formatter_test.rb` exists. Add one, plus a
+   `Family` validation test for an invalid `number_format`. Precedent: `test/lib/money_test.rb`.
+
+## 20.3 Docker test recipe that actually works
+
+The documented recipe in section 17 is **wrong for this machine** and `Dockerfile.test`
+does not exist. Do NOT bind-mount the repo — Rails boot hangs indefinitely reading gems
+over the Windows→Linux mount. Instead copy files into a container built from an existing
+image.
+
+Working image: `sure-dev-app:live` (Rails 8.1.3.1, gems at `/usr/local/bundle`).
+Broken image: `sure-test:work` (empty/invalid gemspecs — do not use).
+Containers: `suretest-postgres`, `suretest-redis`, network `suretest`.
+
+```
+docker start suretest-postgres suretest-redis
+docker rm -f suretest-work
+docker run -d --name suretest-work --network suretest --entrypoint /bin/bash \
+  -e RAILS_ENV=test -e DB_HOST=suretest-postgres -e DB_PORT=5432 \
+  -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=sure_test \
+  -e REDIS_URL=redis://suretest-redis:6379/0 sure-dev-app:live -lc "sleep infinity"
+# copy ONLY changed files in, then:
+docker exec suretest-work sh -lc "cd /rails && bin/rails test <path>"
+```
+
+Gotchas learned the hard way:
+- **Exit code 1 is a false alarm.** A Minitest deprecation notice goes to stderr and
+  PowerShell surfaces stderr as a failure. Read the summary line: `0 failures, 0 errors`
+  means green. Do not chase the exit code.
+- Never put PowerShell cmdlets (`Select-Object`, etc.) inside the container's `sh -lc`
+  string — that produced `sh: Select-Object: not found`.
+- The image has no `.git` and no `Gemfile.lock` mismatch; copy source files in, don't
+  expect git commands inside.
+- Docker Desktop must be running (`docker info`) or all commands fail with a npipe error.
+
+## 20.4 Product decisions already made by the owner
+
+- **Stocks:** use **daily closing prices** from Yahoo Finance (reliable without login).
+  Not intraday. Zerodha remains the source for holdings and trades.
+- **Mutual funds:** use **AMFI official daily NAV** (no login, no token expiry). Zerodha
+  still supplies holdings/trades. Yahoo is unreliable for Indian MF NAVs.
+- **INR display:** lakh/crore grouping is wanted; `1,00,00,000` for one crore.
+- **Kite today:** pulls holdings once per valid daily session token; token is day-scoped,
+  so price refresh stops after expiry. That is why it feels like a one-time pull.
+- Later features (not started): XIRR wiring, tax harvesting, tax estimate. `Portfolio::Xirr`
+  and `Portfolio::FlowClassifier` already exist but are not wired to views.
+
+## 20.5 Next-session starting order
+
+1. Finish steps 3–7 in 20.2 (INR formatting end to end).
+2. Add tests from step 8.
+3. Run the Docker recipe in 20.3 and confirm green.
+4. Then begin the Yahoo/AMFI price pipeline — read
+   `app/models/provider/yahoo_finance.rb`, `app/models/market_data_importer.rb`,
+   `app/models/security/provided.rb`, and the Kite scheduler in
+   `app/services/kite/sync_scheduler.rb`.
+5. `bin/rails db:migrate` was NOT run. The `number_format` column already exists in the
+   schema from migration `20261013000100`, so no migration is needed for this work.
+
+---
+
+# 21. Session Update (2026-10-25, later) — INR COMPLETE, price providers wired
+
+## 21.1 Lakh/crore display: DONE and verified
+
+Steps 3–8 of §20.2 are finished:
+
+- `app/controllers/users_controller.rb` — `:number_format` added to `family_attrs`
+  (this, not `Settings::PreferencesController`, is the real save path).
+- `app/helpers/application_helper.rb` — `format_money` adds
+  `delimiter_pattern: INDIAN_DELIMITER_PATTERN` when the family chose `lakh_crore`.
+  The pattern rides through `Money#format` → `number_to_currency`, so `precision:`
+  and locale symbol placement keep working, and only the integer part is grouped.
+- `app/views/settings/preferences/show.html.erb` — Number format select. Uses
+  `help_text:`, **not** `hint:` (the form builder ignores `hint:`).
+- `config/locales/views/settings/en.yml` — `number_format`, `number_format_hint`,
+  `number_formats.{western,lakh_crore}`.
+- `app/javascript/controllers/wealth_projection_chart_controller.js` — new
+  `numberFormat` Stimulus value; `_fmtMoneyShort` emits `L`/`Cr` for lakh_crore.
+  Only axis ticks need JS; tooltips use server-sent `balance_formatted`.
+
+`1,00,00,000` renders as one crore as requested.
+
+## 21.2 Two pre-existing `IndianNumberFormatter` bugs — FIXED
+
+The module existed but nothing consumed it, which is why its bugs went unnoticed:
+
+1. Whole-number amounts dropped their decimals — `format(1234567)` gave
+   `"12,34,567"` instead of `"12,34,567.00"`, because `Integer#to_s` has no `"."`
+   to split on.
+2. `compact` **always raised** `ArgumentError`: its bare `format('%.2f', value)`
+   resolved to this module's own `format` method, not `Kernel#format`.
+
+Both fixed, with `test/lib/indian_number_formatter_test.rb` covering them.
+
+## 21.3 Daily price pipeline: providers wired (the actual blocker)
+
+The pipeline was mostly built already — `Provider::YahooFinance` (daily closes,
+`.NS`/`.BO` for XNSE/XBOM), `Provider::Mfapi` (official AMFI NAV),
+`MarketDataImporter`, and `ImportMarketDataJob` on a `0 22 * * 1-5` UTC cron
+(03:30 IST the next morning — after both NSE close and AMFI publication).
+
+**The gap was that securities carried no `price_provider`.** Both Kite syncs
+created securities without one, so `price_data_provider` fell back to "first
+enabled provider" — and an AMFI scheme code is not a ticker, so a stock provider
+returned nothing and mutual fund NAVs never updated.
+
+- `app/models/provider/kite/holdings_sync.rb` — new equities get `yahoo_finance`.
+- `app/models/provider/kite/mutual_fund_sync.rb` — new funds get `mfapi`.
+- `app/models/security/provided.rb` — new `inferred_price_provider`
+  (`amfi_scheme_code` → mfapi, else `country_code == "IN"` → yahoo_finance).
+  This repairs **already-imported** securities with no backfill or migration.
+
+Verified live from the container: mfapi returned real INR NAVs for scheme
+`125497`; Yahoo returned INR daily closes for `RELIANCE.NS`. **The old "Yahoo
+hangs" problem does not reproduce** with the current 5s timeout / 2 retries.
+
+### Still required in production (config, not code)
+
+`Setting.enabled_securities_providers` falls back to the singular
+`SECURITIES_PROVIDER` when the plural is unset, so only one provider can be
+active at a time. On the LXC, in `/etc/sure/.env`:
+
+```
+SECURITIES_PROVIDERS=yahoo_finance,mfapi
+```
+
+Then restart both services. Without this the inferred provider resolves to nil
+and silently falls back to the old behaviour.
+
+## 21.4 Full test suite — actually run
+
+`bin/rails test` on a faithful copy of the working tree inside `sure-dev-app:live`:
+**11,706 runs, 53,670 assertions, 6 failures, 2 errors, 34 skips.**
+
+All 8 are the known environment artifacts, none caused by this work:
+- 3 `AccountStatementTest` + 2 `Pdf::TextExtractorTest` — PDF fixtures corrupted
+  by CRLF (`.gitattributes` does not cover `*.pdf`).
+- 1 `Provider::FamilyGeneratorTest` and 1 `RecurringTransaction::PipelineTest` —
+  they regex-match `\n` but Windows-sourced files carry `\r\n`.
+- 1 `SnaptradeAccount::ActivitiesProcessorTest` — float precision.
+
+These pass on the Linux LXC except the PDF ones.
+
+## 21.5 Preview gotchas worth remembering
+
+The `sure-dev-app` container bakes its code into the image (no bind mount). To
+preview local changes you must `docker cp` the changed files in **and**
+`bin/rails tailwindcss:build`, otherwise Tailwind classes written for new markup
+are absent from the compiled CSS. Clear `/rails/tmp/pids/server.pid` before
+restarting or Puma refuses to boot. The app registers a service worker, so a hard
+refresh (or unregistering it) is needed to see new JS.
+
+Running the full suite needs a **faithful** tree: a partial `docker cp` of only
+changed files makes unrelated tests fail (e.g. `YahooFinance` retry defaults,
+`max_retries`) because stale test files stay behind. Copy `app config lib test db
+spec bin` wholesale, not just the diff.
