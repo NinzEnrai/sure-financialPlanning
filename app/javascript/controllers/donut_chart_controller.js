@@ -153,7 +153,9 @@ export default class extends Controller {
       .attr("class", "visible-path")
       .attr("data-segment-id", (d) => d.data.id)
       .attr("data-original-color", this.#transformRingColor)
-      .attr("fill", this.#transformRingColor)
+      // style, not the fill attribute: a presentation attribute cannot resolve
+      // var(--x), so a themed segment colour would fall back to black.
+      .style("fill", this.#transformRingColor)
       .attr("d", mainArc);
 
     // Disable pointer events on visible paths if extended hover is enabled
@@ -193,7 +195,15 @@ export default class extends Controller {
       return color;
     }
 
+    // A segment colour may be a CSS custom property such as
+    // "var(--color-blue-600)". That is a perfectly good colour to the browser,
+    // but d3.color() only parses colour literals and returns null for it, so
+    // the opacity assignment below would throw and abort the whole draw --
+    // leaving an SVG that occupies space but paints nothing. Hand the string
+    // through unchanged and let CSS resolve it.
     const reducedOpacityColor = d3.color(color);
+    if (!reducedOpacityColor) return color;
+
     reducedOpacityColor.opacity = this.segmentOpacityValue;
     return reducedOpacityColor;
   };
@@ -209,7 +219,8 @@ export default class extends Controller {
     // Use cached selection if available for better performance
     const paths = this.#visiblePaths || d3.select(this.chartContainerTarget).selectAll("path.visible-path");
 
-    paths.attr("fill", function () {
+    // style() rather than the fill attribute so themed var() colours resolve.
+    paths.style("fill", function () {
       if (this.dataset.segmentId === segmentId) {
         if (this.dataset.segmentId === unusedSegmentId) {
           return "var(--budget-unused-fill)";
@@ -237,7 +248,7 @@ export default class extends Controller {
     const paths = this.#visiblePaths || d3.select(this.chartContainerTarget).selectAll("path.visible-path");
 
     paths
-      .attr("fill", function () {
+      .style("fill", function () {
         return this.dataset.originalColor;
       })
       .style("opacity", null); // Clear inline opacity style
