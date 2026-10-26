@@ -33,7 +33,14 @@ class AmfiSchemeIndex
     end
 
     def index
-      Rails.cache.fetch(CACHE_KEY, expires_in: CACHE_TTL) { fetch_index }
+      cached = Rails.cache.read(CACHE_KEY)
+      return cached if cached.present?
+
+      fresh = fetch_index
+      # Never cache an empty result: AMFI answers 302 (and occasionally 5xx), and
+      # caching that would leave every fund unpriced for a whole day.
+      Rails.cache.write(CACHE_KEY, fresh, expires_in: CACHE_TTL) if fresh.present?
+      fresh
     end
 
     # Exposed for tests and for a manual refresh after AMFI adds a fund.
@@ -68,22 +75,43 @@ class AmfiSchemeIndex
     private
 
       def fetch_index
-        response = Faraday.get(SOURCE_URL) do |request|
+        body = download(SOURCE_URL)
+
+        unless body
+          Rails.logger.warn("[AmfiSchemeIndex] AMFI feed unavailable; fund ISIN lookup disabled this cycle")
+          return {}
+        end
+
+        parsed = parse(body)
+        Rails.logger.warn("[AmfiSchemeIndex] AMFI feed parsed to zero ISINs; format may have changed") if parsed.empty?
+        parsed
+      end
+
+      # AMFI answers the canonical URL with a 302 rather than the file, and plain
+      # Faraday does not follow it -- the body is then a 169-byte redirect page
+      # that parses to nothing. Follow one hop by hand: no extra middleware, and
+      # a loop cannot form.
+      def download(url, hops: 1)
+        response = Faraday.get(url) do |request|
           request.options.timeout = 20
           request.options.open_timeout = 10
         end
 
-        unless response.success?
-          Rails.logger.warn("[AmfiSchemeIndex] AMFI feed returned #{response.status}; ISIN lookup unavailable")
-          return {}
+        if response.status.between?(300, 399)
+          location = response.headers["location"]
+          return nil if location.blank? || hops.zero?
+
+          return download(URI.join(url, location).to_s, hops: hops - 1)
         end
 
-        parse(response.body)
+        return nil unless response.success?
+
+        response.body
       rescue StandardError => e
         # A fund that cannot be priced is one missing chart, not a failed sync:
         # degrade to "unknown" rather than raising into the caller.
         Rails.logger.warn("[AmfiSchemeIndex] AMFI feed unavailable: #{e.class} - #{e.message}")
-        {}
+        nil
       end
 
       def normalize(value)
