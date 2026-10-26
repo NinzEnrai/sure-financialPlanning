@@ -79,17 +79,32 @@ class Provider
           end
         end
 
+        # Kite lists rights entitlements alongside real holdings. A symbol like
+        # "OLAELEC-RE-BE" is a renounceable entitlement, not something Yahoo can
+        # quote: every price fetch 404s, so the symbol accrues failed_fetch_count
+        # forever and never gets history. Mark it offline once, and the market
+        # data importer stops asking.
+        NON_TRADABLE_SYMBOL = /-RE(-BE)?\z/i
+
         def find_or_create_security(row)
           mic = EXCHANGE_TO_MIC[row["exchange"]] || row["exchange"]
+          symbol = row["tradingsymbol"].to_s
 
-          Security.find_or_create_by!(ticker: row["tradingsymbol"], exchange_operating_mic: mic) do |sec|
-            sec.name = row["tradingsymbol"]
-            sec.isin = row["isin"]
-            sec.country_code = "IN"
-            # Kite supplies holdings and trades, not prices. Daily closes come
-            # from Yahoo, which serves .NS/.BO for the Indian exchanges.
-            sec.price_provider = "yahoo_finance"
+          security = Security.find_or_initialize_by(ticker: symbol, exchange_operating_mic: mic)
+          security.name ||= symbol
+          security.isin ||= row["isin"]
+          security.country_code = "IN"
+          # Kite supplies holdings and trades, not prices. Daily closes come
+          # from Yahoo, which serves .NS/.BO for the Indian exchanges.
+          security.price_provider ||= "yahoo_finance"
+
+          if symbol.match?(NON_TRADABLE_SYMBOL)
+            security.offline = true
+            security.offline_reason = "Rights entitlement, not a tradable security"
           end
+
+          security.save!
+          security
         end
     end
   end

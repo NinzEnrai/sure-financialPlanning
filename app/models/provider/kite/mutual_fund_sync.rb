@@ -57,19 +57,41 @@ class Provider
           @mf_holdings ||= client.get("/mf/holdings")["data"] || []
         end
 
+        # Zerodha names a fund by ISIN ("INF959L01FX6"); the AMFI NAV feed is
+        # keyed by scheme code ("149892"), and mfapi answers 400 to an ISIN. So
+        # resolve the real scheme code and use it as the ticker -- the ticker is
+        # what Security::Provided passes to the provider as the symbol. An
+        # unresolvable ISIN falls back to itself so the holding still imports;
+        # it simply stays unpriced until AMFI publishes that fund.
         def find_or_create_fund(row)
-          scheme_code = row["tradingsymbol"] || row["fund"]
-          Security.find_or_create_by!(amfi_scheme_code: scheme_code) do |sec|
-            sec.ticker = scheme_code
-            sec.name = row["fund"]
-            sec.isin = row["isin"]
-            sec.is_mutual_fund = true
-            sec.country_code = "IN"
-            # AMFI scheme codes are numeric MF identifiers, not exchange tickers:
-            # sending one to a stock provider returns nothing. mfapi serves the
-            # official AMFI daily NAV for exactly this code.
-            sec.price_provider = "mfapi"
-          end
+          raw = (row["tradingsymbol"].presence || row["fund"]).to_s
+          isin = row["isin"].presence
+          isin = raw if isin.blank? && AmfiSchemeIndex.isin?(raw)
+          scheme_code = AmfiSchemeIndex.scheme_code_for(isin)
+
+          security = find_existing_fund(isin: isin, scheme_code: scheme_code, raw: raw)
+          security.ticker = scheme_code.presence || raw
+          security.name = row["fund"] if row["fund"].present?
+          security.isin = isin if isin.present?
+          security.amfi_scheme_code = scheme_code.presence || raw
+          security.is_mutual_fund = true
+          security.country_code = "IN"
+          # AMFI scheme codes are numeric MF identifiers, not exchange tickers:
+          # sending one to a stock provider returns nothing. mfapi serves the
+          # official AMFI daily NAV for exactly this code.
+          security.price_provider ||= "mfapi"
+          security.save!
+          security
+        end
+
+        # Matched by ISIN first so funds imported before the ISIN lookup existed
+        # are corrected in place rather than duplicated alongside their own
+        # holdings.
+        def find_existing_fund(isin:, scheme_code:, raw:)
+          (Security.find_by(isin: isin) if isin.present?) ||
+            (Security.find_by(amfi_scheme_code: scheme_code) if scheme_code.present?) ||
+            Security.find_by(ticker: raw) ||
+            Security.new
         end
     end
   end
