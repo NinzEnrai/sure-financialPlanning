@@ -65,7 +65,16 @@ class Provider
             holding.qty = qty
             holding.price = row["last_price"].to_d
             holding.amount = (row["last_price"].to_d * qty).round(2)
-            holding.cost_basis = row["average_price"].to_d * qty if row["average_price"] && !holding.cost_basis_locked?
+            # cost_basis is a PER-SHARE figure: Holding#avg_cost returns it
+            # straight back as "average cost per share", and calculate_avg_cost
+            # divides total cost by total quantity. Kite's average_price is
+            # already per unit, so multiplying by qty here inflated cost by the
+            # holding's size -- a 584-unit fund reported a 2.87 crore loss and a
+            # 1% portfolio weight, because qty * avg_cost was applied twice.
+            if row["average_price"].to_d.positive? && !holding.cost_basis_locked?
+              holding.cost_basis = row["average_price"].to_d
+              holding.cost_basis_source = "provider"
+            end
             holding.save!
           end
         end

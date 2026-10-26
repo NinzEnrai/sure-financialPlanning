@@ -20,6 +20,12 @@ class KiteItem::Importer
     Provider::Kite::TradeImporter.new(kite_item, equity_account).call
     Provider::Kite::MutualFundSync.new(kite_item, mf_account).call
 
+    # Before the balance syncs: a linked account's balance is reverse-calculated
+    # from its current anchor, so the anchor has to exist first or the account
+    # materializes to 0.00 and the portfolio never reaches net worth.
+    Provider::Kite::BalanceSync.new(kite_item, equity_account).call
+    Provider::Kite::BalanceSync.new(kite_item, mf_account).call
+
     schedule_balance_syncs
 
     kite_item.mark_active!

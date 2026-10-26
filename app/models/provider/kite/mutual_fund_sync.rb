@@ -34,7 +34,14 @@ class Provider
           holding.qty = units
           holding.price = nav
           holding.amount = (units * nav).round(2)
-          holding.cost_basis = row["average_price"].to_d * units if row["average_price"] && !holding.cost_basis_locked?
+          # cost_basis is a PER-SHARE figure: Holding#avg_cost reads it straight
+          # back as "average cost per share". Kite's average_price is already per
+          # unit, so multiplying by units made the reported cost 500-2000x too
+          # large and turned a small gain into a multi-crore loss.
+          if row["average_price"].to_d.positive? && !holding.cost_basis_locked?
+            holding.cost_basis = row["average_price"].to_d
+            holding.cost_basis_source = "provider"
+          end
           holding.save!
         end
 
