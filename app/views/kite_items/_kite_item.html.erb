@@ -1,0 +1,52 @@
+<%# locals: (kite_item:, visible_accounts:) %>
+
+<%# Kite-linked accounts carry an AccountProvider row, so Account.manual excludes
+    them. Every other provider renders its own section on the accounts index for
+    the same reason; this is that section for Zerodha. %>
+<%= tag.div id: dom_id(kite_item) do %>
+  <%= render DS::Disclosure.new(variant: :card, open: true) do |disclosure| %>
+    <% disclosure.with_summary_content do %>
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <%= icon "chevron-right", class: "group-open:rotate-90 motion-safe:transition-transform motion-safe:duration-150" %>
+
+          <%= render ProviderLogo.new(provider_key: :kite) %>
+
+          <div class="pl-1 text-sm">
+            <%= tag.p kite_item.name.presence || t(".default_name"), class: "font-medium text-primary" %>
+
+            <% if kite_item.requires_update? %>
+              <div class="text-warning flex items-center gap-1">
+                <%= icon "alert-triangle", size: "sm", color: "warning" %>
+                <%= tag.span t(".requires_update") %>
+              </div>
+            <% elsif kite_item.last_synced_at %>
+              <p class="text-secondary">
+                <%= t(".status", timestamp: time_ago_in_words(kite_item.last_synced_at)) %>
+              </p>
+            <% else %>
+              <p class="text-secondary"><%= t(".status_never") %></p>
+            <% end %>
+          </div>
+        </div>
+
+        <% if Current.user&.admin? && kite_item.requires_update? %>
+          <%= render DS::Link.new(
+            text: t(".reconnect"),
+            icon: "link",
+            variant: "secondary",
+            href: connect_settings_kite_connection_path
+          ) %>
+        <% end %>
+      </div>
+    <% end %>
+
+    <div class="space-y-4 mt-4">
+      <% if visible_accounts.any? %>
+        <%= render "accounts/index/account_groups", accounts: visible_accounts %>
+      <% else %>
+        <p class="text-sm text-secondary px-1"><%= t(".no_accounts") %></p>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>

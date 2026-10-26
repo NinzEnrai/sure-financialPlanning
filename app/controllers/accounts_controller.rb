@@ -45,6 +45,10 @@ class AccountsController < ApplicationController
     @coinspot_items = visible_provider_items(family.coinspot_items.ordered.with_attached_logo.includes(:coinspot_accounts, :accounts))
     @trading212_items = visible_provider_items(family.trading212_items.ordered.with_attached_logo.includes(:trading212_accounts)).sort_by(&:created_at)
     @questrade_items = visible_provider_items(family.questrade_items.ordered.with_attached_logo.includes(:accounts, questrade_accounts: :account_provider))
+    # One Zerodha login per family, so this is a single item rather than a list.
+    # Its accounts carry an AccountProvider row, which makes them ineligible for
+    # the `manual` scope -- without a section here they would appear nowhere.
+    @kite_item = family.kite_item
     @wise_items = visible_provider_items(family.wise_items.ordered.includes(:wise_accounts, :accounts))
     @trade_republic_items = visible_provider_items(
       family.trade_republic_items.ordered.includes(trade_republic_accounts: { account_provider: :account })

@@ -1,0 +1,10 @@
+en:
+  kite_items:
+    kite_item:
+      default_name: Zerodha
+      no_accounts: No accounts are linked to this Zerodha connection yet.
+      reconnect: Reconnect
+      requires_update: Session expired — reconnect to keep syncing
+      status: "Last synced %{timestamp}"
+      status_never: Not synced yet
+    default_name: Zerodha

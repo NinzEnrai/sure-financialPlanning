@@ -16,6 +16,30 @@ class AccountsControllerTest < ActionDispatch::IntegrationTest
     assert_select "p.ml-auto.privacy-sensitive"
   end
 
+  # Zerodha accounts carry an AccountProvider row, and Account.manual excludes
+  # anything provider-linked. Before this section existed those accounts were
+  # rendered nowhere at all -- the connection worked, but the accounts page
+  # stayed blank, which reads as "the sync did nothing".
+  test "a Zerodha-linked investment account appears on the accounts page" do
+    family = @user.family
+    kite_item = family.create_kite_item!(name: "Zerodha")
+    kite_account = kite_item.kite_accounts.create!(segment: "equity", name: "Zerodha Equity", currency: "INR")
+    account = family.accounts.create!(
+      name: "Zerodha Equity", balance: 1_000, currency: "INR", accountable: Investment.new
+    )
+    kite_account.ensure_account_provider!(account)
+
+    assert account.account_providers.any?, "precondition: the account is provider-linked"
+    assert_not_includes family.accounts.listable_manual.pluck(:id), account.id,
+      "precondition: the manual scope excludes provider-linked accounts"
+
+    get accounts_url
+
+    assert_response :success
+    assert_select "##{dom_id(kite_item)}"
+    assert_match "Zerodha Equity", response.body
+  end
+
   test "show filters account activity to uncategorized transactions" do
     uncategorized = create_transaction(account: @account, name: "Uncategorized Filter Target", category: nil)
     categorized = create_transaction(account: @account, name: "Categorized Filter Decoy", category: categories(:food_and_drink))
