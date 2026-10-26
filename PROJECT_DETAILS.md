@@ -1,11 +1,29 @@
 # PROJECT DETAILS — Sure Finance (NinzEnrai/sure-financialPlanning)
 
-Comprehensive context document. Last updated: 2026-10-26. Commit: b4eccb66d.
+Comprehensive context document. Last updated: 2026-10-26.
 
-**Resuming? Read [§23](#23-current-state-and-the-indian-tax-phase-2026-10-26) first.**
-Sections §20–§22 are the history of how production Zerodha got working; §23 is the
-current state and the plan for the next phase (Indian capital gains, tax harvesting,
-XIRR). Everything in §23 is deployed on the LXC.
+**Resuming? Read §23 first.** It is the only section describing the current state;
+everything from H1 onwards is a dated log, kept because the mistakes in it were
+expensive to rediscover.
+
+## 0. How to read this document
+
+| Section | What it holds | Status |
+| --- | --- | --- |
+| §1–§18 | Identity, stack, deployment, models, API, file map | Reference. Accurate except where §23 says otherwise. |
+| §19 | Stub pointing at §22 | — |
+| §21 | Superseded pending list, plus what is genuinely still open | Live |
+| §22 | **Master gotcha list** — read before touching anything | Live |
+| §23 | Current state, the tax phase plan, owner actions | **Start here** |
+| H1 | Log: 2026-10-25 — wealth graph fix, INR formatting half-wired | History |
+| H2 | Log: 2026-10-25 later — INR complete, price providers wired | History |
+| H3 | Log: 2026-10-26 — production Zerodha bring-up, six bugs | History |
+
+Housekeeping on 2026-10-26: the historical logs were renumbered H1/H2/H3 because three
+sections had been called §20, two §21 and two §22; the 41-item gotcha list in §19 was
+deleted as a verbatim duplicate of §22's fuller copy; §22 was deduplicated from 50 to 44
+entries and regrouped by area; and three stale claims were corrected — "uncommitted,
+nothing pushed", "do not enable Yahoo Finance", and the old `jarvis.` callback URL.
 
 ## 1. Identity
 
@@ -17,7 +35,7 @@ XIRR). Everything in §23 is deployed on the LXC.
 - Auth: session cookies, Current.user / Current.family (never current_user)
 - Multi-tenant: family_id scoping everywhere; Current.family
 
-## 2. What Was Built (12 commits ahead of upstream, all pushed)
+## 2. What Was Built (34 commits ahead of upstream, all pushed)
 
 ### Commit 1: 8bbd3be2e — Complete Zerodha Kite Connect integration
 - Promoted out of wip/ into app/; migrations re-dated 20261013000100/20261013000200
@@ -437,52 +455,14 @@ docker run --rm --network suretest -v "/path/to/repo:/rails" -w /rails \
 - Update: git pull origin main (now a git clone), bin/deploy auto-runs
 - Need EXCHANGE_RATE_PROVIDER=frankfurter or silent rate-1 conversion
 - Need KITE_API_KEY, KITE_API_SECRET in env
-- Zerodha redirect URL: https://jarvis.taildc6d46.ts.net/kite/callback
+- Zerodha redirect URL: https://desktop-nt9v6sa.taildc6d46.ts.net/kite/callback
 - Tailscale serve on port 3000 (Windows side)
 
-## 19. Key Gotchas for DeepSeek
+## 19. Key Gotchas — moved
 
-1. Always use `Current.user` and `Current.family`, never `current_user` or `current_family`
-2. Family tenancy: every query must be scoped to `Current.family`
-3. `Family#balance_sheet` memoizes per user and survives `reload` — use `Family.find` for fresh instances
-4. `db:prepare` stamps schema_migrations without running migrations on empty DB
-5. BigDecimal rides through `#to_json` as a string — coerce with `.to_f` in views
-6. `Float#to_s("F")` raises — use BigDecimal
-7. `ExchangeRate.rates_for` falls back to rate=1 with logged warning if no rate found
-8. `IncomeStatement::ScopedTransactionsQuery#converted_amount_sql` uses LEFT JOIN with COALESCE(er.rate, 1) — strict exact-date match
-9. Kite tokens are day-scoped; stuck pending Sync blocks sync_later forever
-10. The reverse proxy at finance.lan caches aggressively — use cache-busting headers
-11. Yahoo Finance hangs — do not set SECURITIES_PROVIDERS=yahoo_finance yet
-12. `Family#income_statement` is NOT memoized (unlike balance_sheet)
-13. `PlanningSetting#bucket_for` prefers override, falls back to DEFAULT_BUCKETS
-14. `PlanningSetting::RESET_BUCKET = "__default__"` is a sentinel, not a real bucket
-15. `FinancialPlanning::SavingsRate#invested` caps at income when income positive
-16. `FinancialPlanning::WealthProjector#growth_rate_pct` routes through growth_rate (not planning_setting directly)
-17. `FinancialPlanning::WealthProjector#projected_balance` guards against zero growth
-18. `FinancialPlanning::FireProgress` Coast FIRE uses target year, not age
-19. `Portfolio::Xirr` and `Portfolio::FlowClassifier` exist but aren't wired to views
-20. `Security::Price` model exists for price history but no UI
-21. `Security::Provided` has `find_or_fetch_price` and `import_provider_prices`
-22. `ImportMarketDataJob` runs daily at market close, imports prices for all securities
-23. `Account::MarketDataImporter` syncs required exchange rates for foreign-currency accounts
-24. `DebugLogEntry.capture(...)` for support-relevant failures
-25. `Current.user` and `Current.family` are set by middleware, not controller helpers
-26. `positive_param` parses as BigDecimal (not Float) to avoid `Float#to_s("F")` raising
-27. `toRate()` coercion in savings_rate_chart_controller.js prevents NaN from BigDecimal→string
-28. `render()` method in wealth_projection_chart_controller.js merges data and redraws
-29. `Family#balance_sheet` memoization survives `reload` — use `Family.find` for fresh instances
-30. `PlanningSetting::FIRE_VARIANTS` has 5 variants with different withdrawal rates
-31. Coast FIRE uses target year, not age (no birth date in schema)
-32. `FinancialPlanning::HoldingsCostBasisSeries` uses per-account latest date (not shared date)
-33. `FinancialPlanning::HoldingsCostBasisSeries` converts via `ExchangeRate.rates_for`
-34. `FinancialPlanning::BudgetAnalyzer#bucketed_categories` lists all family categories
-35. `PlanningSetting#bucket_for` prefers override, falls back to DEFAULT_BUCKETS
-36. `FinancialPlanning::SavingsRate#invested` = max(recorded transfers, holdings cost basis delta)
-37. `FinancialPlanning::SavingsRate#expenses` = total_expenses - recorded contributions
-38. `FinancialPlanning::SavingsRate#cash_savings` = income - total_expenses
-39. `FinancialPlanning::SavingsRate#savings` = cash_savings + invested
-40. `FinancialPlanning::SavingsRate#percent` = cash_savings / income (nil if no income)
-41. `FinancialPlanning::SavingsRate#total_percent` = savings / income (nil if no income)
+The 41-item gotcha list that used to sit here was a verbatim duplicate of §22,
+which holds every one of those items plus nine more. §22 is the only copy that
+is maintained; edit that one.
 
 ## 21. What's Pending
 
@@ -503,67 +483,88 @@ Still genuinely open and not covered by §23:
 - Delete `/opt/sure-pre-git` on the LXC (frees ~544 MB).
 - `kite_accounts.current_balance` is never written (the balance anchor replaced it).
 
-## 22. Key Gotchas for DeepSeek
+## 22. Key Gotchas (master list)
 
-1. Always use `Current.user` and `Current.family`, never `current_user` or `current_family`
-2. Family tenancy: every query must be scoped to `Current.family`
-3. `Family#balance_sheet` memoizes per user and survives `reload` — use `Family.find` for fresh instances
-4. `db:prepare` stamps schema_migrations without running migrations on empty DB
-5. BigDecimal rides through `#to_json` as a string — coerce with `.to_f` in views
-6. `Float#to_s("F")` raises — use BigDecimal
-7. `ExchangeRate.rates_for` falls back to rate=1 with logged warning if no rate found
-8. `IncomeStatement::ScopedTransactionsQuery#converted_amount_sql` uses LEFT JOIN with COALESCE(er.rate, 1) — strict exact-date match
-9. Kite tokens are day-scoped; stuck pending Sync blocks sync_later forever
-10. The reverse proxy at finance.lan caches aggressively — use cache-busting headers
-11. Yahoo Finance hangs — do not set SECURITIES_PROVIDERS=yahoo_finance yet
-12. `Family#income_statement` is NOT memoized (unlike balance_sheet)
-13. `PlanningSetting#bucket_for` prefers override, falls back to DEFAULT_BUCKETS
-14. `PlanningSetting::RESET_BUCKET = "__default__"` is a sentinel, not a real bucket
-15. `FinancialPlanning::SavingsRate#invested` caps at income when income positive
-16. `FinancialPlanning::WealthProjector#growth_rate_pct` routes through growth_rate (not planning_setting directly)
-17. `FinancialPlanning::WealthProjector#projected_balance` guards against zero growth
-18. `FinancialPlanning::FireProgress` Coast FIRE uses target year, not age
-19. `Portfolio::Xirr` and `Portfolio::FlowClassifier` exist but aren't wired to views
-20. `Security::Price` model exists for price history but no UI
-21. `Security::Provided` has `find_or_fetch_price` and `import_provider_prices`
-22. `ImportMarketDataJob` runs daily at market close, imports prices for all securities
-23. `Account::MarketDataImporter` syncs required exchange rates for foreign-currency accounts
-24. `DebugLogEntry.capture(...)` for support-relevant failures
-25. `Current.user` and `Current.family` are set by middleware, not controller helpers
-26. `positive_param` parses as BigDecimal (not Float) to avoid `Float#to_s("F")` raising
-27. `toRate()` coercion in savings_rate_chart_controller.js prevents NaN from BigDecimal→string
-28. `render()` method in wealth_projection_chart_controller.js merges data and redraws
-29. `Family#balance_sheet` memoization survives `reload` — use `Family.find` for fresh instances
-30. `PlanningSetting::FIRE_VARIANTS` has 5 variants with different withdrawal rates
-31. Coast FIRE uses target year, not age (no birth date in schema)
-32. `FinancialPlanning::HoldingsCostBasisSeries` uses per-account latest date (not shared date)
-33. `FinancialPlanning::HoldingsCostBasisSeries` converts via `ExchangeRate.rates_for`
-34. `FinancialPlanning::BudgetAnalyzer#bucketed_categories` lists all family categories
-35. `PlanningSetting#bucket_for` prefers override, falls back to DEFAULT_BUCKETS
-36. `FinancialPlanning::SavingsRate#invested` = max(recorded transfers, holdings cost basis delta)
-37. `FinancialPlanning::SavingsRate#expenses` = total_expenses - recorded contributions
-38. `FinancialPlanning::SavingsRate#cash_savings` = income - total_expenses
-39. `FinancialPlanning::SavingsRate#savings` = cash_savings + invested
-40. `FinancialPlanning::SavingsRate#percent` = cash_savings / income (nil if no income)
-41. `FinancialPlanning::SavingsRate#total_percent` = savings / income (nil if no income)
-42. `PlanningSetting#fire_variant` defaults to "standard"
-43. `PlanningSetting#coast_fire?` checks if variant is "coast"
-44. `FinancialPlanning::FireProgress#coast_on_track?` compares projection at target date against target
-45. `FinancialPlanning::WealthProjector#balance_after_months` projects balance at a specific month offset
-46. `FinancialPlanning::BudgetAnalyzer#to_donut_segments` creates donut chart segments
-47. `FinancialPlanning::BudgetAnalyzer#bucketed_categories` lists all family categories with effective bucket
-48. `PlanningSetting::FIRE_VARIANTS` withdrawal rates: lean 3.3, coast 4.0, barista 6.5, standard 4.0, fat 3.0
-49. `FinancialPlanning::FireProgress#months_until_target_date` returns nil if target year has passed
-50. `FinancialPlanning::FireProgress#projected_balance_at_target_date` uses WealthProjector#balance_after_months
+Deduplicated 2026-10-26. Grouped by area rather than numbered by the order they
+were discovered. The 50-item list this replaces repeated several entries.
+
+**Conventions and tenancy**
+
+1. Always use `Current.user` and `Current.family`, never `current_user` or `current_family`.
+2. Family tenancy: every query must be scoped to `Current.family`.
+3. `Current.user` and `Current.family` are set by middleware, not by controller helpers.
+
+**Money and numbers**
+
+4. `BigDecimal` rides through `#to_json` as a string — coerce with `.to_f` in views.
+5. `Float#to_s("F")` raises — use `BigDecimal`.
+6. `positive_param` parses as `BigDecimal` for exactly that reason.
+7. `ExchangeRate.rates_for` falls back to rate = 1 with a logged warning when no rate exists.
+8. `IncomeStatement::ScopedTransactionsQuery` joins exchange rates on the exact date with `COALESCE(er.rate, 1)`.
+9. Indian lakh/crore grouping is applied in `ApplicationHelper#format_money` through `delimiter_pattern:`; only the integer part is regrouped and `precision:` still applies (see H2.1).
+
+**Family statements**
+
+10. `Family#balance_sheet` memoizes per user and survives `reload` — use `Family.find` for a fresh instance.
+11. `Family#income_statement` is NOT memoized, unlike `balance_sheet`.
+
+**Providers and market data**
+
+12. Kite tokens are day-scoped; a stuck pending `Sync` blocks `sync_later` forever.
+13. Kite `/trades` returns **only the current day's** tradebook — there is no historical endpoint. Purchase dates must come from a Console tradebook CSV (§23.3).
+14. `holdings.cost_basis` is **per share**, not per position (`Holding#avg_cost`). `investment_statement` and `calculate_trend` multiply by qty.
+15. Yahoo Finance works; the constraint is quota, not hangs. Production sets `SECURITIES_PROVIDERS=yahoo_finance,mfapi`; the old advice not to enable it is obsolete.
+16. AMFI's `NAVAll.txt` answers 302 and plain Faraday will not follow it — `AmfiSchemeIndex` follows one hop by hand and never caches an empty index.
+17. `ImportMarketDataJob` runs daily, after both the NSE close and AMFI publication.
+18. `Account::MarketDataImporter` syncs the exchange rates foreign-currency accounts need.
+19. `Security::Price` stores price history but has no UI.
+20. `Security::Provided#find_or_fetch_price` and `#import_provider_prices` exist; a security with no explicit provider infers one from `amfi_scheme_code`, else `country_code == "IN"`.
+21. A Kite sync runs on the `integrations` queue, which must be declared in `config/sidekiq.yml` — otherwise its jobs sit in Redis forever (§H3.2).
+22. `DebugLogEntry.capture(...)` for support-relevant failures, with provider and family context.
+
+**Accounts, trades and valuation**
+
+23. Provider-linked accounts are excluded from `Account.manual`; anything that lists "your accounts" must query accounts directly, not `manual`.
+24. A linked account's balance is reverse-calculated from its latest anchor. With no anchor it materializes to 0.00 and disappears from net worth.
+25. `Portfolio::Xirr` and `Portfolio::FlowClassifier` are written, tested and **not wired to any view**.
+26. `Trade#qty` is signed (negative = sell) and `Trade#price` is per unit; a `Trade`'s date lives on its `entries` row, not on `trades`.
+27. `security_splits` must be applied before comparing per-unit costs, or a split reads as a loss.
+
+**Planning figures**
+
+28. `PlanningSetting#bucket_for` prefers the family override, then `DEFAULT_BUCKETS`.
+29. `PlanningSetting::RESET_BUCKET = "__default__"` is a sentinel, not a bucket name.
+30. `SavingsRate#invested` = max(recorded transfers, holdings cost-basis delta), capped at income when income is positive.
+31. `SavingsRate#expenses` = `total_expenses` minus recorded contributions; `#cash_savings` = income minus `total_expenses`; `#savings` = `cash_savings + invested`.
+32. `SavingsRate#percent` = `cash_savings / income`, `#total_percent` = `savings / income`; both nil when income is nil.
+33. `WealthProjector#growth_rate_pct` routes through `growth_rate`; `#projected_balance` guards against zero growth; `#balance_after_months` projects a given month offset.
+34. `FireProgress`: Coast FIRE uses the target **year** (there is no birth date in the schema), and `#months_until_target_date` is nil once that year has passed.
+35. `FireProgress#coast_on_track?` compares the projection at the target date against the target; `#projected_balance_at_target_date` uses `balance_after_months`.
+36. `PlanningSetting#fire_variant` defaults to `"standard"`; `#coast_fire?` checks for `"coast"`.
+37. `PlanningSetting::FIRE_VARIANTS` has five variants; withdrawal rates: lean 3.3, coast 4.0, barista 6.5, standard 4.0, fat 3.0.
+38. `HoldingsCostBasisSeries` uses each account's own latest date and converts through `ExchangeRate.rates_for`.
+39. `BudgetAnalyzer#bucketed_categories` lists all family categories with their effective bucket; `#to_donut_segments` turns that into donut segments.
+
+**Frontend**
+
+40. `toRate()` in `savings_rate_chart_controller.js` coerces BigDecimal strings to numbers; without it the chart renders NaN.
+41. `render()` in `wealth_projection_chart_controller.js` merges new data and redraws, and is only reachable when the chart element sits **inside** the controller element — a Stimulus target must be a descendant.
+42. Donut colours: `d3.color("var(--token)")` returns null, so `donut_chart_controller.js` passes colours as strings through `.style()` instead of `.attr("fill")`. A null reaching `.opacity` blanked the whole donut.
+
+**Environment**
+
+43. `db:prepare` stamps `schema_migrations` without running migrations on an empty database.
+44. The reverse proxy at `finance.lan` caches aggressively — use cache-busting headers.
 
 ---
 
-# 20. Session Handoff (2026-10-25) — graph fix done, INR formatting half-wired
+# H1. Session Handoff (2026-10-25) — graph fix done, INR formatting half-wired
 
-Written so a new session (different model provider) can resume without re-investigating.
-All work below is **uncommitted on `main`**. Nothing has been pushed.
+Written so a new session (a different model provider) could resume without
+re-investigating. **Historical: this work was committed and pushed on 2026-10-25**
+(4eccb66d and earlier); the paragraph below said otherwise at the time.
 
-## 20.1 What is finished and verified
+## H1.1 What is finished and verified
 
 **Graph did not respond to sliders — FIXED.**
 Root cause: in `app/views/financial_planning/_wealth_projector.html.erb`, the chart
@@ -597,7 +598,7 @@ should pass — but it is unverified, not verified.
 **`AGENTS.md`** — added a "Communication style" section (owner is not a professional
 programmer; explain in plain language, define jargon, keep answers short).
 
-## 20.2 What is INCOMPLETE — resume here
+## H1.2 What is INCOMPLETE
 
 `families.number_format` (values `"western"` | `"lakh_crore"`, default `"western"`,
 DB check constraint already exists from `db/migrate/20261013000100_add_indian_market_support.rb`).
@@ -637,7 +638,7 @@ Nothing was consuming either yet. Steps 1–2 below are DONE; 3–7 are NOT.
 8. **TODO tests** — no `test/lib/indian_number_formatter_test.rb` exists. Add one, plus a
    `Family` validation test for an invalid `number_format`. Precedent: `test/lib/money_test.rb`.
 
-## 20.3 Docker test recipe that actually works
+## H1.3 Docker test recipe that actually works
 
 The documented recipe in section 17 is **wrong for this machine** and `Dockerfile.test`
 does not exist. Do NOT bind-mount the repo — Rails boot hangs indefinitely reading gems
@@ -669,7 +670,7 @@ Gotchas learned the hard way:
   expect git commands inside.
 - Docker Desktop must be running (`docker info`) or all commands fail with a npipe error.
 
-## 20.4 Product decisions already made by the owner
+## H1.4 Product decisions already made by the owner
 
 - **Stocks:** use **daily closing prices** from Yahoo Finance (reliable without login).
   Not intraday. Zerodha remains the source for holdings and trades.
@@ -681,7 +682,7 @@ Gotchas learned the hard way:
 - Later features (not started): XIRR wiring, tax harvesting, tax estimate. `Portfolio::Xirr`
   and `Portfolio::FlowClassifier` already exist but are not wired to views.
 
-## 20.5 Next-session starting order
+## H1.5 Next-session starting order
 
 1. Finish steps 3–7 in 20.2 (INR formatting end to end).
 2. Add tests from step 8.
@@ -695,11 +696,11 @@ Gotchas learned the hard way:
 
 ---
 
-# 21. Session Update (2026-10-25, later) — INR COMPLETE, price providers wired
+# H2. Session Update (2026-10-25, later) — INR complete, price providers wired
 
-## 21.1 Lakh/crore display: DONE and verified
+## H2.1 Lakh/crore display: done and verified
 
-Steps 3–8 of §20.2 are finished:
+Steps 3–8 of H1.2 are finished:
 
 - `app/controllers/users_controller.rb` — `:number_format` added to `family_attrs`
   (this, not `Settings::PreferencesController`, is the real save path).
@@ -717,7 +718,7 @@ Steps 3–8 of §20.2 are finished:
 
 `1,00,00,000` renders as one crore as requested.
 
-## 21.2 Two pre-existing `IndianNumberFormatter` bugs — FIXED
+## H2.2 Two pre-existing `IndianNumberFormatter` bugs — fixed
 
 The module existed but nothing consumed it, which is why its bugs went unnoticed:
 
@@ -729,7 +730,7 @@ The module existed but nothing consumed it, which is why its bugs went unnoticed
 
 Both fixed, with `test/lib/indian_number_formatter_test.rb` covering them.
 
-## 21.3 Daily price pipeline: providers wired (the actual blocker)
+## H2.3 Daily price pipeline: providers wired (the actual blocker)
 
 The pipeline was mostly built already — `Provider::YahooFinance` (daily closes,
 `.NS`/`.BO` for XNSE/XBOM), `Provider::Mfapi` (official AMFI NAV),
@@ -764,7 +765,7 @@ SECURITIES_PROVIDERS=yahoo_finance,mfapi
 Then restart both services. Without this the inferred provider resolves to nil
 and silently falls back to the old behaviour.
 
-## 21.4 Full test suite — actually run
+## H2.4 Full test suite — actually run
 
 `bin/rails test` on a faithful copy of the working tree inside `sure-dev-app:live`:
 **11,706 runs, 53,670 assertions, 6 failures, 2 errors, 34 skips.**
@@ -778,7 +779,7 @@ All 8 are the known environment artifacts, none caused by this work:
 
 These pass on the Linux LXC except the PDF ones.
 
-## 21.5 Preview gotchas worth remembering
+## H2.5 Preview gotchas worth remembering
 
 The `sure-dev-app` container bakes its code into the image (no bind mount). To
 preview local changes you must `docker cp` the changed files in **and**
@@ -794,12 +795,12 @@ spec bin` wholesale, not just the diff.
 
 ---
 
-# 22. Production Bring-Up (2026-10-26) — Zerodha actually working end to end
+# H3. Production Bring-Up (2026-10-26) — Zerodha working end to end
 
 Zerodha had **never** worked on the LXC. The connection had only ever been made
 against the local Docker demo, and six separate faults were hiding behind that.
 
-## 22.1 Why the Kite login went nowhere
+## H3.1 Why the Kite login went nowhere
 
 The registered Kite Connect redirect URL is
 `https://desktop-nt9v6sa.taildc6d46.ts.net/kite/callback`, served by **Tailscale
@@ -825,7 +826,7 @@ never be the callback. `RAILS_ASSUME_SSL` stays **false** — Rails already hono
 Tailscale's `X-Forwarded-Proto: https` (verified: `scheme: "https"` in the log),
 and setting it true would break `finance.lan`, which is HTTP.
 
-## 22.2 The six bugs
+## H3.2 The six bugs
 
 1. **`integrations` queue missing from `config/sidekiq.yml`.** All three Kite
    jobs declare `queue_as :integrations`; no worker polled it, so every
@@ -857,7 +858,7 @@ and setting it true would break `finance.lan`, which is HTTP.
    entitlement, not tradable; Yahoo 404s it on every fetch. `HoldingsSync` marks
    such symbols offline with a reason.
 
-## 22.3 Things that will bite next time
+## H3.3 Things that will bite next time
 
 - **AMFI's URL answers 302**, and plain `Faraday.get` does not follow it — the
   body is a 169-byte redirect page that parses to zero ISINs. `AmfiSchemeIndex`
@@ -874,7 +875,7 @@ and setting it true would break `finance.lan`, which is HTTP.
   from Yahoo/mfapi, so valuations stay current without a Kite login. The daily
   "session expired / reconnect" prompt is expected noise, not a fault.
 
-## 22.4 Verified state at end of session
+## H3.4 Verified state at end of that session
 
 - Holdings 19, portfolio ₹1,67,286.76; both accounts anchored and matching.
 - `/accounts` returns 302 (login) with no errors; Zerodha section renders.
