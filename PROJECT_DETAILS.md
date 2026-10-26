@@ -1,6 +1,11 @@
 # PROJECT DETAILS — Sure Finance (NinzEnrai/sure-financialPlanning)
 
-Comprehensive context document. Last updated: 2026-10-25. Commit: a8375ff02.
+Comprehensive context document. Last updated: 2026-10-26. Commit: b4eccb66d.
+
+**Resuming? Read [§23](#23-current-state-and-the-indian-tax-phase-2026-10-26) first.**
+Sections §20–§22 are the history of how production Zerodha got working; §23 is the
+current state and the plan for the next phase (Indian capital gains, tax harvesting,
+XIRR). Everything in §23 is deployed on the LXC.
 
 ## 1. Identity
 
@@ -481,24 +486,22 @@ docker run --rm --network suretest -v "/path/to/repo:/rails" -w /rails \
 
 ## 21. What's Pending
 
-- Deploy to LXC (now converted to git clone, git pull works)
-- Visual verification of savings split by user (needs preview_features toggle)
-- Rotate the exposed Kite api_secret
-- Rotate the exposed Postgres password
-- Build XIRR + Indian capital gains tax (blocked on Zerodha Nextra)
-- Yahoo Finance full integration (reduced hang risk, needs testing)
-- XIRR/tax UI (Portfolio::Xirr exists but isn't wired)
-- Price history UI (Security::Price exists but no view)
-- Document EXCHANGE_RATE_PROVIDER in .env.local.example
-- Fix 5 pre-existing CRLF test failures (Windows only, pass on Linux)
-- Yahoo Finance hang investigation (reduced timeouts, needs testing)
-- Family#balance_sheet memoization bug (noted but not fixed)
-- Customisable 50/30/20 targets (only category assignment, not target %)
-- Delete /opt/sure-pre-git on LXC (frees ~544MB)
-- Convert /opt/sure to stay git (done — it's now a clone)
-- Update Zerodha redirect URL to production URL
-- Enable preview features for dj.mukult@gmail.com (done)
-- Document SECURITIES_PROVIDER vs SECURITIES_PROVIDERS (singular vs plural)
+This list is superseded by §23.4 (owner actions) and §23.6 (build order). Kept only
+so the history of decisions is not lost. What used to be here that is now **DONE**:
+deploy to the LXC, git-pull deployment, Zerodha redirect URL, preview features,
+XIRR/tax research (unblocked — see §23.3), Yahoo Finance (works; quota is the
+constraint, not hangs), price history (backfilling nightly), `EXCHANGE_RATE_PROVIDER`
+and `SECURITIES_PROVIDER` documentation notes.
+
+Still genuinely open and not covered by §23:
+
+- Visual verification of savings split by user (needs preview_features toggle).
+- `Family#balance_sheet` memoization quirk (noted, not fixed).
+- Customisable 50/30/20 targets (only category assignment, not target %).
+- No UI for `Security::Price` history (rows exist, nothing renders them).
+- 5 pre-existing CRLF test failures (Windows only, pass on Linux).
+- Delete `/opt/sure-pre-git` on the LXC (frees ~544 MB).
+- `kite_accounts.current_balance` is never written (the balance anchor replaced it).
 
 ## 22. Key Gotchas for DeepSeek
 
@@ -880,3 +883,184 @@ and setting it true would break `finance.lan`, which is HTTP.
 - Tests: `test/models/amfi_scheme_index_test.rb`, `test/jobs/
   market_data_history_backfill_job_test.rb`, `test/models/provider/kite/*`, and
   `test/controllers/accounts_controller_test.rb` cover every fix above.
+
+---
+
+# 23. Current State and the Indian Tax Phase (2026-10-26)
+
+Written for whoever picks this up next, human or model. Everything in §23.1 and §23.2
+was **verified against the running LXC**, not inferred from code. Everything in §23.4
+is a plan, and §23.4 says which of it must be re-checked before it is trusted.
+
+## 23.1 Shipped, pushed and deployed
+
+Eight commits, `main` in sync with `origin`:
+
+| Commit | What it did |
+| --- | --- |
+| `74a8048b0` | Added the `integrations` Sidekiq queue — Zerodha syncs had been sitting in Redis unprocessed forever |
+| `bc1fd6494` | Zerodha-linked accounts now appear on `/accounts` (provider accounts are excluded from `Account.manual`) |
+| `e73494a2d` | Cost basis is per share, not per position; account balances anchored from holdings |
+| `ab3213ead` | Kite mutual funds priced by resolving ISIN to an AMFI scheme code |
+| `38c907e5d` | AMFI 302 redirect followed by hand; empty index is never cached |
+| `bf06a69c2` | `market_data:backfill_prices[24]` rake task fills price history |
+| `a679ece0d` | `MarketDataHistoryBackfillJob` tops up 3 securities a night at 01:00 IST |
+| `b4eccb66d` | This document |
+
+Verified live afterwards: 19 holdings, portfolio **₹1,67,286.76**; Zerodha Equity
+₹63,895.48 and Zerodha Coin ₹1,03,391.28 both anchored; security weights 31.45%,
+22.06%, 15.02% (they were ~1% each when cost basis was wrong); returns +7.36%,
++2.51%, +11.53%, −38.51%; 3 funds carry AMFI codes 122639 / 149892 / 150892 with 731
+NAV rows each; `OLAELEC-RE-BE` (a rights entitlement) marked `offline` instead of
+404ing Yahoo nightly.
+
+## 23.2 What is collecting data while we wait
+
+Nothing needs to be clicked except one monthly Zerodha login.
+
+- `ImportMarketDataJob` — `0 22 * * 1-5` UTC (03:30 IST) — daily closes from Yahoo for
+  equities, official AMFI NAV for funds. **Prices keep updating even when the Kite
+  session has expired**; holdings refresh only when the login happens.
+- `MarketDataHistoryBackfillJob` — `30 19 * * *` (01:00 IST) — 3 securities a night.
+  It exists because Yahoo throttles after two or three requests from this IP *at any
+  spacing*; a single 19-security backfill cannot succeed.
+
+State at hand-off: **6,599 price rows**, earliest 2024-10-26, **9 of 18** securities
+with a year or more. About a week of nights finishes the rest.
+
+**Gate for starting tax work:** enough history to compare a sale against its purchase
+date. Check with:
+
+```ruby
+Security.joins(:prices).group("securities.id").having("count(*) > 200").count.size
+```
+
+At 16+ of 19, the data is good enough for a first capital-gains pass over the current
+financial year.
+
+## 23.3 The real blocker for tax: we have no purchase dates
+
+This is the one finding that changes the plan, so it is written out in full.
+
+- A `holdings` row has a `date`, but that is the **valuation snapshot** date, not the
+  day anything was bought. There is no purchase date and no lot structure anywhere in
+  the schema.
+- Lots can only come from `trades`. A `Trade` has `security_id`, signed `qty`, per-unit
+  `price` and `fee`; its **date and account live on `entries`** (`entries.date`,
+  `entries.account_id`) because `Trade` is `Entryable`. That join is the whole lot
+  source.
+- `Provider::Kite::TradeImporter` calls Kite's `/trades`, which returns **only the
+  current trading day's** tradebook. Kite Connect has no historical tradebook endpoint.
+  So matching the owner's monthly resync pace, most trades will never be seen.
+- Therefore, for everything already held: **purchase dates are unobtainable from the
+  API.** They exist in Zerodha Console → Reports → *Tradebook* (CSV, any date range),
+  and Console's *Capital gains statement* for a financial year is the ground truth to
+  reconcile against.
+
+Consequence for the build: the tax feature needs a **one-time CSV import** of the
+Console tradebook, then forward capture of `/trades` while a session is live. Without
+the import, the feature can only describe gains made on positions bought after the
+import date.
+
+Second consequence, subtler: the existing `Trade#realized_gain_loss` uses the
+**average cost of the latest holding on or before the sale date** and returns a
+`Trend`. That is a reasonable portfolio figure and it is *wrong for tax*, because
+average cost erases which shares were sold, and lot age is exactly what decides
+12 months (long-term) versus 11 months (short-term). Tax needs FIFO lots.
+
+## 23.4 The rules to encode — RE-CHECK BEFORE SHIPPING ANY FIGURE
+
+Last confirmed against the **Finance (No. 2) Act 2024**, which applies to gains
+realised **on or after 23 July 2024**. A web search was unavailable while writing
+this, so no rate below has been verified against a 2025/26 Finance Act. Treat this
+as the shape of the problem, not as the answer:
+
+- **Listed equity shares and equity-oriented mutual funds (STT paid):** held ≤12
+  months → short-term, 20% (s.111A). Held >12 months → long-term, 12.5% (s.112A),
+  with the first **₹1.25 lakh of long-term gains per person per financial year
+  exempt**. No indexation.
+- **Debt / "specified" mutual funds bought on or after 1 April 2023:** gains are taxed
+  at the person's **slab rate** whenever sold. No long-term rate at all. This is why
+  a fund needs its category recorded, not just a ticker.
+- **Unlisted shares and foreign shares** (the US stocks in the IBKR account): the
+  long-term threshold is **24 months**; long-term rate 12.5%; short-term at slab.
+- **Set-off (s.74):** a short-term loss offsets short-term gains first, then long-term
+  gains; a long-term loss offsets **only** long-term gains. Unused losses carry
+  forward **8 assessment years, but only if that year's return was filed on time**.
+- **Cess and surcharge:** 4% health & education cess on the tax; surcharge applies
+  above income thresholds with a **15% cap** on s.111A/112A gains.
+- **Grandfathering:** listed equity bought before 31 January 2018 may use the higher
+  of actual cost and the 31 January 2018 fair market value. Let the user type it in.
+- **India has no wash-sale rule.** Selling to book a loss and buying the same stock
+  back the next day is allowed, which is what makes tax-loss harvesting legitimate
+  here (in the US it is not).
+- **Dividends are slab income**, not capital gains. They are `Transaction` rows, not
+  trades — do not add them to proceeds.
+
+## 23.5 Design decisions for the tax feature
+
+- **Per person, not per family.** Tax is assessed per PAN. `accounts.owner_id` already
+  exists. Family tenancy is a convenient view; it must never be the tax unit, and
+  household totals must not be presented as one taxable person.
+- **FIFO lots, never average cost.** One defensible method, stated on screen.
+- **Never compute tax from `holdings`.** Holdings are for valuation. Lots come from
+  trades only.
+- **Currency.** Foreign holdings need INR: sale value at the sale date's rate, cost at
+  the purchase date's rate. `ExchangeRate` rows for those dates already exist.
+  Follow `Trade#converted_to_basis_currency`, which looks up the exact date and
+  returns `nil` rather than pretending a missing rate is 1.0.
+- **Estimate, do not file.** No ITR generation, no e-filing. The output is a number
+  the owner can sanity-check and a schedule to hand to a CA. Say "estimate" on screen.
+- **We do not know the owner's slab.** Either add an "other income this year" input,
+  or show slab-taxed gains at 0% and label them plainly as not included.
+
+## 23.6 Build order for the next session
+
+1. **Confirm the data gate** (§23.2). Prices first; a capital gains number built on
+   missing prices is a wrong number.
+2. **Wire `Portfolio::Xirr`.** It is finished, tested and unused: Newton-Raphson with a
+   bisection fallback, `rate_or_nil` for render paths, `ambiguous?` for series with
+   several roots — the caller is told to hedge rather than present one root as *the*
+   answer. Flows come from `Portfolio::FlowClassifier` (also finished, with a SQL and
+   a Ruby form proved to agree). This is the cheapest win and needs no purchase dates.
+3. **Lot engine** — a PORO, e.g. `Portfolio::TaxLots`, FIFO over trades, yielding
+   `{security, acquired_on, qty, cost_per_unit, currency}`. Pure function, heavily
+   tested; no migration.
+4. **Zerodha Console tradebook CSV importer.** Turns the existing portfolio into
+   taxable data. This is the step that unblocks real gains.
+5. **`FinancialPlanning::CapitalGains`** — per financial year, per owner:
+   short-term / long-term / slab buckets, ₹1.25 lakh exemption applied, set-off
+   applied, cess and surcharge shown separately.
+6. **Estimator view** — "if you sold everything today", per bucket and per person.
+7. **Harvesting view** — losses available to book, ranked by which gains they would
+   offset, with the buy-back caveat (no wash-sale rule, so the trade is real and has
+   costs).
+
+## 23.7 Things that will bite during the tax work
+
+- `security_splits` exists and is populated for some securities. Apply splits and
+  bonuses before computing per-unit cost, or a 1:10 split reads as a 90% loss.
+- Rights entitlements (`-RE`, `-RE-BE`) are already marked `offline` by the Kite
+  holdings sync. They have no cost until renounced or exercised — exclude from lots.
+- `Trade#qty` is **signed** (negative = sell) and `Trade#price` is **per unit**.
+  Proceeds = `price × qty.abs − fee`. A `cost_basis` read as a total instead of
+  per-share is exactly the bug that produced a fake −₹2.87 crore in §22 — do not
+  repeat it in the tax code.
+- Broker cost basis may be corporate-action adjusted; the Console capital gains
+  statement is the figure to reconcile against, and a mismatch must be shown to the
+  user rather than silently hidden.
+- Foreign shares also need **Schedule FA** disclosure in the ITR. That is a
+  compliance checkbox, not a tax amount, but the cost of missing it is a penalty —
+  worth surfacing in the UI even though we compute nothing for it.
+
+## 23.8 Owner actions still outstanding
+
+- **Rotate the Kite API secret and the Postgres password.** The repository is public
+  and both appear in its git history (the file was redacted in `96f19c33a`; earlier
+  commits still contain them).
+- **Install Tailscale on the LXC.** The Kite callback currently depends on a tunnel
+  started on the Windows PC; a reboot breaks the daily price sync's UI access and
+  makes the callback return 502.
+- **Log in to Zerodha once a month** (the agreed pace — monthly resync). The daily
+  "session expired / reconnect" prompt is expected noise, not a fault.
+- **Download the Console tradebook CSV once** so step 4 above has something to import.
