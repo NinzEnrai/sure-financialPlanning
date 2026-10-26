@@ -12,6 +12,19 @@ import_market_data:
   args:
     mode: "full"
     clear_cache: false
+
+# Yahoo tolerates only a couple of price-history requests before throttling, so a
+# full backfill cannot complete in one run. This tops up three securities a night,
+# oldest series first, until every series reaches back far enough for XIRR.
+backfill_price_history:
+  cron: "30 19 * * *" # 1:00 AM IST, after the evening market-data import
+  class: "MarketDataHistoryBackfillJob"
+  active_job: true
+  queue: "scheduled"
+  description: "Backfills 24 months of daily prices for three securities with the shallowest history"
+  args:
+    - 3
+
   
 clean_syncs:
   cron: "0 * * * *" # every hour
