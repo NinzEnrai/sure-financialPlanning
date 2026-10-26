@@ -788,3 +788,95 @@ Running the full suite needs a **faithful** tree: a partial `docker cp` of only
 changed files makes unrelated tests fail (e.g. `YahooFinance` retry defaults,
 `max_retries`) because stale test files stay behind. Copy `app config lib test db
 spec bin` wholesale, not just the diff.
+
+---
+
+# 22. Production Bring-Up (2026-10-26) — Zerodha actually working end to end
+
+Zerodha had **never** worked on the LXC. The connection had only ever been made
+against the local Docker demo, and six separate faults were hiding behind that.
+
+## 22.1 Why the Kite login went nowhere
+
+The registered Kite Connect redirect URL is
+`https://desktop-nt9v6sa.taildc6d46.ts.net/kite/callback`, served by **Tailscale
+serve on the Windows PC** — and it proxied to `127.0.0.1:3000`, which is Docker
+Desktop's port mapping, i.e. the demo container. Every login landed in the demo
+database; production never saw a callback.
+
+Tailscale cannot proxy to `192.168.1.100` directly (502): that host is only
+reachable *through* the tailnet, so its own proxy loops. The working chain is:
+
+```
+Zerodha -> https://desktop-nt9v6sa.../  (tailscale serve)
+         -> http://127.0.0.1:3100       (ssh -N -L 3100:127.0.0.1:3000 root@192.168.1.100)
+         -> LXC puma :3000
+```
+
+`tailscale serve --bg http://127.0.0.1:3100` and the ssh tunnel must both be
+running; a reboot drops them. Permanent fix: install Tailscale on the LXC and
+serve there instead.
+
+Kite requires an **HTTPS** redirect URL, so the plain-HTTP `finance.lan` path can
+never be the callback. `RAILS_ASSUME_SSL` stays **false** — Rails already honours
+Tailscale's `X-Forwarded-Proto: https` (verified: `scheme: "https"` in the log),
+and setting it true would break `finance.lan`, which is HTTP.
+
+## 22.2 The six bugs
+
+1. **`integrations` queue missing from `config/sidekiq.yml`.** All three Kite
+   jobs declare `queue_as :integrations`; no worker polled it, so every
+   `Kite::SyncPortfolioJob` sat in Redis forever. The cron jobs looked healthy
+   only because `Kite::SyncScheduler` pins them to `scheduled`.
+2. **No Kite section on the accounts page.** `Account.manual` is
+   `where(account_providers: { id: nil })`, so provider-linked accounts are
+   excluded; the index renders one section per provider and Kite had none. Added
+   `kite_items/_kite_item.html.erb` plus `@kite_item` in the controller.
+3. **Cost basis multiplied by quantity.** `holdings.cost_basis` is **per share**
+   (`Holding#avg_cost` returns it verbatim; `calculate_avg_cost` divides total
+   cost by total qty). Both Kite syncs stored `average_price * qty`, inflating
+   cost by the position size — a 584-unit fund reported a ₹2.87 crore loss
+   (−99.8%) and, because `investment_statement` multiplies qty by avg_cost again,
+   a portfolio denominator in the crores that pushed every weight to 1.0%.
+4. **No balance anchor.** Kite reports holdings, not deposits, so
+   `Balance::ReverseCalculator` had no total to work back from and derived cash
+   as the negative of the holdings. Zero net, so ₹1.67 lakh stayed out of net
+   worth. `Provider::Kite::BalanceSync` anchors each account to latest holdings +
+   `/user/margins` cash, **before** the account syncs.
+5. **Funds identified by ISIN.** Zerodha's `/mf/holdings` gives `tradingsymbol`
+   as an ISIN (`INF959L01FX6`); mfapi is keyed by scheme code (`149892`) and
+   answers 400 to an ISIN. `AmfiSchemeIndex` maps ISIN -> scheme code from AMFI's
+   official `NAVAll.txt` (both identifiers on one row, either ISIN column
+   resolves). `MutualFundSync` now stores the scheme code as the ticker and keeps
+   the ISIN, correcting ISIN-keyed funds **in place** (matched by ISIN) so no
+   duplicate security is created.
+6. **Rights entitlements priced forever.** `OLAELEC-RE-BE` is a renounceable
+   entitlement, not tradable; Yahoo 404s it on every fetch. `HoldingsSync` marks
+   such symbols offline with a reason.
+
+## 22.3 Things that will bite next time
+
+- **AMFI's URL answers 302**, and plain `Faraday.get` does not follow it — the
+  body is a 169-byte redirect page that parses to zero ISINs. `AmfiSchemeIndex`
+  follows one hop by hand. It also refuses to cache an empty result, so one bad
+  fetch does not cost a day of fund pricing.
+- **Yahoo's quota is brutal from this IP.** A 24-month backfill of 19 securities
+  fails after two or three requests *at any spacing*, so `backfill_price_history`
+  (cron `30 19 * * *`) tops up three securities a night, shallowest series first,
+  and finishes in about a week.
+- `kite_accounts.current_balance` is **never** populated: `upsert_from_kite!`
+  exists but nothing calls it. Balance comes from the anchor instead.
+- For the monthly-sync workflow (owner resyncs Zerodha monthly, not daily):
+  holdings and cost basis refresh at sync time; **prices still update daily**
+  from Yahoo/mfapi, so valuations stay current without a Kite login. The daily
+  "session expired / reconnect" prompt is expected noise, not a fault.
+
+## 22.4 Verified state at end of session
+
+- Holdings 19, portfolio ₹1,67,286.76; both accounts anchored and matching.
+- `/accounts` returns 302 (login) with no errors; Zerodha section renders.
+- 9 securities hold ≥1 year of daily prices; 6,599 price rows, earliest
+  2024-10-26. The 3 funds each have 731 NAV points.
+- Tests: `test/models/amfi_scheme_index_test.rb`, `test/jobs/
+  market_data_history_backfill_job_test.rb`, `test/models/provider/kite/*`, and
+  `test/controllers/accounts_controller_test.rb` cover every fix above.
