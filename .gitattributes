@@ -16,3 +16,24 @@ bin/* text eol=lf
 *.sh text eol=lf
 *.rb text eol=lf
 .devcontainer/.bashrc text eol=lf
+
+# Generator templates are Ruby source written out verbatim; CRLF here becomes
+# CRLF in every generated file and fails the scaffold tests on Windows.
+*.tt text eol=lf
+
+# Binaries must never be line-ending converted. Without these, Git's autocrlf
+# rewrites the bytes of test PDFs on checkout, their internal xref offsets stop
+# pointing at the right place, and the failure reads as a malformed PDF.
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.xlsx binary
+*.docx binary
+*.zip binary
+*.ico binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
