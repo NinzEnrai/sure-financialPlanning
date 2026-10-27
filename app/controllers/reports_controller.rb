@@ -502,8 +502,23 @@ class ReportsController < ApplicationController
         period_withdrawals: period_totals.withdrawals,
         top_holdings: investment_statement.top_holdings(limit: 5),
         accounts: investment_accounts.to_a,
-        gains_by_tax_treatment: build_gains_by_tax_treatment(investment_statement)
+        gains_by_tax_treatment: build_gains_by_tax_treatment(investment_statement),
+        xirr: build_money_weighted_return(investment_statement)
       }
+    end
+
+    # The trade-based basis: this portfolio was anchored from holdings, so it has
+    # no contribution history for the exact basis to read. Every buy is treated
+    # as money arriving and every sell as money leaving, which is exact unless
+    # cash sat idle between a deposit and the purchase it funded.
+    def build_money_weighted_return(investment_statement)
+      Portfolio::MoneyWeightedReturn.new(
+        account_ids: investment_statement.investment_accounts.pluck(:id),
+        currency: Current.family.currency,
+        closing_value: investment_statement.portfolio_value,
+        as_of: Date.current,
+        basis: :trades
+      )
     end
 
     def build_gains_by_tax_treatment(investment_statement)

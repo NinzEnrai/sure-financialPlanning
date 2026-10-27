@@ -158,6 +158,9 @@ en:
       total_gains: Total Gains
       taxable_realized_note: These gains may be subject to taxes
       no_data: "-"
+      xirr_label: Money-weighted return (XIRR)
+      xirr_unavailable: not enough cash-flow history
+      xirr_assumption: Assumes each buy was money arriving and each sell money leaving, so it ignores any cash left idle in the account.
       view_details: View details
       holdings_count:
         one: "%{count} holding"

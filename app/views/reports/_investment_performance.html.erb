@@ -13,6 +13,17 @@
         <p class="text-xl font-semibold text-primary privacy-sensitive">
           <%= format_money(investment_metrics[:portfolio_value]) %>
         </p>
+        <% xirr = investment_metrics[:xirr] %>
+        <% if xirr&.available? %>
+          <p class="text-xs text-secondary mt-2" title="<%= t("reports.investment_performance.xirr_assumption") %>">
+            <%= t("reports.investment_performance.xirr_label") %>:
+            <span class="font-medium privacy-sensitive"><%= "≈ " if xirr.ambiguous? %><%= number_to_percentage(xirr.rate * 100, precision: 1) %></span>
+          </p>
+        <% else %>
+          <p class="text-xs text-secondary mt-2">
+            <%= t("reports.investment_performance.xirr_label") %>: <%= t("reports.investment_performance.xirr_unavailable") %>
+          </p>
+        <% end %>
       </div>
 
       <%# Total Return Card %>
