@@ -36,6 +36,7 @@ class FinancialPlanningController < ApplicationController
     @portfolio_return = FinancialPlanning::PortfolioReturn.new(Current.family, user: Current.user)
     @goal_funding = FinancialPlanning::GoalFunding.new(Current.family, user: Current.user)
     @portfolio_allocation = FinancialPlanning::PortfolioAllocation.new(Current.family, user: Current.user)
+    @cash_flow_forecast = FinancialPlanning::CashFlowForecast.new(Current.family, user: Current.user)
     @data_confidence = FinancialPlanning::DataConfidence.new(Current.family, user: Current.user)
     @tax_readiness = FinancialPlanning::TaxReadiness.new(Current.family, user: Current.user)
 

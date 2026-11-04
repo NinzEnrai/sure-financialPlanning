@@ -168,8 +168,8 @@ bin/deploy does: pull, tailwindcss:build, assets:precompile, db:migrate, restart
 ### Financial Planning
 - Route: /financial_planning (preview feature, requires preview_features_enabled)
 - Controller: FinancialPlanningController
-- Partials: _savings_rate, _budget_analyzer, _bucket_picker, _fire_progress, _wealth_projector, _emergency_fund, _debt_summary, _health_scorecard, _portfolio_return, _goal_funding, _allocation, _data_confidence, _tax_readiness
-- Models: SavingsRate, BudgetAnalyzer, FireProgress, WealthProjector, HoldingsCostBasisSeries, EmergencyFund, DebtSummary, HealthScorecard, PortfolioReturn, GoalFunding, PortfolioAllocation, DataConfidence, TaxReadiness, HouseholdMember, InsurancePolicy, ProtectionGap, AnnualReview
+- Partials: _savings_rate, _budget_analyzer, _bucket_picker, _fire_progress, _wealth_projector, _emergency_fund, _debt_summary, _health_scorecard, _portfolio_return, _goal_funding, _allocation, _cash_flow_forecast, _data_confidence, _tax_readiness
+- Models: SavingsRate, BudgetAnalyzer, FireProgress, WealthProjector, HoldingsCostBasisSeries, EmergencyFund, DebtSummary, HealthScorecard, PortfolioReturn, GoalFunding, PortfolioAllocation, CashFlowForecast, DataConfidence, TaxReadiness, HouseholdMember, InsurancePolicy, ProtectionGap, AnnualReview
 - Household routes: /financial_planning/household_members (create/destroy, preview-gated); the card on the planning page lists people, ages and dependants
 - Protection routes: /financial_planning/insurance_policies (create/destroy, preview-gated); the Protection card lists cover, premiums and renewals, compares life cover with 10x recorded annual income, and feeds the health scorecard's protection check
 - Review route: GET /financial_planning/review renders the annual review (net-worth movement, savings rate, protection, goals, checks and priorities); PATCH /financial_planning/mark_reviewed stores planning_settings.last_reviewed_on

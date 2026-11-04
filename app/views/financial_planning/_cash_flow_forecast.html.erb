@@ -1,0 +1,57 @@
+<%# locals: (forecast:) %>
+<%# A deliberately simple projection: trailing averages, not a day-level cash
+    calendar. It answers "roughly how much cash will we have in a month, two
+    months, three months" and warns when the line crosses zero. %>
+<%= render DS::Card.new(data: { testid: "cash-flow-forecast" }, class: "gap-4") do %>
+  <div class="flex items-center justify-between gap-3">
+    <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+    <%= icon "clock", size: "sm", color: forecast.shortfall? ? "warning" : "info" %>
+  </div>
+
+  <% unless forecast.available? %>
+    <div class="bg-container-inset rounded-lg p-4">
+      <p class="text-2xl font-medium text-subdued"><%= t(".unavailable") %></p>
+      <p class="text-xs text-secondary mt-1"><%= t(".unavailable_hint") %></p>
+    </div>
+  <% else %>
+    <div class="bg-container-inset rounded-lg p-3 space-y-1">
+      <p class="text-xs text-secondary"><%= t(".net_label") %></p>
+      <p class="text-3xl font-medium text-primary tabular-nums privacy-sensitive">
+        <%= format_money(forecast.net_monthly_money) %>
+      </p>
+      <p class="text-xs text-secondary">
+        <%= t(".net_note", income: format_money(Money.new(forecast.monthly_income, Current.family.currency), precision: 0),
+                           spending: format_money(Money.new(forecast.monthly_spending, Current.family.currency), precision: 0),
+                           debt: format_money(Money.new(forecast.monthly_debt_service.to_d, Current.family.currency), precision: 0),
+                           premiums: format_money(Money.new(forecast.monthly_premiums, Current.family.currency), precision: 0)) %>
+      </p>
+    </div>
+
+    <dl class="grid grid-cols-1 @md:grid-cols-3 gap-3">
+      <% forecast.points.each do |point| %>
+        <div class="bg-container-inset rounded-lg p-3 space-y-1">
+          <dt class="text-xs text-secondary"><%= t(".in_days", count: point.days) %></dt>
+          <dd class="text-lg font-medium tabular-nums privacy-sensitive <%= point.negative? ? "text-destructive" : "text-primary" %>">
+            <%= format_money(point.balance_money(Current.family.currency)) %>
+          </dd>
+          <p class="text-xs text-secondary"><%= l(point.date, format: "%d %b %Y") %></p>
+        </div>
+      <% end %>
+    </dl>
+
+    <% if forecast.shortfall? %>
+      <div class="rounded-lg bg-destructive/10 p-3">
+        <p class="text-xs text-destructive">
+          <%= t(".shortfall", date: l(forecast.first_shortfall.date, format: "%d %b %Y")) %>
+        </p>
+        <p class="text-xs text-secondary mt-1"><%= t(".shortfall_hint") %></p>
+      </div>
+    <% end %>
+
+    <% unless forecast.debt_known? %>
+      <p class="text-xs text-warning"><%= t(".debt_unknown") %></p>
+    <% end %>
+
+    <p class="text-xs text-subdued"><%= t(".assumption") %></p>
+  <% end %>
+<% end %>

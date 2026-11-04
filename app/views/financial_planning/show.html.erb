@@ -51,6 +51,9 @@
   <%# Where the invested money sits, and whether one position dominates. %>
   <%= render "financial_planning/allocation", allocation: @portfolio_allocation, setting: @planning_setting %>
 
+  <%# Will the cash last until payday? Trailing averages, not a bill calendar. %>
+  <%= render "financial_planning/cash_flow_forecast", forecast: @cash_flow_forecast %>
+
   <%# The diagnostics: what is missing behind the figures, and what tax work
       can actually be supported by the data. %>
   <div class="grid grid-cols-1 @3xl:grid-cols-2 gap-4 items-stretch">

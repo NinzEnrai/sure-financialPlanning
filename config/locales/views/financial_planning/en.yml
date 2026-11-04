@@ -303,6 +303,19 @@ en:
         alternative_investment: Alternative
         liquidity: Cash equivalents
         unclassified: Unclassified
+    cash_flow_forecast:
+      title: Cash-flow forecast
+      unavailable: Not enough data
+      unavailable_hint: Record some income and a few months of spending and this will project cash 30, 60 and 90 days ahead.
+      net_label: Left over each month
+      net_note: "%{income} in − %{spending} out − %{debt} debt payments − %{premiums} insurance premiums"
+      in_days:
+        one: "In %{count} day"
+        other: "In %{count} days"
+      shortfall: "On these averages, cash is below zero by %{date}."
+      shortfall_hint: Trim a recurring cost, pause a goal, or move cash into the buffer before that date.
+      debt_unknown: Debt payments are not included because no liability records a minimum payment or instalment.
+      assumption: Assumes trailing income and spending continue unchanged; it is a rough projection, not a cash calendar.
     data_confidence:
       title: Data confidence
       all_good: All the inputs behind these figures look complete.
