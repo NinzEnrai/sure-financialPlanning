@@ -14,6 +14,17 @@ class FinancialPlanning::HouseholdMembersController < ApplicationController
     end
   end
 
+  def update
+    member = Current.family.household_members.find_by(id: params[:id])
+    return redirect_to(financial_planning_path, alert: t(".not_found")) if member.nil?
+
+    if member.update(member_params)
+      redirect_to financial_planning_path, notice: t(".updated")
+    else
+      redirect_to financial_planning_path, alert: member.errors.full_messages.to_sentence
+    end
+  end
+
   def destroy
     member = Current.family.household_members.find_by(id: params[:id])
     return redirect_to(financial_planning_path, alert: t(".not_found")) if member.nil?

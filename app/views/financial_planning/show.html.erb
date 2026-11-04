@@ -51,6 +51,9 @@
   <%# Where the invested money sits, and whether one position dominates. %>
   <%= render "financial_planning/allocation", allocation: @portfolio_allocation, setting: @planning_setting %>
 
+  <%# What trading cost this year, as an absolute and a share of the portfolio. %>
+  <%= render "financial_planning/fee_audit", audit: @fee_audit %>
+
   <%# Will the cash last until payday? Trailing averages, not a bill calendar.
       Beside it, the coaching observations that follow from those same figures. %>
   <div class="grid grid-cols-1 @3xl:grid-cols-2 gap-4 items-stretch">

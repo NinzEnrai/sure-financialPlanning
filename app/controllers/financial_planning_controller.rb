@@ -42,6 +42,7 @@ class FinancialPlanningController < ApplicationController
     @capital_gains = FinancialPlanning::CapitalGainsEstimate.new(Current.family, user: Current.user)
     @tax_harvesting = FinancialPlanning::TaxHarvesting.new(Current.family, user: Current.user)
     @retirement_stress = FinancialPlanning::RetirementStressTest.new(Current.family, user: Current.user)
+    @fee_audit = FinancialPlanning::FeeAudit.new(Current.family, user: Current.user)
     @tax_users = Current.family.users.order(:created_at)
     @tax_profiles = @tax_users.index_with { |user| Current.family.tax_profiles.find_or_initialize_by(user: user) }
     @data_confidence = FinancialPlanning::DataConfidence.new(Current.family, user: Current.user)

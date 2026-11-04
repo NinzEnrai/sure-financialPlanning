@@ -35,6 +35,30 @@ class FinancialPlanning::HouseholdMembersControllerTest < ActionDispatch::Integr
     assert_predicate flash[:alert], :present?
   end
 
+  test "updates a person's details" do
+    member = household_members(:self_member)
+
+    patch financial_planning_household_member_path(member), params: {
+      household_member: { name: "Dylan Updated", relationship: "self", date_of_birth: "1991-06-15" }
+    }
+
+    assert_redirected_to financial_planning_path
+    assert_equal "Dylan Updated", member.reload.name
+    assert_equal Date.new(1991, 6, 15), member.date_of_birth
+  end
+
+  test "cannot update somebody from another family" do
+    other = families(:empty).household_members.create!(name: "Someone else", relationship: "other")
+
+    patch financial_planning_household_member_path(other), params: {
+      household_member: { name: "Hijacked" }
+    }
+
+    assert_redirected_to financial_planning_path
+    assert_equal "Someone else", other.reload.name
+    assert_predicate flash[:alert], :present?
+  end
+
   test "removes a person from the family" do
     member = household_members(:child_member)
 

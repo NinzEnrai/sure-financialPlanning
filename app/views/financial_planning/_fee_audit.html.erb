@@ -1,0 +1,43 @@
+<%# locals: (audit:) %>
+<%# Brokerage costs over a trailing year, with the limits of what Sure records
+    stated on the card: expense ratios and advisory fees are not here. %>
+<%= render DS::Card.new(data: { testid: "fee-audit" }, class: "gap-4") do %>
+  <div class="flex items-center justify-between gap-3">
+    <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+    <%= icon "receipt", size: "sm", color: "info" %>
+  </div>
+
+  <% if audit.empty? %>
+    <div class="bg-container-inset rounded-lg p-4">
+      <p class="text-sm text-primary"><%= t(".empty") %></p>
+      <p class="text-xs text-secondary mt-1"><%= t(".empty_hint") %></p>
+    </div>
+  <% else %>
+    <div class="bg-container-inset rounded-lg p-3 space-y-1">
+      <p class="text-xs text-secondary"><%= t(".total_label") %></p>
+      <p class="text-3xl font-medium text-primary tabular-nums privacy-sensitive"><%= format_money(audit.total_fees_money) %></p>
+      <p class="text-xs text-secondary tabular-nums privacy-sensitive">
+        <% if audit.fee_ratio_percent %>
+          <%= t(".ratio", percent: number_to_percentage(audit.fee_ratio_percent, precision: 2), value: format_money(audit.portfolio_value_money)) %>
+        <% else %>
+          <%= t(".count", count: audit.trade_count) %>
+        <% end %>
+      </p>
+    </div>
+
+    <ul class="divide-y divide-subdued">
+      <% audit.by_account.first(3).each do |entry| %>
+        <li class="py-2 flex items-center justify-between gap-3 text-sm">
+          <span class="truncate text-primary"><%= entry[:account].name %></span>
+          <span class="text-primary tabular-nums privacy-sensitive"><%= format_money(Money.new(entry[:fee], Current.family.currency)) %></span>
+        </li>
+      <% end %>
+    </ul>
+
+    <% if audit.unconverted_count.positive? %>
+      <p class="text-xs text-warning"><%= t(".unconverted", count: audit.unconverted_count) %></p>
+    <% end %>
+
+    <p class="text-xs text-subdued"><%= t(".footnote") %></p>
+  <% end %>
+<% end %>

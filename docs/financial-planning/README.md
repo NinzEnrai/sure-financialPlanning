@@ -33,6 +33,7 @@ Open **Investments → Financial Planning** (preview feature). In order:
 | Capital gains estimate | What is each person's taxable gain? | The above, per account owner |
 | Tax harvesting | Are there losses worth booking? | Open lots, latest prices |
 | Tax profile | What has each person declared for tax? | Regime and declared deductions |
+| Investment charges | What did trading cost? | Trade fees (brokerage only) |
 | Budget split | Are we inside our own 50/30/20? | Categories, transactions |
 | Wealth projection | Where could current savings take us? | Net worth, savings pace, growth |
 | Retirement stress test | How likely is the money to last? | Age, spending, savings, growth assumption |
@@ -49,8 +50,8 @@ figures into one printable summary with a review date.
 - **Goal priority** — high/medium/low; orders the goal-funding plan.
 - **Goal inflation** — optional; the plan uses the future-rupee target while the
   goals page keeps the nominal figure.
-- **Household and protection** — people (with ages and dependants) and insurance
-  policies (cover, premiums, renewals, nominees).
+- **Household and protection** — people (with ages and dependants, editable in
+  place) and insurance policies (cover, premiums, renewals, nominees).
 - **Retirement age** — set on the retirement stress test card; age comes from
   the "self" household member's date of birth.
 - **Tax profile** — per person: regime and declared deductions, for the
@@ -124,6 +125,9 @@ paths for these cards; if a card changes, change its tests with it.
 - The cash-flow forecast is average-based, not a day-level bill calendar.
 - The retirement stress test draws independent returns; real markets cluster
   their bad years, and taxes, fees and health shocks are outside the model.
+- Investment charges cover trade fees only: fund expense ratios, advisory fees
+  and platform costs are not recorded, and Console-imported trades carry zero
+  fees.
 - Insurance cover adequacy for health is a country-aware guide, not advice.
 - Household members are add/remove only; income per member and editing are not
   implemented yet.

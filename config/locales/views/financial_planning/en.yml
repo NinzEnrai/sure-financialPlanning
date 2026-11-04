@@ -408,6 +408,19 @@ en:
       saved: Tax profile saved
       user_not_found: That person is not part of this family.
       footnote: Filing limits change with the Finance Act. Sure records what you declare and computes no tax from it.
+    fee_audit:
+      title: Investment charges
+      empty: No trading fees recorded this year
+      empty_hint: When a trade records a fee, it appears here with the cost as a share of the portfolio.
+      total_label: Fees paid on trades (last 12 months)
+      ratio: "%{percent} of a %{value} portfolio"
+      count:
+        one: "%{count} trade carried a fee"
+        other: "%{count} trades carried a fee"
+      unconverted:
+        one: "%{count} fee could not be converted to your currency and is excluded."
+        other: "%{count} fees could not be converted to your currency and are excluded."
+      footnote: Brokerage only. Fund expense ratios, advisory fees and platform charges are not recorded in Sure, and Console tradebook imports carry zero fees, so treat this as the visible part of the cost.
     data_confidence:
       title: Data confidence
       all_good: All the inputs behind these figures look complete.
@@ -470,6 +483,7 @@ en:
       empty: Nobody added yet
       empty_hint: Add yourself first, then a spouse, children or parents who depend on you.
       new_title: Add a person
+      save_changes: Save changes
       name: Name
       name_placeholder: e.g. Priya
       relationship: Relationship
@@ -493,6 +507,7 @@ en:
         other: Other
     household_members:
       created: Person added
+      updated: Person updated
       removed: Person removed
       not_found: That person is not part of this family.
     protection:

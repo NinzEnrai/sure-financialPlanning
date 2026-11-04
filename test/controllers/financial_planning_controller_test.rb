@@ -80,6 +80,13 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     assert_predicate flash[:alert], :present?
   end
 
+  test "renders the fee audit card" do
+    get financial_planning_url
+
+    assert_response :success
+    assert_select "[data-testid='fee-audit']"
+  end
+
   test "renders the tax profile card for an admin" do
     get financial_planning_url
 

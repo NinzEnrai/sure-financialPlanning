@@ -510,7 +510,7 @@ Rails.application.routes.draw do
     patch :bucket, action: :update_bucket
 
     # People the plan is for -- a dependant does not need an account.
-    resources :household_members, only: %i[create destroy],
+    resources :household_members, only: %i[create update destroy],
               controller: "financial_planning/household_members"
 
     # Protection cover the household holds.
