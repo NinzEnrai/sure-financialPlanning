@@ -251,6 +251,10 @@ en:
       on_track: "Your current pace of %{pace}/month covers them."
       gap: "Your current pace of %{pace}/month leaves a %{gap} gap."
       row_required: "%{required} needed · %{pace} actual"
+      priorities:
+        high: High priority
+        medium: Medium
+        low: Low priority
       no_dated_goals: No goals with a deadline
       no_dated_goals_hint: Open-ended goals have no monthly requirement; add a target date to plan one.
       statuses:
@@ -374,6 +378,10 @@ en:
       affordability_value: "%{percent} of income"
       affordability_unknown: Add income to compare
       affordability_hint: Under 5–10% of income is the usual range for insurance premiums.
+      adults_covered: Adults with life cover
+      adults_value: "%{covered} of %{total}"
+      adults_none: No adults recorded
+      adults_uncovered: "No life cover attached: %{names}"
       cover_guide: "Guide: about %{multiple}x annual income (%{amount})"
       cover_guide_unknown: Record some income to compare life cover against the usual 10x guide.
       gap: "%{amount} short of that guide"

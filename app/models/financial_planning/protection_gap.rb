@@ -21,6 +21,10 @@ class FinancialPlanning::ProtectionGap
   AFFORDABILITY_COMFORT_PCT = 5
   AFFORDABILITY_WATCH_PCT = 10
 
+  # Relationships treated as adults whose life cover matters for the household's
+  # protection. Children are dependants, not earners, so they are not counted.
+  ADULT_RELATIONSHIPS = %w[self spouse partner].freeze
+
   attr_reader :family, :user
 
   def initialize(family, user: nil)
@@ -120,6 +124,39 @@ class FinancialPlanning::ProtectionGap
     return :watch if premium_affordability_percent > AFFORDABILITY_COMFORT_PCT
 
     :good
+  end
+
+  def adult_members
+    @adult_members ||= family.household_members
+      .where(relationship: ADULT_RELATIONSHIPS)
+      .order(:created_at)
+      .to_a
+  end
+
+  def adults_count
+    adult_members.size
+  end
+
+  # A policy with no member attached protects the whole household, so it
+  # satisfies every adult rather than looking like an unattached anomaly.
+  def household_wide_life_cover?
+    life_policies.any? { |policy| policy.household_member_id.nil? }
+  end
+
+  def covered_adult_ids
+    @covered_adult_ids ||= life_policies.filter_map(&:household_member_id).to_set
+  end
+
+  def covered_adults_count
+    return adults_count if household_wide_life_cover?
+
+    adult_members.count { |member| covered_adult_ids.include?(member.id) }
+  end
+
+  def uncovered_adults
+    return [] if household_wide_life_cover?
+
+    adult_members.reject { |member| covered_adult_ids.include?(member.id) }
   end
 
   def status

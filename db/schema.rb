@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_05_160000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_05_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -1168,6 +1168,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_160000) do
     t.string "kind", default: "one_off", null: false
     t.string "name", null: false
     t.text "notes"
+    t.string "priority", default: "medium", null: false
     t.string "progress_basis", default: "balance", null: false
     t.string "state", default: "active", null: false
     t.decimal "target_amount", precision: 19, scale: 4, null: false
@@ -1180,6 +1181,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_160000) do
     t.check_constraint "char_length(name::text) <= 255", name: "chk_savings_goals_name_length"
     t.check_constraint "consumed_amount >= 0::numeric", name: "chk_goals_consumed_amount_non_negative"
     t.check_constraint "kind::text = ANY (ARRAY['one_off'::character varying::text, 'maintained'::character varying::text])", name: "chk_goals_kind_enum"
+    t.check_constraint "priority::text = ANY (ARRAY['high'::character varying, 'medium'::character varying, 'low'::character varying]::text[])", name: "goals_priority_check"
     t.check_constraint "progress_basis::text = ANY (ARRAY['balance'::character varying::text, 'contributions'::character varying::text])", name: "chk_goals_progress_basis_enum"
     t.check_constraint "state::text = ANY (ARRAY['active'::character varying::text, 'paused'::character varying::text, 'completed'::character varying::text, 'archived'::character varying::text])", name: "chk_savings_goals_state_enum"
     t.check_constraint "target_amount > 0::numeric", name: "chk_savings_goals_target_amount_positive"

@@ -4,6 +4,13 @@ class Goal < ApplicationRecord
   COLORS = Category::COLORS
   ICONS = Category.icon_codes
 
+  # Which goal the household funds first when the money will not stretch. A
+  # preference, not an ordering: it never changes a goal's maths, only the
+  # order a funding plan presents them in.
+  PRIORITIES = %w[high medium low].freeze
+  PRIORITY_RANK = { "high" => 0, "medium" => 1, "low" => 2 }.freeze
+  DEFAULT_PRIORITY = "medium".freeze
+
   # States in which a goal has let go of its money: `Goal.pooled_allocations_for`
   # leaves it out of the backing math, so its links reserve nothing and the
   # account it pointed at is free again.
@@ -34,6 +41,7 @@ class Goal < ApplicationRecord
   validates :name, presence: true, length: { maximum: 255 }
   validates :target_amount, presence: true, numericality: { greater_than: 0 }
   validates :currency, presence: true
+  validates :priority, inclusion: { in: PRIORITIES }
   # before_save (not before_validation) so it only mutates on persistence, not
   # on every valid? call — a goal can be inspected without its basis flipping.
   before_save :default_progress_basis_for_market_accounts

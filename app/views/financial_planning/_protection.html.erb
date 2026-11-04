@@ -61,6 +61,19 @@
         </dd>
         <p class="text-xs text-subdued"><%= t(".affordability_hint") %></p>
       </div>
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".adults_covered") %></dt>
+        <dd class="text-sm font-medium text-primary tabular-nums">
+          <% if gap.adults_count.zero? %>
+            <span class="text-subdued"><%= t(".adults_none") %></span>
+          <% else %>
+            <%= t(".adults_value", covered: gap.covered_adults_count, total: gap.adults_count) %>
+          <% end %>
+        </dd>
+        <% if gap.uncovered_adults.any? %>
+          <p class="text-xs text-warning"><%= t(".adults_uncovered", names: gap.uncovered_adults.map(&:name).join(", ")) %></p>
+        <% end %>
+      </div>
     </dl>
 
     <% if gap.renewing_soon.any? %>

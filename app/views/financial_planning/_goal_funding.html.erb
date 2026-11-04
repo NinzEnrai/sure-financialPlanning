@@ -37,7 +37,17 @@
         <% funding.rows.first(3).each do |row| %>
           <li class="py-2.5 flex items-center justify-between gap-3">
             <div class="min-w-0">
-              <p class="text-sm text-primary truncate"><%= row.goal.name %></p>
+              <p class="text-sm text-primary truncate">
+                <%= row.goal.name %>
+                <% unless row.priority == Goal::DEFAULT_PRIORITY %>
+                  <%= render DS::Pill.new(
+                        label: t(".priorities.#{row.priority}"),
+                        tone: row.priority == "high" ? :warning : :neutral,
+                        marker: false,
+                        size: :sm
+                      ) %>
+                <% end %>
+              </p>
               <p class="text-xs text-secondary tabular-nums privacy-sensitive">
                 <%= t(".row_required", required: format_money(Money.new(row.required_monthly, funding.family.currency), precision: 0),
                                         pace: format_money(Money.new(row.pace, funding.family.currency), precision: 0)) %>

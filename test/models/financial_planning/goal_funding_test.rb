@@ -19,6 +19,19 @@ class FinancialPlanning::GoalFundingTest < ActiveSupport::TestCase
     assert_not funding.on_track?
   end
 
+  test "presents high-priority goals first" do
+    stub_goals([
+      fake_goal(required: 100, pace: 0, behind: true, priority: "low"),
+      fake_goal(required: 100, pace: 0, behind: true, priority: "high"),
+      fake_goal(required: 100, pace: 0, behind: true, priority: "medium")
+    ])
+
+    funding = build_funding
+
+    assert_equal %w[high medium low], funding.rows.map(&:priority)
+    assert_equal 1, funding.high_priority_count
+  end
+
   test "no gap when the pace covers every dated goal" do
     stub_goals([ fake_goal(required: 100, pace: 120, behind: false) ])
 
@@ -60,8 +73,9 @@ class FinancialPlanning::GoalFundingTest < ActiveSupport::TestCase
       Goal.stubs(:active_prepared_for).returns(goals)
     end
 
-    def fake_goal(required:, pace:, behind:, target_date: Date.current + 1.year, paused: false, maintained: false)
+    def fake_goal(required:, pace:, behind:, priority: "medium", target_date: Date.current + 1.year, paused: false, maintained: false)
       goal = Goal.new(name: "Goal", target_amount: 1200, currency: @family.currency)
+      goal.stubs(:priority).returns(priority)
       goal.stubs(:target_date).returns(target_date)
       goal.stubs(:monthly_target_amount).returns(BigDecimal(required.to_s))
       goal.stubs(:pace).returns(BigDecimal(pace.to_s))

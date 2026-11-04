@@ -93,6 +93,37 @@ class FinancialPlanning::ProtectionGapTest < ActiveSupport::TestCase
     assert build_gap.health_recorded?
   end
 
+  test "counts adults with life cover attached" do
+    add_policy(policy_type: "term_life", household_member_id: household_members(:self_member).id)
+
+    gap = build_gap
+
+    assert_equal 1, gap.adults_count
+    assert_equal 1, gap.covered_adults_count
+    assert_empty gap.uncovered_adults
+  end
+
+  test "flags adults without life cover" do
+    add_policy(policy_type: "term_life", household_member_id: household_members(:self_member).id)
+    @family.household_members.create!(name: "Sam", relationship: "spouse")
+
+    gap = build_gap
+
+    assert_equal 2, gap.adults_count
+    assert_equal 1, gap.covered_adults_count
+    assert_equal [ "Sam" ], gap.uncovered_adults.map(&:name)
+  end
+
+  test "a household-wide policy covers every adult" do
+    add_policy(policy_type: "term_life")
+    @family.household_members.create!(name: "Sam", relationship: "spouse")
+
+    gap = build_gap
+
+    assert_equal 2, gap.covered_adults_count
+    assert_empty gap.uncovered_adults
+  end
+
   test "counts dependants from the household profile" do
     assert_equal 1, build_gap.dependants_count
   end

@@ -8,7 +8,11 @@
 # Goals in another currency are listed but left out of the totals, because
 # adding rupees to dollars is the one arithmetic that is always wrong.
 class FinancialPlanning::GoalFunding
-  Row = Data.define(:goal, :required_monthly, :pace, :gap)
+  Row = Data.define(:goal, :required_monthly, :pace, :gap, :priority) do
+    def priority_rank
+      Goal::PRIORITY_RANK.fetch(priority, Goal::PRIORITY_RANK.fetch(Goal::DEFAULT_PRIORITY))
+    end
+  end
 
   attr_reader :family, :user
 
@@ -36,8 +40,19 @@ class FinancialPlanning::GoalFunding
         # That is not a contribution, so the plan treats it as no pace at all
         # rather than subtracting it from the requirement.
         pace = [ goal.pace.to_d, 0 ].max
-        Row.new(goal: goal, required_monthly: required, pace: pace, gap: [ required - pace, 0 ].max)
+        Row.new(
+          goal: goal,
+          required_monthly: required,
+          pace: pace,
+          gap: [ required - pace, 0 ].max,
+          priority: goal.priority.presence || Goal::DEFAULT_PRIORITY
+        )
       end
+      .sort_by { |row| [ row.priority_rank, -row.gap ] }
+  end
+
+  def high_priority_count
+    rows.count { |row| row.priority == "high" }
   end
 
   def dated_goals
