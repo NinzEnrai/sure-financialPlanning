@@ -255,6 +255,7 @@ en:
         high: High priority
         medium: Medium
         low: Low priority
+      inflation_note: "inflation-adjusted at %{rate}"
       no_dated_goals: No goals with a deadline
       no_dated_goals_hint: Open-ended goals have no monthly requirement; add a target date to plan one.
       statuses:
@@ -280,6 +281,20 @@ en:
       top_title: Largest positions
       classes_title: By asset class
       footnote: Asset classes come from each security's metadata; holdings without one are grouped as unclassified rather than dropped.
+      risk_title: Risk profile
+      risk_label: Your risk profile
+      risk_not_set: Not set
+      risk_save: Save profile
+      risk_none: Set a profile to compare your equity share with a conventional range for it.
+      risk_range: "%{profile} — a conventional equity range is %{min}–%{max}; you hold %{equity}."
+      risk_unknown_equity: no classified equity
+      risk_good: Your equity share is inside the range.
+      risk_watch: Your equity share is just outside the range; worth checking it was deliberate.
+      risk_outside: Your equity share is well outside the range for this profile.
+      risk_profiles:
+        conservative: Conservative
+        moderate: Moderate
+        aggressive: Aggressive
       asset_classes:
         equity: Equity
         fixed_income: Fixed income

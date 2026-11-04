@@ -78,6 +78,8 @@ class FinancialPlanning::GoalFundingTest < ActiveSupport::TestCase
       goal.stubs(:priority).returns(priority)
       goal.stubs(:target_date).returns(target_date)
       goal.stubs(:monthly_target_amount).returns(BigDecimal(required.to_s))
+      goal.stubs(:inflation_adjusted_monthly_target_amount).returns(BigDecimal(required.to_s))
+      goal.stubs(:inflation_pct).returns(nil)
       goal.stubs(:pace).returns(BigDecimal(pace.to_s))
       goal.stubs(:behind_pace?).returns(behind)
       goal.stubs(:paused?).returns(paused)

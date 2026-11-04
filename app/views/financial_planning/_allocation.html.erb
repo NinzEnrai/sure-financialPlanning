@@ -1,4 +1,4 @@
-<%# locals: (allocation:) %>
+<%# locals: (allocation:, setting:) %>
 <%# Where the invested money sits and whether any one position dominates. The
     percentages are the same ones the investment report uses (weight against
     portfolio value, with cash as the residual), so the two cannot disagree. %>
@@ -97,6 +97,43 @@
         </ul>
       </div>
     <% end %>
+
+    <div class="mt-3 pt-3 border-t border-subdued space-y-2">
+      <p class="text-xs text-secondary"><%= t(".risk_title") %></p>
+
+      <% if allocation.equity_target_range %>
+        <% range = allocation.equity_target_range %>
+        <p class="text-xs text-secondary">
+          <%= t(".risk_range",
+                 profile: t(".risk_profiles.#{allocation.risk_profile}"),
+                 min: number_to_percentage(range.begin, precision: 0),
+                 max: number_to_percentage(range.end, precision: 0),
+                 equity: allocation.equity_percent ? number_to_percentage(allocation.equity_percent, precision: 1) : t(".risk_unknown_equity")) %>
+        </p>
+        <% case allocation.equity_status %>
+        <% when :good %>
+          <p class="text-xs text-success"><%= t(".risk_good") %></p>
+        <% when :watch %>
+          <p class="text-xs text-warning"><%= t(".risk_watch") %></p>
+        <% when :attention %>
+          <p class="text-xs text-destructive"><%= t(".risk_outside") %></p>
+        <% end %>
+      <% else %>
+        <p class="text-xs text-secondary"><%= t(".risk_none") %></p>
+      <% end %>
+
+      <%= styled_form_with model: setting,
+                           url: setting_financial_planning_path,
+                           method: :patch,
+                           scope: :planning_setting,
+                           class: "flex flex-wrap items-end gap-2" do |form| %>
+        <%= form.select :risk_profile,
+            options_for_select(PlanningSetting::RISK_PROFILES.keys.map { |key| [ t(".risk_profiles.#{key}"), key ] }, setting.risk_profile),
+            { include_blank: t(".risk_not_set") },
+            label: t(".risk_label") %>
+        <%= form.submit t(".risk_save") %>
+      <% end %>
+    </div>
 
     <p class="text-xs text-subdued"><%= t(".footnote") %></p>
   <% end %>

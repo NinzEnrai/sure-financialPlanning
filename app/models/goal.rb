@@ -42,6 +42,9 @@ class Goal < ApplicationRecord
   validates :target_amount, presence: true, numericality: { greater_than: 0 }
   validates :currency, presence: true
   validates :priority, inclusion: { in: PRIORITIES }
+  validates :inflation_pct,
+            numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 50 },
+            allow_nil: true
   # before_save (not before_validation) so it only mutates on persistence, not
   # on every valid? call — a goal can be inspected without its basis flipping.
   before_save :default_progress_basis_for_market_accounts
@@ -759,6 +762,32 @@ class Goal < ApplicationRecord
     else
       (remaining_amount.to_d / months_remaining.to_d).ceil(2)
     end
+  end
+
+  # Inflation turns a goal's nominal target into the amount it will actually
+  # cost when the deadline arrives. It is optional and off by default; when set
+  # the planning card plans against the future figure while the goals page keeps
+  # showing the target the household typed.
+  def inflation_factor
+    return BigDecimal("1") if inflation_pct.blank? || target_date.blank?
+
+    years = months_remaining.to_d / 12
+    (BigDecimal("1") + (inflation_pct.to_d / 100)) ** years
+  end
+
+  def inflation_adjusted_target_amount
+    (target_amount.to_d * inflation_factor).round(2)
+  end
+
+  def inflation_adjusted_remaining_amount
+    [ inflation_adjusted_target_amount - current_balance.to_d - consumed_amount.to_d, 0 ].max
+  end
+
+  def inflation_adjusted_monthly_target_amount
+    return monthly_target_amount if inflation_pct.blank? || target_date.nil?
+    return inflation_adjusted_remaining_amount if months_remaining.zero?
+
+    (inflation_adjusted_remaining_amount / months_remaining.to_d).ceil(2)
   end
 
   # 90-day rolling monthly pace: net inflow into linked accounts divided by

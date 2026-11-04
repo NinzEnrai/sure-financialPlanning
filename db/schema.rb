@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_05_170000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_05_190000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -1165,6 +1165,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_170000) do
     t.string "currency", null: false
     t.uuid "family_id", null: false
     t.string "icon"
+    t.decimal "inflation_pct", precision: 5, scale: 2
     t.string "kind", default: "one_off", null: false
     t.string "name", null: false
     t.text "notes"
@@ -1180,8 +1181,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_170000) do
     t.index ["family_id"], name: "index_goals_on_family_id"
     t.check_constraint "char_length(name::text) <= 255", name: "chk_savings_goals_name_length"
     t.check_constraint "consumed_amount >= 0::numeric", name: "chk_goals_consumed_amount_non_negative"
+    t.check_constraint "inflation_pct IS NULL OR inflation_pct >= 0::numeric AND inflation_pct <= 50::numeric", name: "goals_inflation_pct_range"
     t.check_constraint "kind::text = ANY (ARRAY['one_off'::character varying::text, 'maintained'::character varying::text])", name: "chk_goals_kind_enum"
-    t.check_constraint "priority::text = ANY (ARRAY['high'::character varying, 'medium'::character varying, 'low'::character varying]::text[])", name: "goals_priority_check"
+    t.check_constraint "priority::text = ANY (ARRAY['high'::character varying::text, 'medium'::character varying::text, 'low'::character varying::text])", name: "goals_priority_check"
     t.check_constraint "progress_basis::text = ANY (ARRAY['balance'::character varying::text, 'contributions'::character varying::text])", name: "chk_goals_progress_basis_enum"
     t.check_constraint "state::text = ANY (ARRAY['active'::character varying::text, 'paused'::character varying::text, 'completed'::character varying::text, 'archived'::character varying::text])", name: "chk_savings_goals_state_enum"
     t.check_constraint "target_amount > 0::numeric", name: "chk_savings_goals_target_amount_positive"
@@ -2046,6 +2048,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_170000) do
     t.decimal "fire_withdrawal_rate_pct", precision: 5, scale: 2, default: "4.0", null: false
     t.date "last_reviewed_on"
     t.integer "needs_target_pct", default: 50, null: false
+    t.string "risk_profile"
     t.integer "savings_target_pct", default: 20, null: false
     t.datetime "updated_at", null: false
     t.integer "wants_target_pct", default: 30, null: false
@@ -2053,6 +2056,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_170000) do
     t.check_constraint "emergency_target_months >= 1 AND emergency_target_months <= 24", name: "planning_settings_emergency_target_months_range"
     t.check_constraint "fire_target_year IS NULL OR fire_target_year >= 2000 AND fire_target_year <= 2200", name: "planning_settings_fire_target_year_range"
     t.check_constraint "needs_target_pct >= 0 AND needs_target_pct <= 100 AND wants_target_pct >= 0 AND wants_target_pct <= 100 AND savings_target_pct >= 0 AND savings_target_pct <= 100", name: "planning_settings_budget_targets_range"
+    t.check_constraint "risk_profile IS NULL OR (risk_profile::text = ANY (ARRAY['conservative'::character varying, 'moderate'::character varying, 'aggressive'::character varying]::text[]))", name: "planning_settings_risk_profile_check"
   end
 
   create_table "properties", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

@@ -6,6 +6,20 @@ class PlanningSettingTest < ActiveSupport::TestCase
     @setting = planning_settings(:active_family)
   end
 
+  test "risk profile accepts the three profiles or nothing" do
+    @setting.risk_profile = "reckless"
+    assert_not @setting.valid?
+    assert_includes @setting.errors[:risk_profile], "is not included in the list"
+
+    PlanningSetting::RISK_PROFILES.each_key do |profile|
+      @setting.risk_profile = profile
+      assert @setting.valid?, "#{profile} should be accepted"
+    end
+
+    @setting.risk_profile = nil
+    assert @setting.valid?
+  end
+
   test "budget targets default to the 50/30/20 guideline" do
     assert_equal 50, @setting.target_share_pct("needs")
     assert_equal 30, @setting.target_share_pct("wants")

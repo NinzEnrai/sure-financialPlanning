@@ -8,7 +8,7 @@
 # Goals in another currency are listed but left out of the totals, because
 # adding rupees to dollars is the one arithmetic that is always wrong.
 class FinancialPlanning::GoalFunding
-  Row = Data.define(:goal, :required_monthly, :pace, :gap, :priority) do
+  Row = Data.define(:goal, :required_monthly, :pace, :gap, :priority, :inflated) do
     def priority_rank
       Goal::PRIORITY_RANK.fetch(priority, Goal::PRIORITY_RANK.fetch(Goal::DEFAULT_PRIORITY))
     end
@@ -35,7 +35,9 @@ class FinancialPlanning::GoalFunding
   def rows
     @rows ||= goals.select { |goal| goal.target_date.present? && !goal.paused? && !goal.maintained? && goal.currency == currency }
       .map do |goal|
-        required = goal.monthly_target_amount.to_d
+        # The plan uses the future-rupee figure when the goal carries an
+        # inflation assumption; the goals page keeps the nominal target.
+        required = goal.inflation_adjusted_monthly_target_amount.to_d
         # A negative pace means money left the linked accounts over the window.
         # That is not a contribution, so the plan treats it as no pace at all
         # rather than subtracting it from the requirement.
@@ -45,7 +47,8 @@ class FinancialPlanning::GoalFunding
           required_monthly: required,
           pace: pace,
           gap: [ required - pace, 0 ].max,
-          priority: goal.priority.presence || Goal::DEFAULT_PRIORITY
+          priority: goal.priority.presence || Goal::DEFAULT_PRIORITY,
+          inflated: goal.inflation_pct.present?
         )
       end
       .sort_by { |row| [ row.priority_rank, -row.gap ] }

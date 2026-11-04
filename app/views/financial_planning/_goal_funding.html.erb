@@ -51,6 +51,9 @@
               <p class="text-xs text-secondary tabular-nums privacy-sensitive">
                 <%= t(".row_required", required: format_money(Money.new(row.required_monthly, funding.family.currency), precision: 0),
                                         pace: format_money(Money.new(row.pace, funding.family.currency), precision: 0)) %>
+                <% if row.inflated %>
+                  <span class="text-subdued">· <%= t(".inflation_note", rate: number_to_percentage(row.goal.inflation_pct, precision: 1)) %></span>
+                <% end %>
               </p>
             </div>
             <%= render DS::Pill.new(

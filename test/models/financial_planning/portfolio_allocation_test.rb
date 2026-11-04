@@ -49,6 +49,30 @@ class FinancialPlanning::PortfolioAllocationTest < ActiveSupport::TestCase
     assert_equal [ 400, 100 ], groups.map(&:amount)
   end
 
+  test "compares the equity share with the risk profile range" do
+    setting = @family.planning_setting || @family.create_planning_setting
+
+    setting.update!(risk_profile: "moderate") # 50-70%; portfolio holds 80%
+    assert_equal :watch, build_allocation.equity_status
+
+    setting.update!(risk_profile: "aggressive") # 70-90%
+    assert_equal :good, build_allocation.equity_status
+
+    setting.update!(risk_profile: "conservative") # 20-40%
+    assert_equal :attention, build_allocation.equity_status
+  end
+
+  test "risk comparison is unknown without a profile" do
+    setting = @family.planning_setting || @family.create_planning_setting
+    setting.update!(risk_profile: nil)
+
+    allocation = build_allocation
+
+    assert_nil allocation.equity_target_range
+    assert_equal :unknown, allocation.equity_status
+    assert_in_delta 80.0, allocation.equity_percent, 0.05
+  end
+
   test "an empty portfolio is unknown rather than comfortable" do
     Holding.delete_all
 

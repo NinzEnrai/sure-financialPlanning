@@ -82,6 +82,36 @@ class FinancialPlanning::PortfolioAllocation
     @cash_percent ||= ((cash_total / portfolio_value) * 100).round(1)
   end
 
+  def risk_profile
+    planning_setting.risk_profile
+  end
+
+  def equity_percent
+    equity = asset_classes.find { |group| group.key == "equity" }
+    equity&.percent
+  end
+
+  # The profile's conventional equity range, or nil when no profile is set.
+  def equity_target_range
+    config = planning_setting.risk_profile_config
+    return nil if config.nil?
+
+    config[:equity_min]..config[:equity_max]
+  end
+
+  # Only meaningful when a profile and a measurable equity share both exist.
+  # Within ten points of the range is a watch; further out is attention. The
+  # card explains it as a range, not a target to hit exactly.
+  def equity_status
+    return :unknown if equity_target_range.nil? || equity_percent.nil?
+
+    range = equity_target_range
+    return :good if range.cover?(equity_percent)
+
+    distance = equity_percent < range.begin ? range.begin - equity_percent : equity_percent - range.end
+    distance <= 10 ? :watch : :attention
+  end
+
   # Grouped by the security's asset class; anything without one is grouped as
   # "unclassified" rather than being dropped, so the percentages still add up.
   def asset_classes
@@ -98,6 +128,10 @@ class FinancialPlanning::PortfolioAllocation
   end
 
   private
+    def planning_setting
+      @planning_setting ||= family.planning_setting || family.build_planning_setting
+    end
+
     def investment_statement
       @investment_statement ||= family.investment_statement(user: user)
     end

@@ -49,7 +49,7 @@
   </div>
 
   <%# Where the invested money sits, and whether one position dominates. %>
-  <%= render "financial_planning/allocation", allocation: @portfolio_allocation %>
+  <%= render "financial_planning/allocation", allocation: @portfolio_allocation, setting: @planning_setting %>
 
   <%# The diagnostics: what is missing behind the figures, and what tax work
       can actually be supported by the data. %>

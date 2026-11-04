@@ -58,6 +58,15 @@ class PlanningSetting < ApplicationRecord
   DEFAULT_EMERGENCY_TARGET_MONTHS = 6
   EMERGENCY_TARGET_MONTHS_RANGE = (1..24).freeze
 
+  # Optional risk profile, used only to frame the allocation card's equity
+  # range. The bands are conventional ranges, not advice: a household is free
+  # to sit outside them, and the card says so rather than blocking anything.
+  RISK_PROFILES = {
+    "conservative" => { equity_min: 20, equity_max: 40 },
+    "moderate" => { equity_min: 50, equity_max: 70 },
+    "aggressive" => { equity_min: 70, equity_max: 90 }
+  }.freeze
+
   # Default bucket for each of Sure's built-in categories. Keyed by the exact
   # value Category#default_i18n_key returns -- the full I18n key, not the short
   # suffix -- because a default category persists a translated name and a family
@@ -95,6 +104,7 @@ class PlanningSetting < ApplicationRecord
   validates :fire_withdrawal_rate_pct, :annual_growth_rate_pct,
             numericality: { greater_than: 0, less_than_or_equal_to: 100 }
   validates :fire_variant, inclusion: { in: FIRE_VARIANTS.keys }
+  validates :risk_profile, inclusion: { in: RISK_PROFILES.keys }, allow_nil: true
   validates :emergency_target_months, inclusion: { in: EMERGENCY_TARGET_MONTHS_RANGE }
   validates :needs_target_pct, :wants_target_pct, :savings_target_pct,
             numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }
@@ -165,6 +175,11 @@ class PlanningSetting < ApplicationRecord
   def target_share_pct(bucket)
     attribute = TARGET_ATTRIBUTES.fetch(bucket.to_s)
     public_send(attribute) || TARGET_SHARE_PCT.fetch(bucket.to_s)
+  end
+
+  # Nil when no profile has been chosen, or when the profile is unknown.
+  def risk_profile_config
+    RISK_PROFILES[risk_profile.to_s] if risk_profile.present?
   end
 
   def bucket_for(category, key: nil)
