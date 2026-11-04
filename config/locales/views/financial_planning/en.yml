@@ -340,13 +340,14 @@ en:
         other: "%{count} sales"
       short_term: "Short-term %{amount}"
       long_term: "Long-term %{amount}"
+      slab_taxed: "Slab-taxed (debt funds) %{amount}"
       exemption_used: "Long-term exemption used %{amount}"
       carried_forward: "Losses carried forward %{amount}"
       unknown:
         one: "%{count} sale has no purchase date and is excluded."
         other: "%{count} sales have no purchase date and are excluded."
       unassigned: Unassigned accounts
-      footnote: An estimate for review by a chartered accountant — not a tax return. It assumes listed equity (365-day long-term), applies the Indian long-term exemption only for Indian households, and does not handle debt funds, unlisted or foreign assets, surcharge, cess or filing deadlines.
+      footnote: An estimate for review by a chartered accountant — not a tax return. Domestic listed equity turns long-term after 365 days, foreign and unlisted shares after 730, and debt funds are slab-taxed; the Indian long-term exemption applies only to Indian households. Rates, surcharge, cess and filing deadlines are not computed.
     realised_gains:
       title: Realised gains
       period: "Sold in %{label} · FIFO cost basis"
@@ -356,10 +357,12 @@ en:
       rows_note:
         one: "%{count} sale on record"
         other: "%{count} sales on record"
-      short_term: Held 365 days or less
-      short_term_hint: The listed-equity short-term threshold; unlisted and foreign assets differ.
-      long_term: Held more than 365 days
-      long_term_hint: Listed-equity long-term threshold; foreign shares use a longer rule.
+      short_term: Short-term gains
+      short_term_hint: Domestic listed equity held 365 days or less.
+      long_term: Long-term gains
+      long_term_hint: Domestic listed equity over 365 days; foreign and unlisted shares over 730.
+      slab_label: Slab-taxed gains (debt funds)
+      slab_hint: Debt funds are taxed at your slab rate whenever sold — no long-term treatment and no exemption.
       unknown:
         one: "%{count} sale has no matching purchase date and is excluded."
         other: "%{count} sales have no matching purchase date and are excluded."

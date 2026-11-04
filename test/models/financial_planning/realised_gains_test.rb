@@ -27,6 +27,37 @@ class FinancialPlanning::RealisedGainsTest < ActiveSupport::TestCase
     assert_not gains.empty?
   end
 
+  test "treats debt funds as slab-taxed whatever the holding period" do
+    fund = Security.create!(ticker: "FUND#{SecureRandom.hex(4)}", name: "Debt fund", is_mutual_fund: true, asset_class: "fixed_income")
+    buy(10, 100, 2.years.ago.to_date, security: fund)
+    sell(10, 150, 1.month.ago.to_date, security: fund)
+
+    gains = build_gains
+    row = gains.rows.first
+
+    assert row.slab_taxed?
+    assert_not row.long_term?
+    assert_in_delta 500, gains.slab_gain, 0.01
+    assert_in_delta 0, gains.short_term_gain, 0.01
+    assert_in_delta 0, gains.long_term_gain, 0.01
+  end
+
+  test "uses a 730-day threshold for foreign shares" do
+    foreign = Security.create!(ticker: "GB#{SecureRandom.hex(4)}", name: "Foreign", country_code: "GB")
+    buy(10, 100, 500.days.ago.to_date, security: foreign)
+    sell(10, 150, 1.month.ago.to_date, security: foreign)
+
+    short = build_gains.rows.find { |row| row.security == foreign }
+    assert_not short.long_term?
+
+    foreign_long = Security.create!(ticker: "GB#{SecureRandom.hex(4)}", name: "Foreign long", country_code: "GB")
+    buy(10, 100, 3.years.ago.to_date, security: foreign_long)
+    sell(10, 150, 1.month.ago.to_date, security: foreign_long)
+
+    long = build_gains.rows.find { |row| row.security == foreign_long }
+    assert long.long_term?
+  end
+
   test "excludes a sale with no purchase date and counts it" do
     sell(5, 100, 1.month.ago.to_date)
 

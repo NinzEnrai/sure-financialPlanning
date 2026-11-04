@@ -23,8 +23,8 @@ class FinancialPlanning::CapitalGainsEstimate
   LTCG_EXEMPTION = BigDecimal("125000")
 
   OwnerEstimate = Data.define(
-    :owner, :realised_gains, :short_term, :long_term, :exemption_used,
-    :short_term_taxable, :long_term_taxable, :carried_forward_loss, :unknown_count
+    :owner, :realised_gains, :short_term, :long_term, :slab_gain, :exemption_used,
+    :short_term_taxable, :long_term_taxable, :slab_taxable, :carried_forward_loss, :unknown_count
   ) do
     def sales_count
       realised_gains.rows.size
@@ -62,7 +62,9 @@ class FinancialPlanning::CapitalGainsEstimate
   end
 
   def total_taxable
-    estimates.sum { |estimate| estimate.short_term_taxable + estimate.long_term_taxable }.round(2)
+    estimates.sum do |estimate|
+      estimate.short_term_taxable + estimate.long_term_taxable + estimate.slab_taxable
+    end.round(2)
   end
 
   def total_taxable_money
@@ -89,15 +91,25 @@ class FinancialPlanning::CapitalGainsEstimate
       exemption_used = [ long_gain_after_setoff, exemption_limit ].min
       long_term_taxable = long_gain_after_setoff - exemption_used
 
+      # Debt-fund gains are taxed at the holder's slab rate whenever sold, so
+      # they sit outside the short/long set-off and get no exemption. A slab
+      # loss is kept as a carried-forward figure rather than nets against
+      # capital gains of another character.
+      slab = gains.slab_gain.to_d
+      slab_taxable = [ slab, 0 ].max
+      slab_loss = [ -slab, 0 ].max
+
       OwnerEstimate.new(
         owner: owners[owner_id],
         realised_gains: gains,
         short_term: short,
         long_term: long,
+        slab_gain: slab,
         exemption_used: exemption_used,
         short_term_taxable: short_gain,
         long_term_taxable: long_term_taxable,
-        carried_forward_loss: short_loss_left + long_loss,
+        slab_taxable: slab_taxable,
+        carried_forward_loss: short_loss_left + long_loss + slab_loss,
         unknown_count: gains.unknown_count
       )
     end

@@ -9,15 +9,30 @@
 # proceeds at the sale date, cost at the purchase date -- because a foreign
 # gain translated with today's rate is not the gain that was made.
 #
-# The long-term boundary is 365 days, the listed-equity rule for Indian
-# residents. Unlisted and foreign shares use longer thresholds; those
-# exceptions belong in the tax estimate that follows this engine, not here.
+# Holding-period rules differ by asset, so the row carries the rule that
+# applies: 365 days for domestic listed equity, 730 for foreign and unlisted
+# shares, and no long-term treatment at all for debt funds (taxed at slab).
+# Unclassified securities are treated as listed equity and the card says so.
 class FinancialPlanning::RealisedGains
-  LONG_TERM_DAYS = 365
+  LISTED_EQUITY_LONG_TERM_DAYS = 365
+  OTHER_LONG_TERM_DAYS = 730
 
-  Row = Data.define(:security, :acquired_on, :sold_on, :qty, :proceeds, :cost_basis, :gain) do
+  Row = Data.define(
+    :security, :acquired_on, :sold_on, :qty, :proceeds, :cost_basis, :gain,
+    :category, :holding_days, :long_term_days, :slab_taxed
+  ) do
+    def slab_taxed?
+      slab_taxed
+    end
+
     def long_term?
-      acquired_on.present? && (sold_on - acquired_on).to_i > LONG_TERM_DAYS
+      return false if slab_taxed?
+
+      holding_days.present? && long_term_days.present? && holding_days > long_term_days
+    end
+
+    def short_term?
+      !slab_taxed? && !long_term?
     end
   end
 
@@ -46,6 +61,8 @@ class FinancialPlanning::RealisedGains
           next
         end
 
+        category = category_for(realisation.security)
+        holding_days = (realisation.sold_on - realisation.acquired_on).to_i
         Row.new(
           security: realisation.security,
           acquired_on: realisation.acquired_on,
@@ -53,7 +70,11 @@ class FinancialPlanning::RealisedGains
           qty: realisation.qty,
           proceeds: proceeds,
           cost_basis: cost,
-          gain: (proceeds - cost).round(2)
+          gain: (proceeds - cost).round(2),
+          category: category,
+          holding_days: holding_days,
+          long_term_days: long_term_days_for(category),
+          slab_taxed: category == :debt_fund
         )
       end
     end
@@ -81,7 +102,7 @@ class FinancialPlanning::RealisedGains
   end
 
   def short_term_gain
-    rows.reject(&:long_term?).sum { |row| row.gain }.round(2)
+    rows.select(&:short_term?).sum { |row| row.gain }.round(2)
   end
 
   def short_term_gain_money
@@ -90,6 +111,18 @@ class FinancialPlanning::RealisedGains
 
   def long_term_gain
     rows.select(&:long_term?).sum { |row| row.gain }.round(2)
+  end
+
+  # Debt funds: taxed at the holder's slab rate whenever sold. They never get
+  # long-term treatment, so they are kept in their own bucket rather than being
+  # folded into "short term", where the label would imply a rate that does not
+  # apply.
+  def slab_gain
+    rows.select(&:slab_taxed?).sum { |row| row.gain }.round(2)
+  end
+
+  def slab_gain_money
+    Money.new(slab_gain, currency)
   end
 
   def long_term_gain_money
@@ -115,6 +148,32 @@ class FinancialPlanning::RealisedGains
   private
     def currency
       family.currency
+    end
+
+    def home_country
+      (family.country.presence || "US").to_s.upcase
+    end
+
+    # A deliberately small rule table over the security metadata Sure stores.
+    # Anything unclassified falls back to listed equity, which the card states.
+    def category_for(security)
+      if security.is_mutual_fund? && security.asset_class == "fixed_income"
+        :debt_fund
+      elsif security.country_code.present? && security.country_code.to_s.upcase != home_country
+        :foreign
+      elsif security.asset_class == "equity" || security.asset_class.blank?
+        :listed_equity
+      else
+        :other
+      end
+    end
+
+    def long_term_days_for(category)
+      case category
+      when :debt_fund then nil
+      when :listed_equity then LISTED_EQUITY_LONG_TERM_DAYS
+      else OTHER_LONG_TERM_DAYS
+      end
     end
 
     def readiness

@@ -43,6 +43,16 @@
       </div>
     </dl>
 
+    <% if gains.rows.any?(&:slab_taxed?) %>
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <p class="text-xs text-secondary"><%= t(".slab_label") %></p>
+        <p class="text-sm font-medium tabular-nums privacy-sensitive <%= gains.slab_gain.negative? ? "text-destructive" : "text-primary" %>">
+          <%= format_money(gains.slab_gain_money) %>
+        </p>
+        <p class="text-xs text-subdued"><%= t(".slab_hint") %></p>
+      </div>
+    <% end %>
+
     <% if gains.unknown_count.positive? %>
       <p class="text-xs text-warning"><%= t(".unknown", count: gains.unknown_count) %></p>
     <% end %>
