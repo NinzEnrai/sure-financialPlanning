@@ -39,6 +39,7 @@ class FinancialPlanningController < ApplicationController
     @cash_flow_forecast = FinancialPlanning::CashFlowForecast.new(Current.family, user: Current.user)
     @coaching = FinancialPlanning::BehaviouralNudges.new(Current.family, user: Current.user)
     @realised_gains = FinancialPlanning::RealisedGains.new(Current.family, user: Current.user)
+    @capital_gains = FinancialPlanning::CapitalGainsEstimate.new(Current.family, user: Current.user)
     @data_confidence = FinancialPlanning::DataConfidence.new(Current.family, user: Current.user)
     @tax_readiness = FinancialPlanning::TaxReadiness.new(Current.family, user: Current.user)
 

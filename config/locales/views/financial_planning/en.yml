@@ -328,6 +328,25 @@ en:
       expensive_debt_body: You hold about %{amount} of high-interest debt and investments at the same time. Clearing that debt is a guaranteed return; investing is not.
       none: Nothing to flag right now
       none_hint: These observations appear when the numbers show a tension worth naming.
+    capital_gains_estimate:
+      title: Capital gains estimate
+      period: "Taxable gains for %{label}, per person"
+      empty: No realised gains to estimate yet
+      empty_hint: Sell a holding and this will show each person's taxable gains after set-off and the long-term exemption.
+      taxable_label: Total taxable gain (before rates)
+      taxable_hint: Rates are not applied — current-year rules must be re-checked before any tax figure is quoted.
+      sales_count:
+        one: "%{count} sale"
+        other: "%{count} sales"
+      short_term: "Short-term %{amount}"
+      long_term: "Long-term %{amount}"
+      exemption_used: "Long-term exemption used %{amount}"
+      carried_forward: "Losses carried forward %{amount}"
+      unknown:
+        one: "%{count} sale has no purchase date and is excluded."
+        other: "%{count} sales have no purchase date and are excluded."
+      unassigned: Unassigned accounts
+      footnote: An estimate for review by a chartered accountant — not a tax return. It assumes listed equity (365-day long-term), applies the Indian long-term exemption only for Indian households, and does not handle debt funds, unlisted or foreign assets, surcharge, cess or filing deadlines.
     realised_gains:
       title: Realised gains
       period: "Sold in %{label} · FIFO cost basis"

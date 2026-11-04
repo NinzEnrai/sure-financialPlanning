@@ -23,10 +23,13 @@ class FinancialPlanning::RealisedGains
 
   attr_reader :family, :user, :as_of
 
-  def initialize(family, user: nil, as_of: Date.current)
+  # `account_ids:` scopes the engine to one owner's accounts; nil means every
+  # visible account in the family (the family-wide view).
+  def initialize(family, user: nil, as_of: Date.current, account_ids: nil)
     @family = family
     @user = user || Current.user
     @as_of = as_of.to_date
+    @account_ids_override = account_ids
   end
 
   def rows
@@ -123,7 +126,11 @@ class FinancialPlanning::RealisedGains
     end
 
     def account_ids
-      @account_ids ||= family.accounts.visible.pluck(:id)
+      @account_ids ||= if @account_ids_override.nil?
+        family.accounts.visible.pluck(:id)
+      else
+        Array(@account_ids_override)
+      end
     end
 
     def convert(amount, from_currency, date)

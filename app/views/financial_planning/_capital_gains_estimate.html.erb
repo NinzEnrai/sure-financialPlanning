@@ -1,0 +1,55 @@
+<%# locals: (estimate:) %>
+<%# Taxable gains per person, after set-off and the Indian long-term exemption.
+    No tax rate is applied: rates must be re-checked each year, and a stale rate
+    quoted as fact would be worse than none. %>
+<%= render DS::Card.new(data: { testid: "capital-gains-estimate" }, class: "gap-4") do %>
+  <div class="flex items-center justify-between gap-3">
+    <div>
+      <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+      <p class="text-xs text-secondary mt-1"><%= t(".period", label: estimate.financial_year_label) %></p>
+    </div>
+    <%= icon "scale", size: "sm", color: "info" %>
+  </div>
+
+  <% unless estimate.any? %>
+    <div class="bg-container-inset rounded-lg p-4">
+      <p class="text-sm text-primary"><%= t(".empty") %></p>
+      <p class="text-xs text-secondary mt-1"><%= t(".empty_hint") %></p>
+    </div>
+  <% else %>
+    <div class="bg-container-inset rounded-lg p-3 space-y-1">
+      <p class="text-xs text-secondary"><%= t(".taxable_label") %></p>
+      <p class="text-3xl font-medium text-primary tabular-nums privacy-sensitive"><%= format_money(estimate.total_taxable_money) %></p>
+      <p class="text-xs text-secondary"><%= t(".taxable_hint") %></p>
+    </div>
+
+    <ul class="divide-y divide-subdued">
+      <% estimate.estimates.each do |person| %>
+        <% next unless person.sales_count.positive? || person.unknown_count.positive? %>
+        <li class="py-3 space-y-1">
+          <div class="flex items-center justify-between gap-3">
+            <p class="text-sm font-medium text-primary">
+              <%= person.owner&.name.presence || person.owner&.email.presence || t(".unassigned") %>
+            </p>
+            <p class="text-xs text-secondary tabular-nums"><%= t(".sales_count", count: person.sales_count) %></p>
+          </div>
+          <p class="text-xs text-secondary tabular-nums privacy-sensitive">
+            <%= t(".short_term", amount: format_money(Money.new(person.short_term_taxable, Current.family.currency))) %>
+            · <%= t(".long_term", amount: format_money(Money.new(person.long_term_taxable, Current.family.currency))) %>
+          </p>
+          <p class="text-xs text-secondary tabular-nums privacy-sensitive">
+            <%= t(".exemption_used", amount: format_money(Money.new(person.exemption_used, Current.family.currency))) %>
+            <% if person.carried_forward_loss.positive? %>
+              · <%= t(".carried_forward", amount: format_money(Money.new(person.carried_forward_loss, Current.family.currency))) %>
+            <% end %>
+          </p>
+          <% if person.unknown_count.positive? %>
+            <p class="text-xs text-warning"><%= t(".unknown", count: person.unknown_count) %></p>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+
+    <p class="text-xs text-subdued"><%= t(".footnote") %></p>
+  <% end %>
+<% end %>

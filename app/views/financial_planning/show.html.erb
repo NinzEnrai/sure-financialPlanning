@@ -68,6 +68,9 @@
   <%# What was actually sold this year, from FIFO lots. Estimate only. %>
   <%= render "financial_planning/realised_gains", gains: @realised_gains %>
 
+  <%# Per-person taxable gains after set-off and the long-term exemption. %>
+  <%= render "financial_planning/capital_gains_estimate", estimate: @capital_gains %>
+
   <%# Only the analyzer follows @period; savings rate, FIRE and the projection
       are anchored to today / trailing windows. %>
   <div class="flex justify-end">
