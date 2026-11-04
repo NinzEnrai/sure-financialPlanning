@@ -68,6 +68,15 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     assert_match I18n.t("financial_planning.debt_summary.none"), response.body
   end
 
+  test "renders the financial health scorecard" do
+    get financial_planning_url
+
+    assert_response :success
+    assert_select "[data-testid='health-scorecard']"
+    assert_match I18n.t("financial_planning.health_scorecard.title"), response.body
+    assert_select "[data-testid='health-scorecard'] [data-check='protection']"
+  end
+
   test "projection returns one balance per year in the family currency" do
     get projection_financial_planning_url
 

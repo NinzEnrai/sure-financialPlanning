@@ -90,6 +90,39 @@ class FinancialPlanning::DebtSummary
     Money.new(monthly_interest_cost, currency)
   end
 
+  # The monthly bill the debt book creates: card minimum payments plus fixed
+  # loan instalments. Nil when no liability records a payment at all -- an
+  # unknown obligation is not zero.
+  def monthly_obligation
+    return @monthly_obligation if defined?(@monthly_obligation)
+
+    payments = debt_accounts.filter_map { |account| converted_payment_for(account) }
+    @monthly_obligation = payments.empty? ? nil : payments.sum.round(2)
+  end
+
+  def monthly_obligation_money
+    return nil if monthly_obligation.nil?
+
+    Money.new(monthly_obligation, currency)
+  end
+
+  # Average recorded income over the same trailing year as the expense figures.
+  # Deliberately not this month's income: one freelance invoice would otherwise
+  # swing every ratio computed from it.
+  def monthly_income
+    return @monthly_income if defined?(@monthly_income)
+
+    total = income_statement.totals_for(history_period).income_money.amount
+    @monthly_income = total.positive? ? (total / 12).round(2) : nil
+  end
+
+  def dti_percent
+    return @dti_percent if defined?(@dti_percent)
+    return @dti_percent = nil if monthly_obligation.nil? || monthly_income.nil?
+
+    @dti_percent = ((monthly_obligation / monthly_income) * 100).round(1)
+  end
+
   # Share of assets financed by debt. 0 assets means the ratio is undefined
   # rather than infinite.
   def debt_to_assets_percent
@@ -122,6 +155,28 @@ class FinancialPlanning::DebtSummary
         balance: converted_balance_for(account),
         rate_pct: rate_for(account),
         high_interest: rate_for(account).present? && rate_for(account) >= HIGH_INTEREST_THRESHOLD_PCT
+      )
+    end
+
+    def converted_payment_for(account)
+      money = case account.accountable
+      when CreditCard then account.accountable.minimum_payment_money
+      when Loan then account.accountable.monthly_payment
+      end
+      return nil if money.nil?
+
+      rate = account.currency == currency ? 1 : (exchange_rates[account.currency] || 1)
+      money.amount * rate
+    end
+
+    def income_statement
+      @income_statement ||= family.income_statement(user: user)
+    end
+
+    def history_period
+      Period.custom(
+        start_date: Date.current.beginning_of_month - 11.months,
+        end_date: Date.current.end_of_month
       )
     end
 

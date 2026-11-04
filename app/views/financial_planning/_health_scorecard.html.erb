@@ -1,0 +1,59 @@
+<%# locals: (scorecard:) %>
+<%# The advisory dashboard: six checks with a state and one thing to do next.
+    Deliberately not a score -- a number hides which input is missing, and an
+    "unknown" is a legitimate, visible state rather than a red light. %>
+<% status_styles = {
+     good:      { tone: :success,     icon: "circle-check", color: "success" },
+     watch:     { tone: :warning,     icon: "triangle-alert", color: "warning" },
+     attention: { tone: :destructive, icon: "circle-alert", color: "destructive" },
+     unknown:   { tone: :neutral,     icon: "circle-help", color: "default" }
+   } %>
+<%= render DS::Card.new(data: { testid: "health-scorecard" }, class: "gap-4") do %>
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+      <p class="text-xs text-secondary mt-1"><%= t(".subtitle") %></p>
+    </div>
+    <p class="text-sm text-secondary tabular-nums">
+      <%= t(".summary", good: scorecard.good_count, known: scorecard.known_count) %>
+    </p>
+  </div>
+
+  <ul class="divide-y divide-subdued">
+    <% scorecard.checks.each do |check| %>
+      <% style = status_styles.fetch(check.status) %>
+      <% value_text = if check.value.nil?
+           t(".unknown_value")
+         elsif check.unit == :percent
+           number_to_percentage(check.value, precision: 1)
+         elsif check.unit == :months
+           t(".months_value", value: number_with_precision(check.value, precision: 1))
+         elsif check.unit == :goals
+           t(".goals_value", on_track: check.value, total: check.total)
+         else
+           format_money(Money.new(check.value, Current.family.currency), precision: 0)
+         end %>
+      <li class="py-3 flex items-start gap-3" data-check="<%= check.key %>" data-status="<%= check.status %>">
+        <%= icon style[:icon], size: "sm", color: style[:color], class: "mt-0.5" %>
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <p class="text-sm text-primary"><%= t(".checks.#{check.key}.label") %></p>
+            <p class="text-sm font-medium text-primary tabular-nums privacy-sensitive"><%= value_text %></p>
+          </div>
+          <p class="text-xs text-secondary mt-0.5"><%= t(".checks.#{check.key}.detail") %></p>
+        </div>
+        <%= render DS::Pill.new(label: t(".statuses.#{check.status}"), tone: style[:tone], marker: false, size: :sm) %>
+      </li>
+    <% end %>
+  </ul>
+
+  <% if (action = scorecard.next_action_key) %>
+    <div class="rounded-lg bg-container-inset p-3 flex items-start gap-2">
+      <%= icon "arrow-right", size: "sm", color: "info", class: "mt-0.5" %>
+      <p class="text-xs text-secondary">
+        <span class="text-primary font-medium"><%= t(".next_action_label") %></span>
+        <%= t(".actions.#{action}") %>
+      </p>
+    </div>
+  <% end %>
+<% end %>

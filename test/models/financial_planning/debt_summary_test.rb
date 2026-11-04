@@ -1,10 +1,13 @@
 require "test_helper"
 
 class FinancialPlanning::DebtSummaryTest < ActiveSupport::TestCase
+  include EntriesTestHelper
+
   setup do
     @family = families(:dylan_family)
     @user = users(:family_admin)
 
+    clear_entries
     # Fixture balances are shared state; start from zero and set only what each
     # test needs. Reload because update_all bypasses the loaded instances.
     @family.accounts.update_all(balance: 0)
@@ -65,6 +68,28 @@ class FinancialPlanning::DebtSummaryTest < ActiveSupport::TestCase
     assert_in_delta 900, summary.monthly_interest_cost.to_f, 0.01
   end
 
+  test "sums card minimums and fixed loan instalments into a monthly obligation" do
+    summary = build_summary
+    expected = @card.accountable.minimum_payment_money.amount + @loan.accountable.monthly_payment.amount
+
+    assert_in_delta expected.to_f, summary.monthly_obligation.to_f, 0.01
+  end
+
+  test "expresses the monthly obligation as a share of recorded income" do
+    12.times do |offset|
+      create_transaction(amount: -10_000, date: Date.current.beginning_of_month - offset.months + 1.day)
+    end
+
+    summary = build_summary
+    expected = ((summary.monthly_obligation / 10_000) * 100).round(1)
+
+    assert_in_delta expected.to_f, summary.dti_percent.to_f, 0.05
+  end
+
+  test "dti is unknown without recorded income" do
+    assert_nil build_summary.dti_percent
+  end
+
   test "an empty debt book reports zeros, not a confident average" do
     @family.accounts.liabilities.update_all(status: "disabled")
 
@@ -80,5 +105,9 @@ class FinancialPlanning::DebtSummaryTest < ActiveSupport::TestCase
   private
     def build_summary
       FinancialPlanning::DebtSummary.new(@family, user: @user)
+    end
+
+    def clear_entries
+      Entry.where(account: @family.accounts).destroy_all
     end
 end

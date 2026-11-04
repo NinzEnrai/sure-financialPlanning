@@ -122,6 +122,45 @@ en:
       no_assets: No assets recorded
       priority_title: Highest cost first
       hint: Credit cards and other debt above about 10% usually cost more than investing earns, so they are normally cleared first — after a small emergency buffer is in place.
+    health_scorecard:
+      title: Financial health check
+      subtitle: The checks a planner runs before recommending anything, in plain numbers.
+      summary: "%{good} of %{known} checks on track"
+      unknown_value: Not enough data
+      months_value: "%{value} months"
+      goals_value: "%{on_track} of %{total} on track"
+      next_action_label: "Next best action:"
+      statuses:
+        good: On track
+        watch: Watch
+        attention: Needs attention
+        unknown: Unknown
+      checks:
+        savings_rate:
+          label: Savings rate
+          detail: Share of income kept over the last six months. Around 20% is the common target.
+        emergency_fund:
+          label: Emergency cover
+          detail: Months of spending your bank and cash balances would cover. Three to six months is the usual range.
+        debt_to_income:
+          label: Debt-to-income
+          detail: Monthly loan and card payments as a share of recorded income. Below 36% is the usual comfort line.
+        high_interest_debt:
+          label: Expensive debt
+          detail: Balances paying more than about 10% interest. These usually cost more than investments earn.
+        goals:
+          label: Goal funding
+          detail: Goals with a deadline, judged against the monthly saving they need. Open-ended goals have no pace to be behind.
+        protection:
+          label: Protection cover
+          detail: Health and life insurance are not tracked in Sure yet, so this check cannot run. A planner would review cover and nominations first.
+      actions:
+        savings_rate: Find one recurring cost to trim in the budget, then move the difference into savings.
+        emergency_fund: Build the buffer in a separate savings account before taking on more investment risk.
+        debt_to_income: Pay down the highest-rate balance first; the debt card above ranks them.
+        high_interest_debt: Clear the balances above 10% before adding new investments.
+        goals: A dated goal is behind pace — the goals page shows the monthly catch-up amount.
+        protection: Once insurance is recorded, this check will compare cover against income and dependants.
   planning_setting:
     buckets:
       needs: Needs

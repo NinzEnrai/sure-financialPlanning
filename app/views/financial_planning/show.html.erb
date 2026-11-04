@@ -9,6 +9,10 @@
     <p class="text-sm text-secondary mt-1"><%= t(".subtitle") %></p>
   </header>
 
+  <%# The advisory summary sits above the individual figures: it is the answer
+      to "where should we look first", which is what a planner opens with. %>
+  <%= render "financial_planning/health_scorecard", scorecard: @health_scorecard %>
+
   <%# The FIRE card edits the family's saved assumptions, so it needs the
       PlanningSetting record rather than deriving them again. %>
   <div class="grid grid-cols-1 @3xl:grid-cols-2 gap-4 items-stretch">

@@ -942,6 +942,8 @@ All six P0 features are buildable from existing data. They should ship as one co
 
 **F6. Tax-year readiness checklist.** Tax is the P2 project, but the readiness checklist belongs in P0 because it prevents the app from shipping a tax number it cannot support. It shows whether trades have dates and prices, how many securities lack purchase dates, whether foreign holdings exist (Schedule FA), which tax-advantaged accounts exist, and which deduction-relevant categories have activity. It should not compute tax. It should end with a clear action: "download the Console tradebook CSV" or "add purchase dates for these holdings". Effort is S; it is a diagnostic, not an engine.
 
+**Implementation status (5 November 2026).** F1 is shipped: the planning page now opens with a six-check health card — savings rate, emergency cover, debt-to-income, expensive debt, goal funding, protection — each with a state (on track / watch / needs attention / unknown) and one next action. F2 is partly shipped: the debt card reports total debt, the high-interest slice, the balance-weighted rate, the monthly interest cost, debt-to-assets and the avalanche order, and its monthly obligation and DTI feed the scorecard; the payoff-date simulator, credit utilisation and avalanche-versus-snowball comparison are still open. F3–F6 remain open. The emergency target is still the fixed six months the card uses, pending F7.
+
 **P0 definition of done:**
 
 - Every number has a basis line and an as-of date, or a visible "unavailable" state.
