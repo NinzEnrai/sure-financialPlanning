@@ -27,6 +27,10 @@ class FinancialPlanningController < ApplicationController
     # record instead of writing to an unsaved copy that would silently vanish.
     @planning_setting = Current.family.planning_setting || Current.family.build_planning_setting
     @projector = FinancialPlanning::WealthProjector.new(Current.family, user: Current.user)
+
+    # Cash-only buffer: deliberately separate from FIRE, which is the whole net
+    # worth against the same spending figure.
+    @emergency_fund = FinancialPlanning::EmergencyFund.new(Current.family, user: Current.user)
   end
 
   # Drives the projection chart. Kept as a separate action so the series can be

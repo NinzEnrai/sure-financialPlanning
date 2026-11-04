@@ -18,6 +18,8 @@
                                                   setting: @planning_setting %>
   </div>
 
+  <%= render "financial_planning/emergency_fund", emergency_fund: @emergency_fund %>
+
   <%# Only the analyzer follows @period; savings rate, FIRE and the projection
       are anchored to today / trailing windows. %>
   <div class="flex justify-end">

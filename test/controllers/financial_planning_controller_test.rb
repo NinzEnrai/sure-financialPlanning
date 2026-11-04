@@ -34,6 +34,23 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "renders the emergency fund card" do
+    get financial_planning_url
+
+    assert_response :success
+    assert_select "[data-testid='emergency-fund']"
+    assert_match I18n.t("financial_planning.emergency_fund.title"), response.body
+  end
+
+  test "renders the emergency fund placeholder without spending history" do
+    Entry.where(account: @family.accounts).destroy_all
+
+    get financial_planning_url
+
+    assert_response :success
+    assert_match I18n.t("financial_planning.emergency_fund.unavailable"), response.body
+  end
+
   test "projection returns one balance per year in the family currency" do
     get projection_financial_planning_url
 

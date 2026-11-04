@@ -92,6 +92,20 @@ en:
       annual_growth: Assumed annual growth
       projected_balance: Balance after 10 years
       slider_hint: Drag the sliders above to see how a different monthly contribution or growth rate changes the projection. The chart and the figure update live.
+    emergency_fund:
+      title: Emergency Fund
+      coverage: Cash coverage
+      one_month: "%{value} month"
+      months: "%{value} months"
+      target_of: "%{amount} would cover six months"
+      liquid_of: "%{amount} in bank and cash accounts"
+      spend_of: "%{amount} average monthly spending"
+      bar_label: "Progress toward a %{months}-month buffer"
+      unavailable: Not enough history
+      no_expenses: Record a few months of transactions and this card will show how long your cash would cover spending.
+      shortfall: "You are %{amount} short of a %{months}-month buffer."
+      surplus: "You hold %{amount} more than a %{months}-month buffer."
+      hint: Three to six months of expenses is the usual guidance, and six suits a single-income household. Only bank and cash accounts count; investments are not a buffer.
   planning_setting:
     buckets:
       needs: Needs

@@ -1,0 +1,55 @@
+<%# locals: (emergency_fund:) %>
+<%# Cash buffer against a lost income. Coverage is measured in months of the
+    family's own trailing-year spending, not against an absolute rupee figure:
+    "six months" means something different to every household.
+
+    Only bank and cash accounts are counted. The hint at the bottom says so
+    explicitly, because a family with a large brokerage balance would otherwise
+    reasonably expect it to be included. %>
+<% status_tone = { funded: :success, building: :warning, critical: :destructive, unknown: :neutral }.fetch(emergency_fund.status) %>
+<%= render DS::Card.new(data: { testid: "emergency-fund" }, class: "gap-4") do %>
+  <div class="flex items-center justify-between gap-3">
+    <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+    <%= icon "shield-check", size: "sm", color: emergency_fund.funded? ? "success" : "warning" %>
+  </div>
+
+  <% if emergency_fund.months.nil? %>
+    <div class="bg-container-inset rounded-lg p-4">
+      <p class="text-2xl font-medium text-subdued"><%= t(".unavailable") %></p>
+      <p class="text-xs text-secondary mt-1"><%= t(".no_expenses") %></p>
+    </div>
+  <% else %>
+    <div class="bg-container-inset rounded-lg p-3 space-y-1">
+      <p class="text-xs text-secondary"><%= t(".coverage") %></p>
+      <p class="text-3xl font-medium text-primary tabular-nums">
+        <% months_value = number_with_precision(emergency_fund.months, precision: 1) %>
+        <%= emergency_fund.months == 1.0 ? t(".one_month", value: months_value) : t(".months", value: months_value) %>
+      </p>
+      <p class="text-xs text-secondary tabular-nums privacy-sensitive">
+        <%= t(".liquid_of", amount: format_money(emergency_fund.liquid_balance_money)) %>
+      </p>
+      <p class="text-xs text-secondary tabular-nums privacy-sensitive">
+        <%= t(".spend_of", amount: format_money(emergency_fund.monthly_expenses_money)) %>
+      </p>
+      <p class="text-xs text-secondary tabular-nums privacy-sensitive">
+        <%= t(".target_of", amount: format_money(emergency_fund.target_amount_money)) %>
+      </p>
+    </div>
+
+    <div>
+      <%= render DS::ProgressBar.new(
+            percent: emergency_fund.bar_percent,
+            tone: status_tone,
+            label: t(".bar_label", months: emergency_fund.target_months)
+          ) %>
+      <p class="text-xs text-secondary mt-2 tabular-nums privacy-sensitive">
+        <% if emergency_fund.shortfall.positive? %>
+          <%= t(".shortfall", amount: format_money(emergency_fund.shortfall_money), months: emergency_fund.target_months) %>
+        <% else %>
+          <%= t(".surplus", amount: format_money(emergency_fund.surplus_money), months: emergency_fund.target_months) %>
+        <% end %>
+      </p>
+      <p class="text-xs text-subdued mt-2"><%= t(".hint") %></p>
+    </div>
+  <% end %>
+<% end %>
