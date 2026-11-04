@@ -26,6 +26,9 @@
              gap: @protection_gap,
              members: @household_members %>
 
+  <%# What happens after: will, nominations, executor, guardian, documents. %>
+  <%= render "financial_planning/estate", items: @estate_items, item: @estate_item %>
+
   <%# The FIRE card edits the family's saved assumptions, so it needs the
       PlanningSetting record rather than deriving them again. %>
   <div class="grid grid-cols-1 @3xl:grid-cols-2 gap-4 items-stretch">

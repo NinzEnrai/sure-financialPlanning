@@ -516,6 +516,10 @@ Rails.application.routes.draw do
     # Protection cover the household holds.
     resources :insurance_policies, only: %i[create destroy],
               controller: "financial_planning/insurance_policies"
+
+    # Succession checklist: will, nominations, executor, guardian, documents.
+    resources :estate_items, only: %i[create update destroy],
+              controller: "financial_planning/estate_items"
   end
 
   resources :budgets, only: %i[index show edit update], param: :month_year do

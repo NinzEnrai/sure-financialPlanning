@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_05_210000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_05_220000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -744,6 +744,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_210000) do
     t.index ["reconciled_by_statement_id"], name: "index_entries_on_reconciled_by_statement", where: "(reconciled_by_statement_id IS NOT NULL)"
     t.index ["user_modified"], name: "index_entries_on_user_modified_true", where: "(user_modified = true)"
     t.check_constraint "reconciled_by_statement_id IS NULL OR reconciled_at IS NOT NULL", name: "chk_entries_reconciled_at_present_when_statement_set"
+  end
+
+  create_table "estate_items", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.uuid "family_id", null: false
+    t.uuid "household_member_id"
+    t.string "kind", null: false
+    t.string "nominee"
+    t.text "notes"
+    t.date "review_on"
+    t.string "status", default: "pending", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_estate_items_on_family_id"
+    t.index ["household_member_id"], name: "index_estate_items_on_household_member_id"
+    t.check_constraint "kind::text = ANY (ARRAY['will'::character varying, 'nomination'::character varying, 'executor'::character varying, 'guardian'::character varying, 'document'::character varying]::text[])", name: "estate_items_kind_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'in_place'::character varying, 'not_applicable'::character varying]::text[])", name: "estate_items_status_check"
   end
 
   create_table "eval_datasets", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -2795,7 +2812,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_210000) do
     t.index ["family_id"], name: "index_tax_profiles_on_family_id"
     t.index ["user_id"], name: "index_tax_profiles_on_user_id"
     t.check_constraint "deductions_80c >= 0::numeric AND deductions_80d >= 0::numeric AND deductions_nps >= 0::numeric AND hra_exemption >= 0::numeric AND home_loan_interest >= 0::numeric", name: "tax_profiles_deductions_non_negative"
-    t.check_constraint "regime IS NULL OR (regime::text = ANY (ARRAY['old'::character varying, 'new'::character varying]::text[]))", name: "tax_profiles_regime_check"
+    t.check_constraint "regime IS NULL OR (regime::text = ANY (ARRAY['old'::character varying::text, 'new'::character varying::text]))", name: "tax_profiles_regime_check"
   end
 
   create_table "tool_calls", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -3195,6 +3212,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_210000) do
   add_foreign_key "entries", "accounts", on_delete: :cascade
   add_foreign_key "entries", "entries", column: "parent_entry_id", on_delete: :cascade
   add_foreign_key "entries", "imports"
+  add_foreign_key "estate_items", "families"
+  add_foreign_key "estate_items", "household_members", on_delete: :nullify
   add_foreign_key "eval_results", "eval_runs"
   add_foreign_key "eval_results", "eval_samples"
   add_foreign_key "eval_runs", "eval_datasets"

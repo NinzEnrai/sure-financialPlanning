@@ -1,0 +1,94 @@
+<%# locals: (items:, item:) %>
+<%# The succession checklist a planner runs. Status only: Sure does not draft a
+    will and gives no legal advice. %>
+<%= render DS::Card.new(data: { testid: "estate" }, class: "gap-4") do %>
+  <div class="flex items-center justify-between gap-3">
+    <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+    <%= icon "scroll-text", size: "sm", color: "info" %>
+  </div>
+
+  <p class="text-xs text-secondary"><%= t(".intro") %></p>
+
+  <% if items.empty? %>
+    <div class="bg-container-inset rounded-lg p-4 space-y-1">
+      <p class="text-sm text-primary"><%= t(".empty") %></p>
+      <p class="text-xs text-secondary"><%= t(".empty_hint") %></p>
+      <ul class="text-xs text-secondary list-disc pl-4 space-y-0.5 pt-1">
+        <li><%= t(".suggestions.will") %></li>
+        <li><%= t(".suggestions.nominations") %></li>
+        <li><%= t(".suggestions.guardian") %></li>
+      </ul>
+    </div>
+  <% else %>
+    <% in_place = items.count(&:in_place?) %>
+    <p class="text-xs text-secondary"><%= t(".summary", in_place: in_place, total: items.size) %></p>
+
+    <ul class="divide-y divide-subdued">
+      <% items.each do |entry| %>
+        <li class="py-2.5 flex items-start justify-between gap-3" data-estate-item="<%= entry.id %>">
+          <div class="min-w-0">
+            <p class="text-sm text-primary truncate"><%= entry.title %></p>
+            <p class="text-xs text-secondary">
+              <%= t(".kinds.#{entry.kind}") %>
+              <% if entry.nominee.present? %> · <%= t(".nominee", name: entry.nominee) %><% end %>
+              <% if entry.review_on %>
+                · <%= t(".review_on", date: l(entry.review_on, format: "%d %b %Y")) %>
+                <% if entry.review_overdue? %><span class="text-warning"> · <%= t(".review_overdue") %></span><% end %>
+              <% end %>
+            </p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <%= render DS::Pill.new(
+                  label: t(".statuses.#{entry.status}"),
+                  tone: entry.in_place? ? :success : (entry.pending? ? :warning : :neutral),
+                  marker: false,
+                  size: :sm
+                ) %>
+            <% unless entry.in_place? %>
+              <%= button_to t(".mark_in_place"),
+                            financial_planning_estate_item_path(entry),
+                            method: :patch,
+                            params: { estate_item: { status: "in_place" } },
+                            form_class: "inline",
+                            class: "text-xs text-link underline underline-offset-2 focus-ring" %>
+            <% end %>
+            <%= button_to t(".remove"),
+                          financial_planning_estate_item_path(entry),
+                          method: :delete,
+                          form_class: "inline",
+                          class: "text-xs text-destructive underline underline-offset-2 focus-ring" %>
+          </div>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+
+  <%= render DS::Disclosure.new(variant: :card_inset, class: "mt-2") do |disclosure| %>
+    <% disclosure.with_summary_content do %>
+      <p class="text-sm font-medium text-primary"><%= t(".add_title") %></p>
+    <% end %>
+
+    <%= styled_form_with model: item,
+                         url: financial_planning_estate_items_path,
+                         scope: :estate_item,
+                         class: "mt-3 grid grid-cols-1 @md:grid-cols-2 gap-3" do |form| %>
+      <%= form.select :kind,
+          options_for_select(EstateItem::KINDS.map { |kind| [ t(".kinds.#{kind}"), kind ] }, item.kind),
+          { include_blank: t(".choose_kind") },
+          label: t(".kind") %>
+      <%= form.text_field :title, label: t(".item_title"), placeholder: t(".title_placeholder") %>
+      <%= form.text_field :nominee, label: t(".nominee_label") %>
+      <%= form.select :status,
+          options_for_select(EstateItem::STATUSES.map { |status| [ t(".statuses.#{status}"), status ] }, item.status.presence || "pending"),
+          {},
+          label: t(".status") %>
+      <%= form.date_field :review_on, label: t(".review_label") %>
+      <%= form.text_area :notes, label: t(".notes"), rows: 2 %>
+      <div class="flex justify-end @md:col-span-2">
+        <%= form.submit t(".add") %>
+      </div>
+    <% end %>
+  <% end %>
+
+  <p class="text-xs text-subdued"><%= t(".footnote") %></p>
+<% end %>

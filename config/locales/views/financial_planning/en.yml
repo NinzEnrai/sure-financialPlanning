@@ -390,6 +390,47 @@ en:
       stale: price may be stale
       excluded: "%{unpriced} securities have no price and %{unconverted} could not be converted, so they are excluded."
       caveat: Selling is real — it books the loss, carries costs and changes the portfolio. India has no wash-sale rule, so buying back is allowed, but the price can move. Sure never places orders; confirm with a chartered accountant before acting.
+    estate:
+      title: Estate & nominations
+      intro: The succession checklist a planner runs — status only. Sure does not draft a will and gives no legal advice.
+      empty: Nothing recorded yet
+      empty_hint: These are the checks most households leave until later. Record what is already in place so the gaps are visible.
+      suggestions:
+        will: A current will, signed and witnessed.
+        nominations: Nominations on bank accounts, mutual funds, demat and insurance.
+        guardian: A named guardian for minor children, and an executor for the estate.
+      summary: "%{in_place} of %{total} in place"
+      kinds:
+        will: Will
+        nomination: Nomination
+        executor: Executor
+        guardian: Guardian
+        document: Document
+      statuses:
+        pending: Pending
+        in_place: In place
+        not_applicable: Not applicable
+      nominee: "Nominee: %{name}"
+      review_on: "review %{date}"
+      review_overdue: overdue
+      mark_in_place: Mark in place
+      remove: Remove
+      add_title: Add a checklist item
+      choose_kind: Choose a type
+      kind: Type
+      item_title: Item
+      title_placeholder: e.g. Will at the family lawyer
+      nominee_label: Nominee
+      status: Status
+      review_label: Review on
+      notes: Notes
+      add: Add item
+      footnote: This is a checklist, not legal advice. A will, nomination and guardianship have formal requirements; confirm them with a qualified lawyer.
+    estate_items:
+      created: Checklist item added
+      updated: Checklist item updated
+      removed: Checklist item removed
+      not_found: That item is not part of this family.
     tax_profile:
       title: Tax profile
       intro: Declared inputs per person. Tax is not calculated here — current-year rules must be verified, and a chartered accountant should review the return.

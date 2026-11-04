@@ -59,6 +59,10 @@ class FinancialPlanningController < ApplicationController
     @insurance_policies = Current.family.insurance_policies.order(:created_at)
     @insurance_policy = InsurancePolicy.new
     @protection_gap = FinancialPlanning::ProtectionGap.new(Current.family, user: Current.user)
+
+    # Succession checklist, plus a blank record for the add form.
+    @estate_items = Current.family.estate_items.order(:created_at)
+    @estate_item = EstateItem.new
   end
 
   # The yearly artefact a planner hands over: what changed, what is protected,

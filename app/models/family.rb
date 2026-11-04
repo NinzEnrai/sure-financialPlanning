@@ -89,6 +89,9 @@ class Family < ApplicationRecord
   # Declared per-person tax inputs. One profile per person.
   has_many :tax_profiles, dependent: :destroy
 
+  # Succession checklist: will, nominations, executor, guardian, documents.
+  has_many :estate_items, dependent: :destroy
+
   # Net inflow into every depository account linked to any primary-currency
   # goal, over the given window. Transfers between linked accounts net to zero
   # because both sides of an internal move land inside the same account set;

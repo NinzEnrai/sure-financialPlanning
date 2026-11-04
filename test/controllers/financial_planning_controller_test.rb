@@ -80,6 +80,15 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     assert_predicate flash[:alert], :present?
   end
 
+  test "renders the estate and nominations card" do
+    get financial_planning_url
+
+    assert_response :success
+    assert_select "[data-testid='estate']"
+    assert_select "select[name='estate_item[kind]']"
+    assert_no_match(/translation missing/, response.body)
+  end
+
   test "renders the fee audit card" do
     get financial_planning_url
 
