@@ -1,0 +1,103 @@
+<%# locals: (allocation:) %>
+<%# Where the invested money sits and whether any one position dominates. The
+    percentages are the same ones the investment report uses (weight against
+    portfolio value, with cash as the residual), so the two cannot disagree. %>
+<%= render DS::Card.new(data: { testid: "allocation" }, class: "gap-4") do %>
+  <div class="flex items-center justify-between gap-3">
+    <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+    <%= icon "pie-chart", size: "sm", color: "info" %>
+  </div>
+
+  <p class="text-xs text-secondary"><%= t(".intro") %></p>
+
+  <% if allocation.empty? %>
+    <div class="bg-container-inset rounded-lg p-4">
+      <p class="text-2xl font-medium text-subdued"><%= t(".empty") %></p>
+      <p class="text-xs text-secondary mt-1"><%= t(".empty_hint") %></p>
+    </div>
+  <% else %>
+    <dl class="grid grid-cols-1 @md:grid-cols-3 gap-3">
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".invested") %></dt>
+        <dd class="text-sm font-medium text-primary tabular-nums privacy-sensitive"><%= format_money(allocation.invested_total_money) %></dd>
+      </div>
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".cash") %></dt>
+        <dd class="text-sm font-medium text-primary tabular-nums privacy-sensitive"><%= format_money(allocation.cash_total_money) %></dd>
+        <p class="text-xs text-subdued">
+          <% if allocation.cash_percent.nil? %>
+            <span class="text-subdued"><%= t(".no_cash") %></span>
+          <% else %>
+            <%= t(".cash_share", percent: number_to_percentage(allocation.cash_percent, precision: 1)) %>
+          <% end %>
+        </p>
+      </div>
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".largest") %></dt>
+        <dd class="text-sm font-medium text-primary tabular-nums">
+          <%= number_to_percentage(allocation.largest_weight, precision: 1) %>
+        </dd>
+        <p class="text-xs text-subdued truncate"><%= allocation.largest_holding&.security&.name.presence || allocation.largest_holding&.security&.ticker %></p>
+      </div>
+    </dl>
+
+    <% case allocation.concentration_status %>
+    <% when :attention %>
+      <p class="text-xs text-warning">
+        <%= t(".concentration_attention", name: allocation.largest_holding&.security&.name.presence || allocation.largest_holding&.security&.ticker, percent: number_to_percentage(allocation.largest_weight, precision: 1)) %>
+      </p>
+    <% when :watch %>
+      <p class="text-xs text-secondary">
+        <%= t(".concentration_watch", percent: number_to_percentage(allocation.largest_weight, precision: 1)) %>
+      </p>
+    <% else %>
+      <p class="text-xs text-secondary"><%= t(".concentration_good") %></p>
+    <% end %>
+
+    <div>
+      <p class="text-xs text-secondary"><%= t(".top_title") %></p>
+      <ul class="mt-2 space-y-2">
+        <% allocation.top_holdings.each do |holding| %>
+          <li class="space-y-1" data-holding="<%= holding.security.ticker %>">
+            <div class="flex items-center justify-between gap-3 text-sm">
+              <span class="truncate text-primary">
+                <%= holding.security.name.presence || holding.security.ticker %>
+                <span class="text-xs text-secondary">
+                  · <%= holding.security.asset_class.present? ? t(".asset_classes.#{holding.security.asset_class}") : t(".asset_classes.unclassified") %>
+                </span>
+              </span>
+              <span class="shrink-0 tabular-nums privacy-sensitive">
+                <span class="text-primary"><%= format_money(holding.amount, precision: 0) %></span>
+                <span class="text-xs text-secondary ml-2"><%= number_to_percentage(holding.weight, precision: 1) %></span>
+              </span>
+            </div>
+            <%= render DS::ProgressBar.new(
+                  percent: [ holding.weight.to_f, 100 ].min,
+                  tone: holding.weight.to_f >= FinancialPlanning::PortfolioAllocation::CONCENTRATION_ATTENTION_PCT ? :destructive : (holding.weight.to_f >= FinancialPlanning::PortfolioAllocation::CONCENTRATION_WATCH_PCT ? :warning : :info),
+                  height: :xs
+                ) %>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+
+    <% if allocation.asset_classes.any? %>
+      <div>
+        <p class="text-xs text-secondary"><%= t(".classes_title") %></p>
+        <ul class="mt-2 divide-y divide-subdued">
+          <% allocation.asset_classes.each do |group| %>
+            <li class="py-2 flex items-center justify-between gap-3 text-sm">
+              <span class="text-primary"><%= t(".asset_classes.#{group.key}") %></span>
+              <span class="tabular-nums privacy-sensitive">
+                <span class="text-primary"><%= format_money(group.amount_money(Current.family.currency), precision: 0) %></span>
+                <span class="text-xs text-secondary ml-2"><%= number_to_percentage(group.percent, precision: 1) %></span>
+              </span>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <p class="text-xs text-subdued"><%= t(".footnote") %></p>
+  <% end %>
+<% end %>

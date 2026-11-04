@@ -220,6 +220,30 @@ en:
         funded: Funded
         depleted: Short
         no_target_date: No deadline
+    allocation:
+      title: Allocation & concentration
+      intro: Where the invested money sits, and whether one position is large enough to decide the outcome on its own.
+      empty: No holdings recorded
+      empty_hint: Add an investment account with holdings to see how the portfolio is split.
+      invested: Invested
+      cash: Cash
+      no_cash: No cash
+      cash_share: "%{percent} of portfolio"
+      largest: Largest position
+      concentration_attention: "%{name} is %{percent} of the portfolio. Most guides keep a single holding under 10–20%."
+      concentration_watch: "The largest position is %{percent} of the portfolio; worth watching."
+      concentration_good: No single position dominates the portfolio.
+      top_title: Largest positions
+      classes_title: By asset class
+      footnote: Asset classes come from each security's metadata; holdings without one are grouped as unclassified rather than dropped.
+      asset_classes:
+        equity: Equity
+        fixed_income: Fixed income
+        commodity: Commodity
+        real_estate: Real estate
+        alternative_investment: Alternative
+        liquidity: Cash equivalents
+        unclassified: Unclassified
     data_confidence:
       title: Data confidence
       all_good: All the inputs behind these figures look complete.

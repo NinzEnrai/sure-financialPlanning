@@ -52,6 +52,14 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[name='planning_setting[savings_target_pct]']"
   end
 
+  test "renders the allocation and concentration card" do
+    get financial_planning_url
+
+    assert_response :success
+    assert_select "[data-testid='allocation']"
+    assert_select "[data-testid='allocation'] h2", text: I18n.t("financial_planning.allocation.title")
+  end
+
   test "renders the protection card and the add form" do
     get financial_planning_url
 

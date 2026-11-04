@@ -45,6 +45,9 @@
     <%= render "financial_planning/goal_funding", funding: @goal_funding %>
   </div>
 
+  <%# Where the invested money sits, and whether one position dominates. %>
+  <%= render "financial_planning/allocation", allocation: @portfolio_allocation %>
+
   <%# The diagnostics: what is missing behind the figures, and what tax work
       can actually be supported by the data. %>
   <div class="grid grid-cols-1 @3xl:grid-cols-2 gap-4 items-stretch">
