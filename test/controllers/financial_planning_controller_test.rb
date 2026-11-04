@@ -34,6 +34,30 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "renders the planning page header without missing translations" do
+    get financial_planning_url
+
+    assert_response :success
+    assert_select "h1", text: I18n.t("financial_planning.show.title")
+    assert_no_match(/translation missing/, response.body)
+  end
+
+  test "renders the year in review" do
+    get review_financial_planning_url
+
+    assert_response :success
+    assert_select "h1", text: I18n.t("financial_planning.review.title")
+    assert_match I18n.t("financial_planning.review.numbers_title"), response.body
+    assert_no_match(/translation missing/, response.body)
+  end
+
+  test "marks the annual review as done today" do
+    patch mark_reviewed_financial_planning_path
+
+    assert_redirected_to review_financial_planning_path
+    assert_equal Date.current, @family.reload.planning_setting.last_reviewed_on
+  end
+
   test "renders the household card and the add form" do
     get financial_planning_url
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_05_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_05_160000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -2042,6 +2042,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_150000) do
     t.integer "fire_target_year"
     t.string "fire_variant", default: "standard", null: false
     t.decimal "fire_withdrawal_rate_pct", precision: 5, scale: 2, default: "4.0", null: false
+    t.date "last_reviewed_on"
     t.integer "needs_target_pct", default: 50, null: false
     t.integer "savings_target_pct", default: 20, null: false
     t.datetime "updated_at", null: false

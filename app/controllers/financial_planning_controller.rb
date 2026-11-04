@@ -49,6 +49,23 @@ class FinancialPlanningController < ApplicationController
     @protection_gap = FinancialPlanning::ProtectionGap.new(Current.family, user: Current.user)
   end
 
+  # The yearly artefact a planner hands over: what changed, what is protected,
+  # whether the goals are moving, and what to carry into next year.
+  def review
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    @review = FinancialPlanning::AnnualReview.new(Current.family, user: Current.user)
+  end
+
+  def mark_reviewed
+    setting = Current.family.planning_setting || Current.family.build_planning_setting
+
+    if setting.update(last_reviewed_on: Date.current)
+      redirect_to review_financial_planning_path, notice: t(".review_marked")
+    else
+      redirect_to review_financial_planning_path, alert: setting.errors.full_messages.to_sentence
+    end
+  end
+
   # Drives the projection chart. Kept as a separate action so the series can be
   # re-fetched when the horizon or assumptions change without re-rendering the
   # page. `private` amounts are already scoped to the signed-in family.

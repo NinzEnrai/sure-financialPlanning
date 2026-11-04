@@ -7,6 +7,9 @@
       <%= render DS::Pill.new(label: t("shared.preview"), size: :md) %>
     </div>
     <p class="text-sm text-secondary mt-1"><%= t(".subtitle") %></p>
+    <div class="mt-2">
+      <%= render DS::Link.new(text: t(".review_link"), href: review_financial_planning_path) %>
+    </div>
   </header>
 
   <%# The advisory summary sits above the individual figures: it is the answer

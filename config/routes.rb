@@ -502,6 +502,8 @@ Rails.application.routes.draw do
   # 50/30/20 split, FIRE progress, wealth projection).
   resource :financial_planning, only: :show, controller: "financial_planning" do
     get :projection
+    get :review
+    patch :mark_reviewed
     patch :setting, action: :update_setting
     patch :bucket, action: :update_bucket
 

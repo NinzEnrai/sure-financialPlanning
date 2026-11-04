@@ -1,0 +1,159 @@
+<%# The annual review: a printable summary that assembles the planning page's
+    own figures, so it can never disagree with the dashboard. %>
+<% review = @review %>
+<div class="@container space-y-6 pb-6 lg:pb-12">
+  <header>
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-2xl font-semibold text-primary"><%= t(".title") %></h1>
+          <%= render DS::Pill.new(label: t("shared.preview"), size: :md) %>
+        </div>
+        <p class="text-sm text-secondary mt-1"><%= review.period_label %></p>
+      </div>
+
+      <div class="flex flex-col items-end gap-2">
+        <p class="text-xs text-secondary">
+          <% if review.last_reviewed_on %>
+            <%= t(".last_reviewed", date: l(review.last_reviewed_on, format: "%d %b %Y")) %>
+          <% else %>
+            <%= t(".never_reviewed") %>
+          <% end %>
+        </p>
+        <%= button_to t(".mark_reviewed"),
+                      mark_reviewed_financial_planning_path,
+                      method: :patch,
+                      class: "inline-flex items-center gap-1.5 bg-container border border-secondary rounded-lg px-3 py-2 text-sm text-primary hover:bg-container-inset-hover focus-ring" %>
+      </div>
+    </div>
+  </header>
+
+  <%= render DS::Card.new do %>
+    <h2 class="text-lg font-medium text-primary"><%= t(".numbers_title") %></h2>
+
+    <dl class="mt-4 grid grid-cols-1 @md:grid-cols-2 @3xl:grid-cols-3 gap-4">
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".net_worth") %></dt>
+        <dd class="text-xl font-medium text-primary tabular-nums privacy-sensitive"><%= format_money(review.net_worth_now_money) %></dd>
+        <p class="text-xs <%= review.net_worth_change.negative? ? "text-destructive" : "text-success" %> tabular-nums privacy-sensitive">
+          <%= t(".change", amount: format_money(review.net_worth_change_money), percent: review.net_worth_change_percent ? number_to_percentage(review.net_worth_change_percent, precision: 1) : t(".no_percent")) %>
+        </p>
+      </div>
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".savings_rate") %></dt>
+        <dd class="text-xl font-medium text-primary tabular-nums">
+          <% if review.savings_rate_percent.nil? %>
+            <span class="text-subdued"><%= t(".unavailable") %></span>
+          <% else %>
+            <%= number_to_percentage(review.savings_rate_percent, precision: 1) %>
+          <% end %>
+        </dd>
+        <p class="text-xs text-secondary tabular-nums privacy-sensitive"><%= t(".saved", amount: format_money(review.savings_rate_money)) %></p>
+      </div>
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".income") %></dt>
+        <dd class="text-xl font-medium text-primary tabular-nums privacy-sensitive"><%= format_money(review.income_money) %></dd>
+      </div>
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".expenses") %></dt>
+        <dd class="text-xl font-medium text-primary tabular-nums privacy-sensitive"><%= format_money(review.expenses_money) %></dd>
+      </div>
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".invested") %></dt>
+        <dd class="text-xl font-medium text-primary tabular-nums privacy-sensitive"><%= format_money(review.contributions_money) %></dd>
+        <p class="text-xs text-secondary tabular-nums privacy-sensitive"><%= t(".investment_income", amount: format_money(review.investment_income_money)) %></p>
+      </div>
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".withdrawn") %></dt>
+        <dd class="text-xl font-medium text-primary tabular-nums privacy-sensitive"><%= format_money(review.withdrawals_money) %></dd>
+      </div>
+    </dl>
+  <% end %>
+
+  <div class="grid grid-cols-1 @3xl:grid-cols-2 gap-4 items-stretch">
+    <%= render DS::Card.new(class: "gap-3") do %>
+      <h2 class="text-lg font-medium text-primary"><%= t(".protection_title") %></h2>
+      <ul class="divide-y divide-subdued">
+        <li class="py-2 flex items-center justify-between gap-3 text-sm">
+          <span class="text-secondary"><%= t(".life_cover") %></span>
+          <span class="text-primary tabular-nums privacy-sensitive"><%= format_money(review.protection.life_cover_total_money) %></span>
+        </li>
+        <li class="py-2 flex items-center justify-between gap-3 text-sm">
+          <span class="text-secondary"><%= t(".health_cover") %></span>
+          <span class="text-primary tabular-nums privacy-sensitive"><%= format_money(review.protection.health_cover_total_money) %></span>
+        </li>
+        <li class="py-2 flex items-center justify-between gap-3 text-sm">
+          <span class="text-secondary"><%= t(".premiums") %></span>
+          <span class="text-primary tabular-nums privacy-sensitive"><%= format_money(review.protection.annual_premium_total_money) %></span>
+        </li>
+        <li class="py-2 flex items-center justify-between gap-3 text-sm">
+          <span class="text-secondary"><%= t(".dependants") %></span>
+          <span class="text-primary tabular-nums"><%= review.protection.dependants_count %></span>
+        </li>
+      </ul>
+      <%= render DS::Link.new(text: t(".protection_link"), href: financial_planning_path) %>
+    <% end %>
+
+    <%= render DS::Card.new(class: "gap-3") do %>
+      <h2 class="text-lg font-medium text-primary"><%= t(".goals_title") %></h2>
+      <ul class="divide-y divide-subdued">
+        <li class="py-2 flex items-center justify-between gap-3 text-sm">
+          <span class="text-secondary"><%= t(".goals_active") %></span>
+          <span class="text-primary tabular-nums"><%= review.goals_count %></span>
+        </li>
+        <li class="py-2 flex items-center justify-between gap-3 text-sm">
+          <span class="text-secondary"><%= t(".goals_saved") %></span>
+          <span class="text-primary tabular-nums privacy-sensitive"><%= format_money(review.goal_summary[:saved_money]) %></span>
+        </li>
+        <li class="py-2 flex items-center justify-between gap-3 text-sm">
+          <span class="text-secondary"><%= t(".goals_target") %></span>
+          <span class="text-primary tabular-nums privacy-sensitive"><%= format_money(review.goal_summary[:target_money]) %></span>
+        </li>
+        <li class="py-2 flex items-center justify-between gap-3 text-sm">
+          <span class="text-secondary"><%= t(".goals_behind") %></span>
+          <span class="text-primary tabular-nums"><%= review.goal_summary[:behind_count] %></span>
+        </li>
+      </ul>
+      <%= render DS::Link.new(text: t(".goals_link"), href: goals_path) %>
+    <% end %>
+  </div>
+
+  <%= render DS::Card.new do %>
+    <h2 class="text-lg font-medium text-primary"><%= t(".checks_title") %></h2>
+    <% status_tone = { good: :success, watch: :warning, attention: :destructive, unknown: :neutral } %>
+    <ul class="mt-3 divide-y divide-subdued">
+      <% review.scorecard.checks.each do |check| %>
+        <li class="py-2.5 flex items-center justify-between gap-3">
+          <span class="text-sm text-primary"><%= t("financial_planning.health_scorecard.checks.#{check.key}.label") %></span>
+          <%= render DS::Pill.new(label: t("financial_planning.health_scorecard.statuses.#{check.status}"), tone: status_tone.fetch(check.status), marker: false, size: :sm) %>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+
+  <%= render DS::Card.new do %>
+    <h2 class="text-lg font-medium text-primary"><%= t(".priorities_title") %></h2>
+    <% if review.priorities.any? || review.tax_readiness.checks.any? { |check| check.status == :attention } %>
+      <ul class="mt-3 space-y-2 list-disc pl-5">
+        <% review.priorities.each do |check| %>
+          <li class="text-sm text-secondary">
+            <span class="text-primary"><%= t("financial_planning.health_scorecard.checks.#{check.key}.label") %></span> —
+            <%= t("financial_planning.health_scorecard.actions.#{check.key}") %>
+          </li>
+        <% end %>
+        <% review.tax_readiness.checks.select { |check| check.status == :attention }.each do |check| %>
+          <li class="text-sm text-secondary">
+            <span class="text-primary"><%= t("financial_planning.tax_readiness.checks.#{check.key}.label") %></span> —
+            <%= t(".tax_action") %>
+          </li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="text-sm text-secondary mt-2"><%= t(".priorities_none") %></p>
+    <% end %>
+  <% end %>
+
+  <p class="text-xs text-subdued"><%= t(".footnote") %></p>
+
+  <%= render DS::Link.new(text: t(".back_link"), href: financial_planning_path) %>
+</div>

@@ -3,6 +3,46 @@ en:
   financial_planning:
     title: Financial Planning
     subtitle: Savings rate, budget split, FIRE progress and a long-term projection — all derived from your transactions.
+    show:
+      title: Financial Planning
+      subtitle: Savings rate, budget split, FIRE progress, protection, allocation and a long-term projection — all derived from your transactions.
+      review_link: Open the year in review
+    review:
+      title: Year in review
+      last_reviewed: "Last reviewed %{date}"
+      never_reviewed: Never reviewed
+      mark_reviewed: Mark reviewed today
+      numbers_title: The year in numbers
+      net_worth: Net worth today
+      change: "%{amount} (%{percent}) over the year"
+      no_percent: no percentage
+      savings_rate: Savings rate (incl. investments)
+      saved: "%{amount} saved"
+      unavailable: No data
+      income: Income
+      expenses: Expenses
+      invested: Invested
+      investment_income: "%{amount} in dividends and interest"
+      withdrawn: Withdrawn
+      protection_title: Protection snapshot
+      life_cover: Life cover
+      health_cover: Health cover
+      premiums: Annual premiums
+      dependants: Dependants
+      protection_link: Review protection
+      goals_title: Goals
+      goals_active: Active goals
+      goals_saved: Saved across goals
+      goals_target: Combined target
+      goals_behind: Behind pace
+      goals_link: Review goals
+      checks_title: The checks
+      priorities_title: Priorities for next year
+      priorities_none: Every check that can be measured is on track.
+      tax_action: Review the tax-year readiness checklist before the filing deadline.
+      footnote: Everything here is derived from the data recorded in Sure; figures are estimates and this is not financial advice.
+      back_link: Back to the plan
+    review_marked: Annual review marked complete
     bucket_updated: Category bucket updated
     setting_updated: Planning settings updated
     category_not_found: That category is not part of this family.
