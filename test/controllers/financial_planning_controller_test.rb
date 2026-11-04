@@ -122,6 +122,14 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='account_id']"
   end
 
+  test "renders the tax harvesting card" do
+    get financial_planning_url
+
+    assert_response :success
+    assert_select "[data-testid='tax-harvesting']"
+    assert_select "[data-testid='tax-harvesting'] h2", text: I18n.t("financial_planning.tax_harvesting.title")
+  end
+
   test "renders the capital gains estimate card" do
     get financial_planning_url
 

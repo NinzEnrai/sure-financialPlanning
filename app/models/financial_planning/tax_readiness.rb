@@ -25,6 +25,11 @@ class FinancialPlanning::TaxReadiness
     ]
   end
 
+  # Used by the card to surface the Schedule FA disclosure for foreign holdings.
+  def foreign_assets_count
+    checks.find { |check| check.key == :foreign_assets }&.count.to_i
+  end
+
   def financial_year_label
     if indian?
       "FY #{start_date.year}-#{format("%02d", (start_date.year + 1) % 100)}"

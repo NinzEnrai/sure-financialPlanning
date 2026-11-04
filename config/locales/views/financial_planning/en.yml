@@ -377,6 +377,17 @@ en:
         one: "%{count} sale could not be converted to your currency and is excluded."
         other: "%{count} sales could not be converted to your currency and are excluded."
       footnote: An estimate from recorded trades, fees and splits — not a tax calculation. Exemptions, set-off, surcharge and the correct asset-specific thresholds belong to the tax estimate, and rates should be re-checked each year.
+    tax_harvesting:
+      title: Tax harvesting
+      empty: No positions at an unrealised loss
+      empty_hint: When a holding is worth less than it cost, it appears here as a loss that could be booked against gains.
+      total_label: Losses available to book
+      offset_note: "Could offset up to %{amount} of this year's estimated taxable gains (%{taxable})."
+      qty: "%{qty} units"
+      price_as_of: "price %{date}"
+      stale: price may be stale
+      excluded: "%{unpriced} securities have no price and %{unconverted} could not be converted, so they are excluded."
+      caveat: Selling is real — it books the loss, carries costs and changes the portfolio. India has no wash-sale rule, so buying back is allowed, but the price can move. Sure never places orders; confirm with a chartered accountant before acting.
     data_confidence:
       title: Data confidence
       all_good: All the inputs behind these figures look complete.
@@ -403,6 +414,9 @@ en:
     tax_readiness:
       title: Tax-year readiness
       period: "Checklist for %{label} — no tax is calculated here."
+      schedule_fa:
+        one: "%{count} foreign security is held — foreign-asset disclosure (Schedule FA) is likely required in the ITR."
+        other: "%{count} foreign securities are held — foreign-asset disclosure (Schedule FA) is likely required in the ITR."
       note: Capital gains need dates, lots and prices that Sure does not have yet. A chartered accountant can work from these inputs and the Console tradebook.
       tradebook_title: Import the Console tradebook
       tradebook_hint: Zerodha Console → Reports → Tradebook, exported as CSV. This recovers purchase dates for positions bought before Sure saw the trades. Running the same file twice is safe.

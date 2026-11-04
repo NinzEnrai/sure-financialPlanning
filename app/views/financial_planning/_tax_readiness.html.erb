@@ -32,6 +32,10 @@
     <% end %>
   </ul>
 
+  <% if readiness.foreign_assets_count.positive? %>
+    <p class="text-xs text-warning"><%= t(".schedule_fa", count: readiness.foreign_assets_count) %></p>
+  <% end %>
+
   <p class="text-xs text-subdued"><%= t(".note") %></p>
 
   <div class="mt-2 pt-3 border-t border-subdued space-y-2">

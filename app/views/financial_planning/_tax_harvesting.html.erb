@@ -1,0 +1,50 @@
+<%# locals: (harvesting:) %>
+<%# Losses available to book, framed as an opportunity with its costs stated.
+    India has no wash-sale rule; this card still never trades and never advises. %>
+<%= render DS::Card.new(data: { testid: "tax-harvesting" }, class: "gap-4") do %>
+  <div class="flex items-center justify-between gap-3">
+    <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+    <%= icon "scissors", size: "sm", color: "info" %>
+  </div>
+
+  <% if harvesting.empty? %>
+    <div class="bg-container-inset rounded-lg p-4">
+      <p class="text-sm text-primary"><%= t(".empty") %></p>
+      <p class="text-xs text-secondary mt-1"><%= t(".empty_hint") %></p>
+    </div>
+  <% else %>
+    <div class="bg-container-inset rounded-lg p-3 space-y-1">
+      <p class="text-xs text-secondary"><%= t(".total_label") %></p>
+      <p class="text-3xl font-medium text-destructive tabular-nums privacy-sensitive"><%= format_money(harvesting.total_loss_money) %></p>
+      <p class="text-xs text-secondary">
+        <%= t(".offset_note", amount: format_money(harvesting.offset_capacity_money), taxable: format_money(harvesting.taxable_gains_money)) %>
+      </p>
+    </div>
+
+    <ul class="divide-y divide-subdued">
+      <% harvesting.candidates.first(5).each do |candidate| %>
+        <li class="py-2.5 flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-sm text-primary truncate"><%= candidate.security.name.presence || candidate.security.ticker %></p>
+            <p class="text-xs text-secondary tabular-nums">
+              <%= t(".qty", qty: candidate.qty.to_s("F")) %> ·
+              <%= t(".price_as_of", date: l(candidate.price_date, format: "%d %b %Y")) %>
+              <% if candidate.stale? %><span class="text-warning">· <%= t(".stale") %></span><% end %>
+            </p>
+          </div>
+          <p class="text-sm font-medium text-destructive tabular-nums privacy-sensitive shrink-0">
+            <%= format_money(candidate.loss_money(Current.family.currency)) %>
+          </p>
+        </li>
+      <% end %>
+    </ul>
+
+    <% if harvesting.unpriced_count.positive? || harvesting.unconverted_count.positive? %>
+      <p class="text-xs text-warning">
+        <%= t(".excluded", unpriced: harvesting.unpriced_count, unconverted: harvesting.unconverted_count) %>
+      </p>
+    <% end %>
+
+    <p class="text-xs text-subdued"><%= t(".caveat") %></p>
+  <% end %>
+<% end %>
