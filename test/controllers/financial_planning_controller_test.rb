@@ -1,4 +1,5 @@
 require "test_helper"
+require "tempfile"
 
 class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
   setup do
@@ -90,6 +91,35 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "input[name='planning_setting[needs_target_pct]']"
     assert_select "input[name='planning_setting[savings_target_pct]']"
+  end
+
+  test "imports an uploaded Console tradebook" do
+    csv = "symbol,isin,trade_date,trade_type,quantity,price,trade_id\nAAPL,,#{(Date.current - 5.days).iso8601},buy,2,215,TR-1\n"
+    file = upload(csv)
+
+    assert_difference -> { accounts(:investment).entries.count }, 1 do
+      post import_tradebook_financial_planning_path, params: { account_id: accounts(:investment).id, tradebook: file }
+    end
+
+    assert_redirected_to financial_planning_path
+    assert_match(/Imported 1/, flash[:notice])
+  end
+
+  test "refuses a tradebook import without a file" do
+    assert_no_difference -> { Entry.count } do
+      post import_tradebook_financial_planning_path, params: { account_id: accounts(:investment).id }
+    end
+
+    assert_redirected_to financial_planning_path
+    assert_predicate flash[:alert], :present?
+  end
+
+  test "renders the tradebook import form" do
+    get financial_planning_url
+
+    assert_response :success
+    assert_select "input[name='tradebook']"
+    assert_select "select[name='account_id']"
   end
 
   test "renders the capital gains estimate card" do
@@ -517,5 +547,13 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
 
       assert_redirected_to financial_planning_path
       assert_equal 4.0, setting.reload.fire_withdrawal_rate_pct.to_f
+    end
+
+  private
+    def upload(csv)
+      file = Tempfile.new([ "tradebook", ".csv" ])
+      file.write(csv)
+      file.rewind
+      Rack::Test::UploadedFile.new(file.path, "text/csv")
     end
 end

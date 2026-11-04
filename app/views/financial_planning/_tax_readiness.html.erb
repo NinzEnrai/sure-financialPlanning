@@ -1,4 +1,4 @@
-<%# locals: (readiness:) %>
+<%# locals: (readiness:, accounts:) %>
 <%# A pre-flight check for capital-gains work, not a tax calculation. It lists
     the inputs a CA would ask for and marks what is missing; no rate or figure
     is computed here, by design. %>
@@ -33,4 +33,28 @@
   </ul>
 
   <p class="text-xs text-subdued"><%= t(".note") %></p>
+
+  <div class="mt-2 pt-3 border-t border-subdued space-y-2">
+    <p class="text-xs text-secondary"><%= t(".tradebook_title") %></p>
+    <p class="text-xs text-subdued"><%= t(".tradebook_hint") %></p>
+
+    <% if accounts.any? %>
+      <%= styled_form_with url: import_tradebook_financial_planning_path,
+                           method: :post,
+                           multipart: true,
+                           class: "grid grid-cols-1 @md:grid-cols-2 gap-2" do |form| %>
+        <%= form.select :account_id,
+            options_for_select(accounts.map { |account| [ account.name, account.id ] }),
+            { include_blank: t(".tradebook_choose_account") },
+            label: t(".tradebook_account") %>
+        <%= form.file_field :tradebook, label: t(".tradebook_file"), accept: ".csv,text/csv" %>
+        <div class="flex justify-end @md:col-span-2">
+          <%= form.submit t(".tradebook_import") %>
+        </div>
+      <% end %>
+      <p class="text-xs text-subdued"><%= t(".tradebook_note") %></p>
+    <% else %>
+      <p class="text-xs text-secondary"><%= t(".tradebook_no_accounts") %></p>
+    <% end %>
+  </div>
 <% end %>

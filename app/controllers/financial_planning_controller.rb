@@ -42,6 +42,9 @@ class FinancialPlanningController < ApplicationController
     @capital_gains = FinancialPlanning::CapitalGainsEstimate.new(Current.family, user: Current.user)
     @data_confidence = FinancialPlanning::DataConfidence.new(Current.family, user: Current.user)
     @tax_readiness = FinancialPlanning::TaxReadiness.new(Current.family, user: Current.user)
+    @tradebook_accounts = Current.family.accounts.visible
+      .where(accountable_type: %w[Investment Crypto])
+      .order(:name)
 
     # People the plan is for, plus a blank record for the add form.
     @household_members = Current.family.household_members.order(:created_at)
@@ -67,6 +70,35 @@ class FinancialPlanningController < ApplicationController
       redirect_to review_financial_planning_path, notice: t(".review_marked")
     else
       redirect_to review_financial_planning_path, alert: setting.errors.full_messages.to_sentence
+    end
+  end
+
+  # Import a Zerodha Console tradebook CSV so purchases made before the app saw
+  # the trades have real dates. Idempotent: re-uploading the same file skips
+  # rows that already exist.
+  def import_tradebook
+    account = Current.family.accounts.visible
+      .where(accountable_type: %w[Investment Crypto])
+      .find_by(id: params[:account_id])
+    file = params[:tradebook]
+
+    if account.nil? || file.blank?
+      redirect_to financial_planning_path, alert: t(".missing")
+      return
+    end
+
+    result = Portfolio::ConsoleTradebook.new(
+      family: Current.family,
+      account: account,
+      csv: file.read
+    ).call
+
+    if result.errors.any?
+      redirect_to financial_planning_path, alert: t(".failed", count: result.errors.size)
+    else
+      flash[:notice] = t(".imported", imported: result.imported_count, skipped: result.skipped)
+      flash[:alert] = t(".unresolved", symbols: result.unresolved.join(", ")) if result.unresolved.any?
+      redirect_to financial_planning_path
     end
   end
 

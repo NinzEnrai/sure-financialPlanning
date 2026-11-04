@@ -43,6 +43,13 @@ en:
       footnote: Everything here is derived from the data recorded in Sure; figures are estimates and this is not financial advice.
       back_link: Back to the plan
     review_marked: Annual review marked complete
+    import_tradebook:
+      missing: Choose an investment account and a tradebook CSV first.
+      failed:
+        one: "The tradebook could not be imported: %{count} row had an error."
+        other: "The tradebook could not be imported: %{count} rows had errors."
+      imported: "Imported %{imported} trades and skipped %{skipped} already on record."
+      unresolved: "These symbols were not found in Sure: %{symbols}"
     bucket_updated: Category bucket updated
     setting_updated: Planning settings updated
     category_not_found: That category is not part of this family.
@@ -397,6 +404,14 @@ en:
       title: Tax-year readiness
       period: "Checklist for %{label} — no tax is calculated here."
       note: Capital gains need dates, lots and prices that Sure does not have yet. A chartered accountant can work from these inputs and the Console tradebook.
+      tradebook_title: Import the Console tradebook
+      tradebook_hint: Zerodha Console → Reports → Tradebook, exported as CSV. This recovers purchase dates for positions bought before Sure saw the trades. Running the same file twice is safe.
+      tradebook_account: Investment account
+      tradebook_choose_account: Choose an account
+      tradebook_file: Tradebook CSV
+      tradebook_import: Import trades
+      tradebook_note: Fees are not in the tradebook, so imported trades carry zero fees; reconcile against Console's capital-gains statement.
+      tradebook_no_accounts: Add an investment account before importing a tradebook.
       checks:
         trades:
           label: Trades recorded
