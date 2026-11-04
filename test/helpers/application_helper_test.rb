@@ -171,6 +171,20 @@ class ApplicationHelperTest < ActionView::TestCase
     assert_nil format_money(nil)
   end
 
+  test "#mask_last4 masks all but the last 4 characters" do
+    assert_equal "•••7890", mask_last4("account-number-1234567890")
+    assert_equal "•••2345", mask_last4("12345")
+  end
+
+  test "#mask_last4 returns nil for blank input" do
+    assert_nil mask_last4(nil)
+    assert_nil mask_last4("")
+  end
+
+  test "#mask_last4 handles values shorter than 4 characters" do
+    assert_equal "•••12", mask_last4("12")
+  end
+
   private
 
     def use_family(number_format:)
