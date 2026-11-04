@@ -25,7 +25,7 @@
       </p>
     </div>
 
-    <dl class="grid grid-cols-1 @md:grid-cols-3 gap-3">
+    <dl class="grid grid-cols-1 @md:grid-cols-2 gap-3">
       <div class="bg-container-inset rounded-lg p-3 space-y-1">
         <dt class="text-xs text-secondary"><%= t(".weighted_rate") %></dt>
         <dd class="text-sm font-medium text-primary tabular-nums">
@@ -57,7 +57,49 @@
           <% end %>
         </dd>
       </div>
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".utilization") %></dt>
+        <dd class="text-sm font-medium text-primary tabular-nums">
+          <% if debt.credit_utilization_percent.nil? %>
+            <span class="text-subdued"><%= t(".no_utilization") %></span>
+          <% else %>
+            <%= number_to_percentage(debt.credit_utilization_percent, precision: 0) %>
+          <% end %>
+        </dd>
+        <p class="text-xs text-subdued"><%= t(".utilization_hint") %></p>
+      </div>
     </dl>
+
+    <% if (scenarios = debt.payoff_scenarios).any? %>
+      <div>
+        <p class="text-xs text-secondary"><%= t(".payoff_title") %></p>
+        <table class="mt-2 w-full text-xs tabular-nums">
+          <thead>
+            <tr class="text-secondary">
+              <th class="text-left font-normal"><%= t(".payoff_extra") %></th>
+              <th class="text-right font-normal"><%= t(".payoff_time") %></th>
+              <th class="text-right font-normal"><%= t(".payoff_interest_paid") %></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% scenarios.each_with_index do |scenario, index| %>
+              <tr class="<%= index.zero? ? "text-primary" : "text-secondary" %>">
+                <td class="py-1">
+                  <%= scenario[:extra].zero? ? t(".payoff_none") : format_money(Money.new(scenario[:extra], Current.family.currency), precision: 0) %>
+                </td>
+                <td class="py-1 text-right">
+                  <%= scenario[:months] ? t(".payoff_months", count: scenario[:months]) : t(".payoff_never") %>
+                </td>
+                <td class="py-1 text-right">
+                  <%= scenario[:total_interest] ? format_money(Money.new(scenario[:total_interest], Current.family.currency), precision: 0) : "—" %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+        <p class="text-xs text-subdued mt-1"><%= t(".payoff_hint") %></p>
+      </div>
+    <% end %>
 
     <div>
       <p class="text-xs text-secondary"><%= t(".priority_title") %></p>

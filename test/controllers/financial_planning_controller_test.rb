@@ -68,6 +68,22 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     assert_match I18n.t("financial_planning.debt_summary.none"), response.body
   end
 
+  test "updates the emergency target months" do
+    patch setting_financial_planning_path, params: {
+      planning_setting: { emergency_target_months: 9 }
+    }
+
+    assert_redirected_to financial_planning_path
+    assert_equal 9, @family.reload.planning_setting.emergency_target_months
+  end
+
+  test "renders the emergency target control" do
+    get financial_planning_url
+
+    assert_response :success
+    assert_select "select[name='planning_setting[emergency_target_months]']"
+  end
+
   test "renders the portfolio return card" do
     get financial_planning_url
 

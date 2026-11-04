@@ -25,7 +25,7 @@
   <%# The two questions that come before "how much am I saving": how long could
       we last without income, and what is the debt costing us? %>
   <div class="grid grid-cols-1 @3xl:grid-cols-2 gap-4 items-stretch">
-    <%= render "financial_planning/emergency_fund", emergency_fund: @emergency_fund %>
+    <%= render "financial_planning/emergency_fund", emergency_fund: @emergency_fund, setting: @planning_setting %>
     <%= render "financial_planning/debt_summary", debt: @debt_summary %>
   </div>
 

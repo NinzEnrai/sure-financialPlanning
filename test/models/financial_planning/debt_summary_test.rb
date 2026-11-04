@@ -90,6 +90,46 @@ class FinancialPlanning::DebtSummaryTest < ActiveSupport::TestCase
     assert_nil build_summary.dti_percent
   end
 
+  test "reports credit utilisation from the cards' limits" do
+    # Fixture card: 5,000 owed against 5,000 available credit -> 50% used.
+    assert_in_delta 50.0, build_summary.credit_utilization_percent.to_f, 0.05
+  end
+
+  test "credit utilisation is unknown without a recorded limit" do
+    @card.accountable.update!(available_credit: nil)
+
+    assert_nil build_summary.credit_utilization_percent
+  end
+
+  test "snowball order differs from avalanche order when the small balance is cheaper" do
+    @card.update!(balance: 200_000)
+    @loan.update!(balance: 50_000)
+
+    summary = build_summary
+
+    assert_equal @card, summary.avalanche_order.first.account
+    assert_equal @loan, summary.snowball_order.first.account
+  end
+
+  test "simulates a payoff and shows extra payments shortening it" do
+    summary = build_summary
+    baseline = summary.payoff(extra_monthly: 0)
+    scenarios = summary.payoff_scenarios
+
+    assert_operator baseline[:months], :>, 0
+    assert_operator baseline[:total_interest], :>, 0
+    assert_equal 3, scenarios.size
+    assert_operator scenarios[2][:months], :<=, scenarios[0][:months]
+    assert_operator scenarios[2][:total_interest], :<=, scenarios[0][:total_interest]
+  end
+
+  test "payoff is unknown when a debt has no rate or payment" do
+    @card.accountable.update!(apr: nil)
+
+    assert_nil build_summary.payoff(extra_monthly: 0)
+    assert_empty build_summary.payoff_scenarios
+  end
+
   test "an empty debt book reports zeros, not a confident average" do
     @family.accounts.liabilities.update_all(status: "disabled")
 

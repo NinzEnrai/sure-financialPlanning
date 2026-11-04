@@ -97,7 +97,7 @@ en:
       coverage: Cash coverage
       one_month: "%{value} month"
       months: "%{value} months"
-      target_of: "%{amount} would cover six months"
+      target_of: "%{amount} would cover %{months} months"
       liquid_of: "%{amount} in bank and cash accounts"
       spend_of: "%{amount} average monthly spending"
       bar_label: "Progress toward a %{months}-month buffer"
@@ -106,6 +106,11 @@ en:
       shortfall: "You are %{amount} short of a %{months}-month buffer."
       surplus: "You hold %{amount} more than a %{months}-month buffer."
       hint: Three to six months of expenses is the usual guidance, and six suits a single-income household. Only bank and cash accounts count; investments are not a buffer.
+      target_label: Target buffer
+      target_option:
+        one: "%{count} month"
+        other: "%{count} months"
+      target_save: Save target
     debt_summary:
       title: Debt
       none: No debt recorded
@@ -120,6 +125,19 @@ en:
       interest_cost_hint: Per month, at the rates on record
       debt_to_assets: Debt-to-assets
       no_assets: No assets recorded
+      utilization: Credit utilisation
+      utilization_hint: Share of card limits in use; under 30% is the usual guide.
+      no_utilization: No card limits
+      payoff_title: Debt-free plan
+      payoff_extra: Extra payment
+      payoff_time: Debt-free in
+      payoff_interest_paid: Interest paid
+      payoff_none: None
+      payoff_months:
+        one: "%{count} month"
+        other: "%{count} months"
+      payoff_never: Not at these rates
+      payoff_hint: Approximate — today's rates, payments pooled and applied highest-rate first, and no new borrowing.
       priority_title: Highest cost first
       hint: Credit cards and other debt above about 10% usually cost more than investing earns, so they are normally cleared first — after a small emergency buffer is in place.
     health_scorecard:

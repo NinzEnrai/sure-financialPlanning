@@ -1,4 +1,4 @@
-<%# locals: (emergency_fund:) %>
+<%# locals: (emergency_fund:, setting:) %>
 <%# Cash buffer against a lost income. Coverage is measured in months of the
     family's own trailing-year spending, not against an absolute rupee figure:
     "six months" means something different to every household.
@@ -32,7 +32,7 @@
         <%= t(".spend_of", amount: format_money(emergency_fund.monthly_expenses_money)) %>
       </p>
       <p class="text-xs text-secondary tabular-nums privacy-sensitive">
-        <%= t(".target_of", amount: format_money(emergency_fund.target_amount_money)) %>
+        <%= t(".target_of", amount: format_money(emergency_fund.target_amount_money), months: emergency_fund.target_months) %>
       </p>
     </div>
 
@@ -51,5 +51,19 @@
       </p>
       <p class="text-xs text-subdued mt-2"><%= t(".hint") %></p>
     </div>
+  <% end %>
+
+  <%# The target is the household's own choice; the health bands around it stay
+      in code so "six months" is a starting point rather than a verdict. %>
+  <%= styled_form_with model: setting,
+                       url: setting_financial_planning_path,
+                       method: :patch,
+                       scope: :planning_setting,
+                       class: "flex flex-wrap items-end gap-2" do |form| %>
+    <%= form.select :emergency_target_months,
+        options_for_select((1..12).map { |months| [ t(".target_option", count: months), months ] }, setting.emergency_target_months),
+        {},
+        label: t(".target_label") %>
+    <%= form.submit t(".target_save") %>
   <% end %>
 <% end %>

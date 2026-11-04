@@ -43,6 +43,13 @@ class PlanningSetting < ApplicationRecord
 
   DEFAULT_FIRE_VARIANT = "standard".freeze
 
+  # How many months of spending the family's cash buffer should cover by
+  # default, and the range the setting accepts. Six is the usual starting point;
+  # the range is wider than the card's 3-6 health bands because the right answer
+  # depends on how stable the household's income is.
+  DEFAULT_EMERGENCY_TARGET_MONTHS = 6
+  EMERGENCY_TARGET_MONTHS_RANGE = (1..24).freeze
+
   # Default bucket for each of Sure's built-in categories. Keyed by the exact
   # value Category#default_i18n_key returns -- the full I18n key, not the short
   # suffix -- because a default category persists a translated name and a family
@@ -80,6 +87,7 @@ class PlanningSetting < ApplicationRecord
   validates :fire_withdrawal_rate_pct, :annual_growth_rate_pct,
             numericality: { greater_than: 0, less_than_or_equal_to: 100 }
   validates :fire_variant, inclusion: { in: FIRE_VARIANTS.keys }
+  validates :emergency_target_months, inclusion: { in: EMERGENCY_TARGET_MONTHS_RANGE }
   validates :fire_target_year,
             numericality: {
               only_integer: true,

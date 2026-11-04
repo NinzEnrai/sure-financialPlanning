@@ -60,12 +60,15 @@ class FinancialPlanning::EmergencyFund
     @months ||= (liquid_balance / monthly_expenses).round(1).to_f
   end
 
+  # The family's own target, defaulting to six months. Stored on the planning
+  # setting rather than here so the card's form and the scorecard read the same
+  # number.
   def target_months
-    TARGET_MONTHS
+    planning_setting.emergency_target_months.presence || FinancialPlanning::EmergencyFund::TARGET_MONTHS
   end
 
   def target_amount
-    @target_amount ||= (monthly_expenses * TARGET_MONTHS).round(2)
+    @target_amount ||= (monthly_expenses * target_months).round(2)
   end
 
   def target_amount_money
@@ -109,7 +112,7 @@ class FinancialPlanning::EmergencyFund
 
   def status
     return :unknown if months.nil?
-    return :funded if months >= TARGET_MONTHS
+    return :funded if months >= target_months
     return :building if months >= MINIMUM_MONTHS
 
     :critical
@@ -120,6 +123,10 @@ class FinancialPlanning::EmergencyFund
   end
 
   private
+    def planning_setting
+      @planning_setting ||= family.planning_setting || family.build_planning_setting
+    end
+
     def currency
       family.currency
     end

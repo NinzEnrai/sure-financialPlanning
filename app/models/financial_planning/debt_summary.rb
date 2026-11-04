@@ -12,9 +12,20 @@ class FinancialPlanning::DebtSummary
   # verdict -- the view explains it in plain language.
   HIGH_INTEREST_THRESHOLD_PCT = 10
 
-  Debt = Data.define(:account, :balance, :rate_pct, :high_interest) do
+  # Cap the simulated payoff so pathological input (a payment smaller than the
+  # monthly interest) cannot spin forever: 50 years is already beyond any
+  # useful plan.
+  MAX_PAYOFF_MONTHS = 600
+
+  Debt = Data.define(:account, :balance, :rate_pct, :payment, :high_interest) do
     def balance_money(currency)
       Money.new(balance, currency)
+    end
+
+    def payment_money(currency)
+      return nil if payment.nil?
+
+      Money.new(payment, currency)
     end
 
     def rate?
@@ -33,6 +44,7 @@ class FinancialPlanning::DebtSummary
   # because it minimises total interest. Rate-less debts sort after rated ones.
   def debts
     @debts ||= debt_accounts.map { |account| build_debt(account) }
+      .reject { |debt| debt.balance <= 0 }
       .sort_by { |debt| [ -(debt.rate_pct || 0), -debt.balance ] }
   end
 
@@ -96,7 +108,7 @@ class FinancialPlanning::DebtSummary
   def monthly_obligation
     return @monthly_obligation if defined?(@monthly_obligation)
 
-    payments = debt_accounts.filter_map { |account| converted_payment_for(account) }
+    payments = debts.filter_map(&:payment)
     @monthly_obligation = payments.empty? ? nil : payments.sum.round(2)
   end
 
@@ -121,6 +133,98 @@ class FinancialPlanning::DebtSummary
     return @dti_percent = nil if monthly_obligation.nil? || monthly_income.nil?
 
     @dti_percent = ((monthly_obligation / monthly_income) * 100).round(1)
+  end
+
+  # Share of the cards' limits currently in use. Nil when no card records an
+  # available-credit figure: a utilisation computed from half the limits would
+  # read as a much bigger problem than it is.
+  def credit_utilization_percent
+    return @credit_utilization_percent if defined?(@credit_utilization_percent)
+
+    cards = debt_accounts.select { |account| account.accountable_type == "CreditCard" }
+    return @credit_utilization_percent = nil if cards.empty?
+    return @credit_utilization_percent = nil if cards.any? { |card| card.accountable.available_credit.nil? }
+
+    balances = cards.sum { |card| converted_balance_for(card) }
+    limits = cards.sum { |card| converted_balance_for(card) + converted_available_credit_for(card) }
+    @credit_utilization_percent = limits.positive? ? ((balances / limits) * 100).round(1) : nil
+  end
+
+  # Paying highest rate first minimises total interest; paying smallest balance
+  # first closes accounts sooner. Both are shown because the behavioural answer
+  # and the mathematical one are not always the same.
+  def avalanche_order
+    debts
+  end
+
+  def snowball_order
+    debts.sort_by(&:balance)
+  end
+
+  # A month-by-month payoff simulation, pooled and applied avalanche-first.
+  # Interest is accrued on the opening balance each month and the household's
+  # stated payments plus any extra are thrown at the highest rate first, so a
+  # repaid card's minimum naturally rolls on to the next debt.
+  #
+  # Returns nil when a debt has no stated payment or rate: inventing one would
+  # turn an unknown into a plan.
+  def payoff(extra_monthly: 0)
+    return nil if debts.empty?
+    return nil unless debts.all? { |debt| debt.payment.present? && debt.rate? }
+
+    balances = debts.map { |debt| debt.balance.to_d }
+    payments = debts.map { |debt| debt.payment.to_d }
+    rates = debts.map { |debt| debt.rate_pct.to_d / 100 }
+    order = balances.each_index.sort_by { |index| -rates[index] }
+    extra = BigDecimal(extra_monthly.to_s)
+    months = 0
+    total_interest = BigDecimal("0")
+
+    while balances.any?(&:positive?)
+      return nil if months >= MAX_PAYOFF_MONTHS
+
+      months += 1
+      balances.each_index do |index|
+        next unless balances[index].positive?
+
+        interest = balances[index] * rates[index] / 12
+        balances[index] += interest
+        total_interest += interest
+      end
+
+      pool = payments.sum + extra
+      order.each do |index|
+        break if pool <= 0
+        next unless balances[index].positive?
+
+        payment = [ pool, balances[index] ].min
+        balances[index] -= payment
+        pool -= payment
+      end
+    end
+
+    { months: months, total_interest: total_interest.round(2) }
+  end
+
+  # Current plan plus two what-ifs (+50% and double payments). Server-rendered:
+  # three honest scenarios answer the question better than a slider asking the
+  # household to guess its own capacity.
+  def payoff_scenarios
+    return @payoff_scenarios if defined?(@payoff_scenarios)
+    return @payoff_scenarios = [] if monthly_obligation.nil?
+
+    baseline = payoff(extra_monthly: 0)
+    return @payoff_scenarios = [] if baseline.nil?
+
+    [ 0, 0.5, 1.0 ].map do |multiplier|
+      extra = (monthly_obligation * multiplier).round(2)
+      result = payoff(extra_monthly: extra)
+      {
+        extra: extra,
+        months: result && result[:months],
+        total_interest: result && result[:total_interest]
+      }
+    end
   end
 
   # Share of assets financed by debt. 0 assets means the ratio is undefined
@@ -154,6 +258,7 @@ class FinancialPlanning::DebtSummary
         account: account,
         balance: converted_balance_for(account),
         rate_pct: rate_for(account),
+        payment: converted_payment_for(account),
         high_interest: rate_for(account).present? && rate_for(account) >= HIGH_INTEREST_THRESHOLD_PCT
       )
     end
@@ -201,5 +306,13 @@ class FinancialPlanning::DebtSummary
       return account.balance if account.currency == currency
 
       account.balance * (exchange_rates[account.currency] || 1)
+    end
+
+    def converted_available_credit_for(account)
+      credit = account.accountable.available_credit
+      return 0 if credit.nil?
+
+      rate = account.currency == currency ? 1 : (exchange_rates[account.currency] || 1)
+      credit * rate
     end
 end

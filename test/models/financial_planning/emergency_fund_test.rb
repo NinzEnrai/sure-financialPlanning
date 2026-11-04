@@ -89,6 +89,40 @@ class FinancialPlanning::EmergencyFundTest < ActiveSupport::TestCase
     assert_equal 5000, fund.liquid_balance
   end
 
+  test "uses the family's configured target months" do
+    12.times do |offset|
+      create_transaction(amount: 1000, date: Date.current.beginning_of_month - offset.months + 1.day)
+    end
+    # Seven months of cover would be "funded" at the default six-month target.
+    @checking.update!(balance: 7000)
+
+    setting = @family.planning_setting || @family.create_planning_setting
+    setting.update!(emergency_target_months: 12)
+
+    fund = build_fund
+
+    assert_equal 12, fund.target_months
+    assert_equal 12_000, fund.target_amount
+    assert_equal 7.0, fund.months
+    # Seven months is inside the minimum band but short of a twelve-month
+    # target, so it stays in "building" rather than turning green.
+    assert_equal :building, fund.status
+    assert_not fund.funded?
+  end
+
+  test "the target months setting accepts one to twenty-four only" do
+    setting = @family.planning_setting || @family.create_planning_setting
+
+    setting.emergency_target_months = 0
+    assert_not setting.valid?
+
+    setting.emergency_target_months = 12
+    assert setting.valid?
+
+    setting.emergency_target_months = 25
+    assert_not setting.valid?
+  end
+
   test "converts foreign-currency cash at today's rate" do
     @family.accounts.create!(
       name: "Euro savings",

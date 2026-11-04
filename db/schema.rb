@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_04_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -2004,12 +2004,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_120000) do
     t.decimal "annual_growth_rate_pct", precision: 5, scale: 2, default: "7.0", null: false
     t.jsonb "category_buckets", default: {}, null: false
     t.datetime "created_at", null: false
+    t.integer "emergency_target_months", default: 6, null: false
     t.uuid "family_id", null: false
     t.integer "fire_target_year"
     t.string "fire_variant", default: "standard", null: false
     t.decimal "fire_withdrawal_rate_pct", precision: 5, scale: 2, default: "4.0", null: false
     t.datetime "updated_at", null: false
     t.index ["family_id"], name: "index_planning_settings_on_family_id", unique: true
+    t.check_constraint "emergency_target_months >= 1 AND emergency_target_months <= 24", name: "planning_settings_emergency_target_months_range"
     t.check_constraint "fire_target_year IS NULL OR fire_target_year >= 2000 AND fire_target_year <= 2200", name: "planning_settings_fire_target_year_range"
   end
 

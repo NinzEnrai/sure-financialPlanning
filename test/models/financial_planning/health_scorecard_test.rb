@@ -104,7 +104,7 @@ class FinancialPlanning::HealthScorecardTest < ActiveSupport::TestCase
     end
 
     def rated_debt(rate)
-      FinancialPlanning::DebtSummary::Debt.new(account: nil, balance: 0, rate_pct: rate, high_interest: rate >= 10)
+      FinancialPlanning::DebtSummary::Debt.new(account: nil, balance: 0, rate_pct: rate, payment: nil, high_interest: rate >= 10)
     end
 
     def fake_goal(behind:)

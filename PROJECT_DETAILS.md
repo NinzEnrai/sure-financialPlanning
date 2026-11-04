@@ -171,7 +171,7 @@ bin/deploy does: pull, tailwindcss:build, assets:precompile, db:migrate, restart
 - Partials: _savings_rate, _budget_analyzer, _bucket_picker, _fire_progress, _wealth_projector, _emergency_fund, _debt_summary, _health_scorecard, _portfolio_return, _goal_funding, _data_confidence, _tax_readiness
 - Models: SavingsRate, BudgetAnalyzer, FireProgress, WealthProjector, HoldingsCostBasisSeries, EmergencyFund, DebtSummary, HealthScorecard, PortfolioReturn, GoalFunding, DataConfidence, TaxReadiness
 - Advisory framework and feature roadmap: docs/financial-planning/advisory-framework.md
-- PlanningSetting model: buckets, category_buckets, fire_variant, fire_target_year, fire_withdrawal_rate_pct, annual_growth_rate_pct
+- PlanningSetting model: buckets, category_buckets, fire_variant, fire_target_year, fire_withdrawal_rate_pct, annual_growth_rate_pct, emergency_target_months
 
 ### Kite/Zerodha
 - 10th investment provider in Settings > Providers
