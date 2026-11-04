@@ -196,6 +196,51 @@ en:
         funded: Funded
         depleted: Short
         no_target_date: No deadline
+    data_confidence:
+      title: Data confidence
+      all_good: All the inputs behind these figures look complete.
+      issues:
+        one: "%{count} input needs attention"
+        other: "%{count} inputs need attention"
+      note: A figure is only as good as the data under it. Fixing these makes the cards above more trustworthy.
+      checks:
+        exchange_rates:
+          label: Exchange rates
+          detail: "%{count} of %{total} foreign currencies have no rate for today."
+        price_history:
+          label: Price history
+          detail: "%{count} of %{total} held securities have no price from the last week."
+        purchase_dates:
+          label: Purchase dates
+          detail: "%{count} of %{total} held securities have no recorded purchase, so their cost basis and holding period are unknown."
+        classification:
+          label: Security classification
+          detail: "%{count} of %{total} held securities have no asset class, so allocation figures leave them out."
+        excluded_accounts:
+          label: Accounts left out of reports
+          detail: "%{count} accounts are excluded from reports. Their balances do not appear in any figure here."
+    tax_readiness:
+      title: Tax-year readiness
+      period: "Checklist for %{label} — no tax is calculated here."
+      note: Capital gains need dates, lots and prices that Sure does not have yet. A chartered accountant can work from these inputs and the Console tradebook.
+      checks:
+        trades:
+          label: Trades recorded
+          detail:
+            one: "%{count} trade recorded this financial year. Broker reports are the source of truth."
+            other: "%{count} trades recorded this financial year. Broker reports are the source of truth."
+        trade_prices:
+          label: Trade prices
+          detail: "%{count} of %{total} traded securities have no price history."
+        purchase_dates:
+          label: Purchase dates
+          detail: "%{count} of %{total} held securities have no purchase date, so FIFO lots cannot be built."
+        foreign_assets:
+          label: Foreign assets
+          detail: "%{count} of %{total} held securities are outside the family's home country and may need foreign-asset disclosure."
+        tax_advantaged:
+          label: Tax-advantaged accounts
+          detail: "%{count} accounts carry a tax treatment."
   planning_setting:
     buckets:
       needs: Needs

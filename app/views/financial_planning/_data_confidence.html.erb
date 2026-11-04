@@ -1,0 +1,40 @@
+<%# locals: (confidence:) %>
+<%# The edge of what Sure knows. Each row names an input, how many items are
+    affected and out of how many, so a precise-looking number elsewhere on the
+    page can be judged against the data behind it. %>
+<% status_styles = {
+     good:      { icon: "circle-check", color: "success" },
+     watch:     { icon: "triangle-alert", color: "warning" },
+     attention: { icon: "circle-alert", color: "destructive" }
+   } %>
+<%= render DS::Card.new(data: { testid: "data-confidence" }, class: "gap-4") do %>
+  <div class="flex items-center justify-between gap-3">
+    <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+    <%= icon "database", size: "sm", color: confidence.healthy? ? "success" : "warning" %>
+  </div>
+
+  <p class="text-xs text-secondary">
+    <% if confidence.healthy? %>
+      <%= t(".all_good") %>
+    <% else %>
+      <%= t(".issues", count: confidence.issue_count) %>
+    <% end %>
+  </p>
+
+  <ul class="divide-y divide-subdued">
+    <% confidence.checks.each do |check| %>
+      <% style = status_styles.fetch(check.status) %>
+      <li class="py-2.5 flex items-start gap-2" data-check="<%= check.key %>" data-status="<%= check.status %>">
+        <%= icon style[:icon], size: "sm", color: style[:color], class: "mt-0.5" %>
+        <div class="min-w-0 flex-1">
+          <p class="text-sm text-primary"><%= t(".checks.#{check.key}.label") %></p>
+          <p class="text-xs text-secondary mt-0.5 tabular-nums">
+            <%= t(".checks.#{check.key}.detail", count: check.count, total: check.total) %>
+          </p>
+        </div>
+      </li>
+    <% end %>
+  </ul>
+
+  <p class="text-xs text-subdued"><%= t(".note") %></p>
+<% end %>

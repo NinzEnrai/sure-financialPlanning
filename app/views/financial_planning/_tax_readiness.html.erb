@@ -1,0 +1,36 @@
+<%# locals: (readiness:) %>
+<%# A pre-flight check for capital-gains work, not a tax calculation. It lists
+    the inputs a CA would ask for and marks what is missing; no rate or figure
+    is computed here, by design. %>
+<% status_styles = {
+     good:      { icon: "circle-check", color: "success" },
+     watch:     { icon: "triangle-alert", color: "warning" },
+     attention: { icon: "circle-alert", color: "destructive" }
+   } %>
+<%= render DS::Card.new(data: { testid: "tax-readiness" }, class: "gap-4") do %>
+  <div class="flex items-center justify-between gap-3">
+    <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+    <%= icon "receipt-text", size: "sm", color: "info" %>
+  </div>
+
+  <p class="text-xs text-secondary">
+    <%= t(".period", label: readiness.financial_year_label) %>
+  </p>
+
+  <ul class="divide-y divide-subdued">
+    <% readiness.checks.each do |check| %>
+      <% style = status_styles.fetch(check.status) %>
+      <li class="py-2.5 flex items-start gap-2" data-check="<%= check.key %>" data-status="<%= check.status %>">
+        <%= icon style[:icon], size: "sm", color: style[:color], class: "mt-0.5" %>
+        <div class="min-w-0 flex-1">
+          <p class="text-sm text-primary"><%= t(".checks.#{check.key}.label") %></p>
+          <p class="text-xs text-secondary mt-0.5 tabular-nums">
+            <%= t(".checks.#{check.key}.detail", count: check.count, total: check.total) %>
+          </p>
+        </div>
+      </li>
+    <% end %>
+  </ul>
+
+  <p class="text-xs text-subdued"><%= t(".note") %></p>
+<% end %>

@@ -35,6 +35,8 @@ class FinancialPlanningController < ApplicationController
     @health_scorecard = FinancialPlanning::HealthScorecard.new(Current.family, user: Current.user)
     @portfolio_return = FinancialPlanning::PortfolioReturn.new(Current.family, user: Current.user)
     @goal_funding = FinancialPlanning::GoalFunding.new(Current.family, user: Current.user)
+    @data_confidence = FinancialPlanning::DataConfidence.new(Current.family, user: Current.user)
+    @tax_readiness = FinancialPlanning::TaxReadiness.new(Current.family, user: Current.user)
   end
 
   # Drives the projection chart. Kept as a separate action so the series can be

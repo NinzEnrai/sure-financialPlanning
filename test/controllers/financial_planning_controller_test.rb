@@ -84,6 +84,22 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     assert_match I18n.t("financial_planning.goal_funding.title"), response.body
   end
 
+  test "renders the data confidence card" do
+    get financial_planning_url
+
+    assert_response :success
+    assert_select "[data-testid='data-confidence']"
+    assert_match I18n.t("financial_planning.data_confidence.title"), response.body
+  end
+
+  test "renders the tax readiness card" do
+    get financial_planning_url
+
+    assert_response :success
+    assert_select "[data-testid='tax-readiness']"
+    assert_match I18n.t("financial_planning.tax_readiness.title"), response.body
+  end
+
   test "renders the financial health scorecard" do
     get financial_planning_url
 

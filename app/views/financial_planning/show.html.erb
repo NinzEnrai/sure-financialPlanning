@@ -35,6 +35,13 @@
     <%= render "financial_planning/goal_funding", funding: @goal_funding %>
   </div>
 
+  <%# The diagnostics: what is missing behind the figures, and what tax work
+      can actually be supported by the data. %>
+  <div class="grid grid-cols-1 @3xl:grid-cols-2 gap-4 items-stretch">
+    <%= render "financial_planning/data_confidence", confidence: @data_confidence %>
+    <%= render "financial_planning/tax_readiness", readiness: @tax_readiness %>
+  </div>
+
   <%# Only the analyzer follows @period; savings rate, FIRE and the projection
       are anchored to today / trailing windows. %>
   <div class="flex justify-end">
