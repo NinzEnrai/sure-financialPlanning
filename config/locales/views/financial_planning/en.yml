@@ -328,6 +328,26 @@ en:
       expensive_debt_body: You hold about %{amount} of high-interest debt and investments at the same time. Clearing that debt is a guaranteed return; investing is not.
       none: Nothing to flag right now
       none_hint: These observations appear when the numbers show a tension worth naming.
+    realised_gains:
+      title: Realised gains
+      period: "Sold in %{label} · FIFO cost basis"
+      empty: No sales recorded this financial year
+      empty_hint: When you sell a holding, its realised gain appears here with the purchase date FIFO assigns it.
+      total_label: Total realised gain
+      rows_note:
+        one: "%{count} sale on record"
+        other: "%{count} sales on record"
+      short_term: Held 365 days or less
+      short_term_hint: The listed-equity short-term threshold; unlisted and foreign assets differ.
+      long_term: Held more than 365 days
+      long_term_hint: Listed-equity long-term threshold; foreign shares use a longer rule.
+      unknown:
+        one: "%{count} sale has no matching purchase date and is excluded."
+        other: "%{count} sales have no matching purchase date and are excluded."
+      unconverted:
+        one: "%{count} sale could not be converted to your currency and is excluded."
+        other: "%{count} sales could not be converted to your currency and are excluded."
+      footnote: An estimate from recorded trades, fees and splits — not a tax calculation. Exemptions, set-off, surcharge and the correct asset-specific thresholds belong to the tax estimate, and rates should be re-checked each year.
     data_confidence:
       title: Data confidence
       all_good: All the inputs behind these figures look complete.

@@ -1,0 +1,55 @@
+<%# locals: (gains:) %>
+<%# What was actually sold this financial year, and what it realised. An
+    estimate from FIFO lots, not a tax calculation. %>
+<%= render DS::Card.new(data: { testid: "realised-gains" }, class: "gap-4") do %>
+  <div class="flex items-center justify-between gap-3">
+    <div>
+      <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+      <p class="text-xs text-secondary mt-1"><%= t(".period", label: gains.financial_year_label) %></p>
+    </div>
+    <%= icon "receipt-text", size: "sm", color: "info" %>
+  </div>
+
+  <% if gains.empty? %>
+    <div class="bg-container-inset rounded-lg p-4">
+      <p class="text-sm text-primary"><%= t(".empty") %></p>
+      <p class="text-xs text-secondary mt-1"><%= t(".empty_hint") %></p>
+    </div>
+  <% else %>
+    <div class="bg-container-inset rounded-lg p-3 space-y-1">
+      <p class="text-xs text-secondary"><%= t(".total_label") %></p>
+      <p class="text-3xl font-medium tabular-nums privacy-sensitive <%= gains.total_gain.negative? ? "text-destructive" : "text-success" %>">
+        <%= format_money(gains.total_gain_money) %>
+      </p>
+      <p class="text-xs text-secondary">
+        <%= t(".rows_note", count: gains.rows.size) %>
+      </p>
+    </div>
+
+    <dl class="grid grid-cols-1 @md:grid-cols-2 gap-3">
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".short_term") %></dt>
+        <dd class="text-sm font-medium tabular-nums privacy-sensitive <%= gains.short_term_gain.negative? ? "text-destructive" : "text-primary" %>">
+          <%= format_money(gains.short_term_gain_money) %>
+        </dd>
+        <p class="text-xs text-subdued"><%= t(".short_term_hint") %></p>
+      </div>
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".long_term") %></dt>
+        <dd class="text-sm font-medium tabular-nums privacy-sensitive <%= gains.long_term_gain.negative? ? "text-destructive" : "text-primary" %>">
+          <%= format_money(gains.long_term_gain_money) %>
+        </dd>
+        <p class="text-xs text-subdued"><%= t(".long_term_hint") %></p>
+      </div>
+    </dl>
+
+    <% if gains.unknown_count.positive? %>
+      <p class="text-xs text-warning"><%= t(".unknown", count: gains.unknown_count) %></p>
+    <% end %>
+    <% if gains.unconverted_count.positive? %>
+      <p class="text-xs text-warning"><%= t(".unconverted", count: gains.unconverted_count) %></p>
+    <% end %>
+
+    <p class="text-xs text-subdued"><%= t(".footnote") %></p>
+  <% end %>
+<% end %>
