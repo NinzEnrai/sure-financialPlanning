@@ -45,6 +45,14 @@
           <% end %>
         </div>
         <dd class="text-sm font-medium text-primary tabular-nums privacy-sensitive"><%= format_money(gap.health_cover_total_money) %></dd>
+        <% if gap.health_cover_benchmark %>
+          <p class="text-xs text-subdued">
+            <%= t(".health_benchmark", amount: format_money(Money.new(gap.health_cover_benchmark, Current.family.currency), precision: 0)) %>
+            <% if gap.health_cover_gap.positive? %>
+              — <%= t(".health_gap", amount: format_money(Money.new(gap.health_cover_gap, Current.family.currency), precision: 0)) %>
+            <% end %>
+          </p>
+        <% end %>
       </div>
       <div class="bg-container-inset rounded-lg p-3 space-y-1">
         <dt class="text-xs text-secondary"><%= t(".annual_premiums") %></dt>

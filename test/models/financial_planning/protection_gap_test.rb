@@ -85,6 +85,34 @@ class FinancialPlanning::ProtectionGapTest < ActiveSupport::TestCase
     assert_equal :unknown, build_gap.premium_affordability_status
   end
 
+  test "benchmarks Indian health cover per adult" do
+    @family.update!(country: "IN", currency: "INR")
+    add_policy(policy_type: "health", cover_amount: 300_000)
+
+    gap = build_gap
+
+    assert_in_delta 500_000, gap.health_cover_benchmark, 0.01
+    assert_in_delta 200_000, gap.health_cover_gap, 0.01
+    assert_equal :watch, gap.health_cover_status
+  end
+
+  test "no health cover needs attention whatever the benchmark" do
+    @family.update!(country: "IN", currency: "INR")
+
+    assert_equal :attention, build_gap.health_cover_status
+  end
+
+  test "no rupee benchmark outside an Indian rupee household" do
+    @family.update!(country: "US", currency: "USD")
+    add_policy(policy_type: "health", cover_amount: 300_000)
+
+    gap = build_gap
+
+    assert_nil gap.health_cover_benchmark
+    assert_nil gap.health_cover_gap
+    assert_equal :good, gap.health_cover_status
+  end
+
   test "reports whether health cover exists" do
     assert_not build_gap.health_recorded?
 

@@ -16,6 +16,13 @@ class FinancialPlanning::BehaviouralNudges
   # months of extra cushion is reasonable; this flags the clearly idle excess.
   IDLE_CASH_MONTHS_OVER = 3
 
+  # Spending may outpace income by a few percent without meaning anything (a
+  # one-off repair, a new baby). This flags a gap of more than five percentage
+  # points over a full year, which is a trend rather than noise.
+  LIFESTYLE_GAP_PCT = 5
+
+  EXPENSE_HISTORY_MONTHS = 12
+
   attr_reader :family, :user
 
   def initialize(family, user: nil)
@@ -50,13 +57,88 @@ class FinancialPlanning::BehaviouralNudges
     debt_summary.high_interest_debt_money
   end
 
+  # Trailing-year spending versus income growth. Deliberately compares two
+  # equal six-month windows so a seasonal month cannot swing it.
+  def recent_monthly_expenses
+    @recent_monthly_expenses ||= monthly_average(expense_total(recent_window), 6)
+  end
+
+  def prior_monthly_expenses
+    @prior_monthly_expenses ||= monthly_average(expense_total(prior_window), 6)
+  end
+
+  def recent_monthly_income
+    @recent_monthly_income ||= monthly_average(income_total(recent_window), 6)
+  end
+
+  def prior_monthly_income
+    @prior_monthly_income ||= monthly_average(income_total(prior_window), 6)
+  end
+
+  def expense_growth_pct
+    recent = recent_monthly_expenses.to_d
+    prior = prior_monthly_expenses.to_d
+    return nil unless prior.positive?
+
+    (((recent - prior) / prior) * 100).round(1)
+  end
+
+  def income_growth_pct
+    recent = recent_monthly_income.to_d
+    prior = prior_monthly_income.to_d
+    return nil unless prior.positive?
+
+    (((recent - prior) / prior) * 100).round(1)
+  end
+
+  def lifestyle_inflation?
+    return false if expense_growth_pct.nil? || income_growth_pct.nil?
+
+    expense_growth_pct.positive? && expense_growth_pct > income_growth_pct + LIFESTYLE_GAP_PCT
+  end
+
+  def expense_increase_money
+    increase = [ recent_monthly_expenses.to_d - prior_monthly_expenses.to_d, 0 ].max
+    Money.new(increase.round(2), currency)
+  end
+
   def any?
-    idle_cash? || expensive_debt_while_investing?
+    idle_cash? || expensive_debt_while_investing? || lifestyle_inflation?
   end
 
   private
     def currency
       family.currency
+    end
+
+    def recent_window
+      @recent_window ||= Period.custom(
+        start_date: Date.current.beginning_of_month - 5.months,
+        end_date: Date.current.end_of_month
+      )
+    end
+
+    def prior_window
+      @prior_window ||= Period.custom(
+        start_date: Date.current.beginning_of_month - 11.months,
+        end_date: Date.current.beginning_of_month - 6.months - 1.day
+      )
+    end
+
+    def expense_total(period)
+      income_statement.totals_for(period).expense_money.amount
+    end
+
+    def income_total(period)
+      income_statement.totals_for(period).income_money.amount
+    end
+
+    def monthly_average(total, months)
+      (total.to_d / months).round(2)
+    end
+
+    def income_statement
+      @income_statement ||= family.income_statement(user: user)
     end
 
     def emergency_fund

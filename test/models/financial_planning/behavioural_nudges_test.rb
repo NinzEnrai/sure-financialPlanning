@@ -4,6 +4,9 @@ class FinancialPlanning::BehaviouralNudgesTest < ActiveSupport::TestCase
   setup do
     @family = families(:dylan_family)
     @user = users(:family_admin)
+
+    # Neutral by default; the individual tests override whichever side matters.
+    stub_lifestyle(recent_expenses: 1000, prior_expenses: 1000, recent_income: 10_000, prior_income: 10_000)
   end
 
   test "flags cash well beyond the household's own target" do
@@ -45,6 +48,38 @@ class FinancialPlanning::BehaviouralNudgesTest < ActiveSupport::TestCase
     assert_not build.expensive_debt_while_investing?
   end
 
+  test "flags spending that outruns income over the year" do
+    stub_emergency(months: 6, target_months: 6, liquid: 6000, target_amount: 6000)
+    stub_debt(high_interest: 0)
+    stub_invested(1000)
+    stub_lifestyle(recent_expenses: 1200, prior_expenses: 1000, recent_income: 10_500, prior_income: 10_000)
+
+    coaching = build
+
+    assert coaching.lifestyle_inflation?
+    assert_in_delta 20.0, coaching.expense_growth_pct, 0.05
+    assert_in_delta 5.0, coaching.income_growth_pct, 0.05
+    assert coaching.any?
+  end
+
+  test "does not flag spending that grows with income" do
+    stub_emergency(months: 6, target_months: 6, liquid: 6000, target_amount: 6000)
+    stub_debt(high_interest: 0)
+    stub_invested(1000)
+    stub_lifestyle(recent_expenses: 1200, prior_expenses: 1000, recent_income: 12_000, prior_income: 10_000)
+
+    assert_not build.lifestyle_inflation?
+  end
+
+  test "does not flag when income has no prior year to compare" do
+    stub_emergency(months: 6, target_months: 6, liquid: 6000, target_amount: 6000)
+    stub_debt(high_interest: 0)
+    stub_invested(1000)
+    stub_lifestyle(recent_expenses: 1200, prior_expenses: 1000, recent_income: 10_000, prior_income: 0)
+
+    assert_not build.lifestyle_inflation?
+  end
+
   test "is quiet when neither tension exists" do
     stub_emergency(months: 6, target_months: 6, liquid: 6000, target_amount: 6000)
     stub_debt(high_interest: 0)
@@ -71,5 +106,12 @@ class FinancialPlanning::BehaviouralNudgesTest < ActiveSupport::TestCase
 
     def stub_invested(amount)
       FinancialPlanning::PortfolioAllocation.any_instance.stubs(:invested_total).returns(amount)
+    end
+
+    def stub_lifestyle(recent_expenses:, prior_expenses:, recent_income:, prior_income:)
+      FinancialPlanning::BehaviouralNudges.any_instance.stubs(:recent_monthly_expenses).returns(recent_expenses)
+      FinancialPlanning::BehaviouralNudges.any_instance.stubs(:prior_monthly_expenses).returns(prior_expenses)
+      FinancialPlanning::BehaviouralNudges.any_instance.stubs(:recent_monthly_income).returns(recent_income)
+      FinancialPlanning::BehaviouralNudges.any_instance.stubs(:prior_monthly_income).returns(prior_income)
     end
 end

@@ -25,6 +25,12 @@ class FinancialPlanning::ProtectionGap
   # protection. Children are dependants, not earners, so they are not counted.
   ADULT_RELATIONSHIPS = %w[self spouse partner].freeze
 
+  # A health-cover guide for Indian households: roughly five lakh rupees of
+  # cover per adult. A family floater may be cheaper than individual policies,
+  # which is why this is a floor/guide and the card says so. Only applied when
+  # the household is Indian and its currency is rupees.
+  HEALTH_COVER_GUIDE_PER_ADULT = BigDecimal("500000")
+
   attr_reader :family, :user
 
   def initialize(family, user: nil)
@@ -133,6 +139,28 @@ class FinancialPlanning::ProtectionGap
       .to_a
   end
 
+  # Nil outside India or outside rupees: quoting a rupee guide in another
+  # currency would be worse than saying nothing.
+  def health_cover_benchmark
+    return @health_cover_benchmark if defined?(@health_cover_benchmark)
+    return @health_cover_benchmark = nil unless indian_resident?
+
+    @health_cover_benchmark = (HEALTH_COVER_GUIDE_PER_ADULT * [ adults_count, 1 ].max).round(2)
+  end
+
+  def health_cover_gap
+    return nil if health_cover_benchmark.nil?
+
+    @health_cover_gap ||= [ health_cover_benchmark - health_cover_total, 0 ].max.round(2)
+  end
+
+  def health_cover_status
+    return :attention if health_policies.empty?
+    return :good if health_cover_benchmark.nil?
+
+    health_cover_gap.positive? ? :watch : :good
+  end
+
   def adults_count
     adult_members.size
   end
@@ -168,6 +196,10 @@ class FinancialPlanning::ProtectionGap
   private
     def currency
       family.currency
+    end
+
+    def indian_resident?
+      family.country.to_s.upcase == "IN" && currency == "INR"
     end
 
     def income_statement

@@ -25,6 +25,14 @@
           </p>
         </li>
       <% end %>
+      <% if coaching.lifestyle_inflation? %>
+        <li class="py-3 space-y-1" data-nudge="lifestyle_inflation">
+          <p class="text-sm text-primary"><%= t(".lifestyle_title") %></p>
+          <p class="text-xs text-secondary privacy-sensitive">
+            <%= t(".lifestyle_body", expense: number_to_percentage(coaching.expense_growth_pct, precision: 1), income: number_to_percentage(coaching.income_growth_pct, precision: 1)) %>
+          </p>
+        </li>
+      <% end %>
     </ul>
   <% else %>
     <div class="bg-container-inset rounded-lg p-4">

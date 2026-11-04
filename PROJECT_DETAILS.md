@@ -180,6 +180,7 @@ bin/deploy does: pull, tailwindcss:build, assets:precompile, db:migrate, restart
 - Risk profile: planning_settings.risk_profile (conservative/moderate/aggressive, optional) frames the allocation card's conventional equity range, flags how far the current mix sits from it, and (outside the band) computes the tax-unaware amount to move back to the middle of the range
 - Protection card also counts adults (self/spouse/partner) with life cover attached, treating a household-wide policy as covering everyone
 - Advisory framework and feature roadmap: docs/financial-planning/advisory-framework.md
+- Plain-language module guide (what each card answers, what is editable, how to verify): docs/financial-planning/README.md
 - PlanningSetting model: buckets, category_buckets, fire_variant, fire_target_year, fire_withdrawal_rate_pct, annual_growth_rate_pct, emergency_target_months, needs/wants/savings_target_pct (must total 100)
 
 ### Kite/Zerodha

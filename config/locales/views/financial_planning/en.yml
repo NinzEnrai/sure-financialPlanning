@@ -333,6 +333,8 @@ en:
       idle_cash_body: You are holding about %{amount} more than the buffer you chose. It is not doing a job — worth deciding whether it should stay a cushion or work elsewhere.
       expensive_debt_title: Expensive debt while investing
       expensive_debt_body: You hold about %{amount} of high-interest debt and investments at the same time. Clearing that debt is a guaranteed return; investing is not.
+      lifestyle_title: Spending is outrunning income
+      lifestyle_body: Over the last year, spending rose about %{expense} while income rose about %{income}. Worth checking whether the gap is one-off or becoming the new normal.
       none: Nothing to flag right now
       none_hint: These observations appear when the numbers show a tension worth naming.
     capital_gains_estimate:
@@ -484,6 +486,8 @@ en:
       health_cover: Health cover
       health_recorded: Recorded
       health_missing: Not recorded
+      health_benchmark: "Guide: %{amount} for your adults"
+      health_gap: "%{amount} short of the guide"
       annual_premiums: Annual premiums
       affordability: Premium affordability
       affordability_value: "%{percent} of income"
