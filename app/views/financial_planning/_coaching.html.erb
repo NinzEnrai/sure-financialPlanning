@@ -1,0 +1,35 @@
+<%# locals: (coaching:) %>
+<%# Observations the household can act on, not scores and not orders. Each
+    names a tension the numbers already show. %>
+<%= render DS::Card.new(data: { testid: "coaching" }, class: "gap-4") do %>
+  <div class="flex items-center justify-between gap-3">
+    <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+    <%= icon "lightbulb", size: "sm", color: coaching.any? ? "warning" : "success" %>
+  </div>
+
+  <% if coaching.any? %>
+    <ul class="divide-y divide-subdued">
+      <% if coaching.idle_cash? %>
+        <li class="py-3 space-y-1" data-nudge="idle_cash">
+          <p class="text-sm text-primary"><%= t(".idle_cash_title") %></p>
+          <p class="text-xs text-secondary privacy-sensitive">
+            <%= t(".idle_cash_body", amount: format_money(coaching.idle_cash_excess_money)) %>
+          </p>
+        </li>
+      <% end %>
+      <% if coaching.expensive_debt_while_investing? %>
+        <li class="py-3 space-y-1" data-nudge="expensive_debt">
+          <p class="text-sm text-primary"><%= t(".expensive_debt_title") %></p>
+          <p class="text-xs text-secondary privacy-sensitive">
+            <%= t(".expensive_debt_body", amount: format_money(coaching.expensive_debt_amount_money)) %>
+          </p>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <div class="bg-container-inset rounded-lg p-4">
+      <p class="text-sm text-primary"><%= t(".none") %></p>
+      <p class="text-xs text-secondary mt-1"><%= t(".none_hint") %></p>
+    </div>
+  <% end %>
+<% end %>

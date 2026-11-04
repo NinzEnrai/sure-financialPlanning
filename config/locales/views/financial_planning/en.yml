@@ -320,6 +320,14 @@ en:
       shortfall_hint: Trim a recurring cost, pause a goal, or move cash into the buffer before that date.
       debt_unknown: Debt payments are not included because no liability records a minimum payment or instalment.
       assumption: Assumes trailing income and spending continue unchanged; it is a rough projection, not a cash calendar.
+    coaching:
+      title: Coaching
+      idle_cash_title: Cash beyond your buffer target
+      idle_cash_body: You are holding about %{amount} more than the buffer you chose. It is not doing a job — worth deciding whether it should stay a cushion or work elsewhere.
+      expensive_debt_title: Expensive debt while investing
+      expensive_debt_body: You hold about %{amount} of high-interest debt and investments at the same time. Clearing that debt is a guaranteed return; investing is not.
+      none: Nothing to flag right now
+      none_hint: These observations appear when the numbers show a tension worth naming.
     data_confidence:
       title: Data confidence
       all_good: All the inputs behind these figures look complete.
