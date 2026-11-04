@@ -160,7 +160,7 @@ class FinancialPlanningController < ApplicationController
     def setting_params
       params.require(:planning_setting).permit(
         :fire_variant, :fire_target_year, :fire_withdrawal_rate_pct, :annual_growth_rate_pct,
-        :emergency_target_months
+        :emergency_target_months, :needs_target_pct, :wants_target_pct, :savings_target_pct
       )
     end
 

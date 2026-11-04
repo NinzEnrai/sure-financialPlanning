@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_05_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_05_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -1526,8 +1526,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_140000) do
     t.index ["family_id"], name: "index_insurance_policies_on_family_id"
     t.index ["household_member_id"], name: "index_insurance_policies_on_household_member_id"
     t.check_constraint "cover_amount >= 0::numeric AND premium_amount >= 0::numeric", name: "insurance_policies_amounts_non_negative"
-    t.check_constraint "policy_type::text = ANY (ARRAY['term_life'::character varying, 'whole_life'::character varying, 'ulip'::character varying, 'health'::character varying, 'critical_illness'::character varying, 'personal_accident'::character varying, 'home'::character varying, 'vehicle'::character varying, 'other'::character varying]::text[])", name: "insurance_policies_policy_type_check"
-    t.check_constraint "premium_frequency::text = ANY (ARRAY['monthly'::character varying, 'quarterly'::character varying, 'half_yearly'::character varying, 'yearly'::character varying]::text[])", name: "insurance_policies_premium_frequency_check"
+    t.check_constraint "policy_type::text = ANY (ARRAY['term_life'::character varying::text, 'whole_life'::character varying::text, 'ulip'::character varying::text, 'health'::character varying::text, 'critical_illness'::character varying::text, 'personal_accident'::character varying::text, 'home'::character varying::text, 'vehicle'::character varying::text, 'other'::character varying::text])", name: "insurance_policies_policy_type_check"
+    t.check_constraint "premium_frequency::text = ANY (ARRAY['monthly'::character varying::text, 'quarterly'::character varying::text, 'half_yearly'::character varying::text, 'yearly'::character varying::text])", name: "insurance_policies_premium_frequency_check"
   end
 
   create_table "investments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -2042,10 +2042,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_140000) do
     t.integer "fire_target_year"
     t.string "fire_variant", default: "standard", null: false
     t.decimal "fire_withdrawal_rate_pct", precision: 5, scale: 2, default: "4.0", null: false
+    t.integer "needs_target_pct", default: 50, null: false
+    t.integer "savings_target_pct", default: 20, null: false
     t.datetime "updated_at", null: false
+    t.integer "wants_target_pct", default: 30, null: false
     t.index ["family_id"], name: "index_planning_settings_on_family_id", unique: true
     t.check_constraint "emergency_target_months >= 1 AND emergency_target_months <= 24", name: "planning_settings_emergency_target_months_range"
     t.check_constraint "fire_target_year IS NULL OR fire_target_year >= 2000 AND fire_target_year <= 2200", name: "planning_settings_fire_target_year_range"
+    t.check_constraint "needs_target_pct >= 0 AND needs_target_pct <= 100 AND wants_target_pct >= 0 AND wants_target_pct <= 100 AND savings_target_pct >= 0 AND savings_target_pct <= 100", name: "planning_settings_budget_targets_range"
   end
 
   create_table "properties", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

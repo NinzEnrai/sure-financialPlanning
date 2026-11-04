@@ -6,6 +6,23 @@ class PlanningSettingTest < ActiveSupport::TestCase
     @setting = planning_settings(:active_family)
   end
 
+  test "budget targets default to the 50/30/20 guideline" do
+    assert_equal 50, @setting.target_share_pct("needs")
+    assert_equal 30, @setting.target_share_pct("wants")
+    assert_equal 20, @setting.target_share_pct("savings")
+  end
+
+  test "budget targets must add up to one hundred" do
+    @setting.needs_target_pct = 60
+    @setting.wants_target_pct = 20
+    @setting.savings_target_pct = 20
+    assert @setting.valid?
+
+    @setting.savings_target_pct = 10
+    assert_not @setting.valid?
+    assert_includes @setting.errors[:base], "needs, wants and savings targets must add up to 100"
+  end
+
   test "fire target is annual expenses divided by the withdrawal rate" do
     assert_equal 2500000, @setting.fire_target_money(100000).amount.to_f
   end

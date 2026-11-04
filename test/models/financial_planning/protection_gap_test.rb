@@ -58,6 +58,41 @@ class FinancialPlanning::ProtectionGapTest < ActiveSupport::TestCase
     assert_equal 32_000, gap.annual_premium_total
   end
 
+  test "compares premiums with recorded income" do
+    create_transaction(amount: -120_000, date: Date.current)
+    add_policy(policy_type: "term_life", premium_amount: 12_000, premium_frequency: "yearly")
+
+    gap = build_gap
+
+    assert_in_delta 10.0, gap.premium_affordability_percent.to_f, 0.05
+    assert_equal :watch, gap.premium_affordability_status
+  end
+
+  test "flags premiums above a tenth of income" do
+    create_transaction(amount: -120_000, date: Date.current)
+    add_policy(policy_type: "term_life", premium_amount: 24_000, premium_frequency: "yearly")
+
+    gap = build_gap
+
+    assert_in_delta 20.0, gap.premium_affordability_percent.to_f, 0.05
+    assert_equal :attention, gap.premium_affordability_status
+  end
+
+  test "affordability is unknown without recorded income" do
+    add_policy(policy_type: "term_life", premium_amount: 12_000, premium_frequency: "yearly")
+
+    assert_nil build_gap.premium_affordability_percent
+    assert_equal :unknown, build_gap.premium_affordability_status
+  end
+
+  test "reports whether health cover exists" do
+    assert_not build_gap.health_recorded?
+
+    add_policy(policy_type: "health", cover_amount: 300_000)
+
+    assert build_gap.health_recorded?
+  end
+
   test "counts dependants from the household profile" do
     assert_equal 1, build_gap.dependants_count
   end

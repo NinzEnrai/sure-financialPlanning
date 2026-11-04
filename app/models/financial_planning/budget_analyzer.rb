@@ -66,7 +66,7 @@ class FinancialPlanning::BudgetAnalyzer
         amount: bucket_amounts.fetch(key, 0),
         income: income,
         currency: currency,
-        target_share_pct: PlanningSetting::TARGET_SHARE_PCT.fetch(key)
+        target_share_pct: planning_setting.target_share_pct(key)
       )
     end
   end

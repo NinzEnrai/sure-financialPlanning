@@ -30,6 +30,17 @@ class FinancialPlanning::BudgetAnalyzerTest < ActiveSupport::TestCase
     assert_equal 300, buckets["savings"].amount
   end
 
+  test "uses the family's own split rather than the 50/30/20 default" do
+    @setting.update!(needs_target_pct: 60, wants_target_pct: 20, savings_target_pct: 20)
+    create_transaction(amount: -1000, date: Date.current)
+    spend 500, on: @groceries # 50% of income: over the default 50, under the custom 60
+
+    buckets = analyzer.buckets.index_by(&:key)
+
+    assert_equal 60, buckets["needs"].target_share_pct
+    assert buckets["needs"].on_track?
+  end
+
   test "bucket share is measured against net income" do
     create_transaction(amount: -2000, date: Date.current)
     spend 1000, on: @groceries

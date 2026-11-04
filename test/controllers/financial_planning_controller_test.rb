@@ -44,6 +44,14 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     assert_match household_members(:self_member).name, response.body
   end
 
+  test "renders the budget split form with the family's targets" do
+    get financial_planning_url
+
+    assert_response :success
+    assert_select "input[name='planning_setting[needs_target_pct]']"
+    assert_select "input[name='planning_setting[savings_target_pct]']"
+  end
+
   test "renders the protection card and the add form" do
     get financial_planning_url
 
@@ -85,6 +93,26 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_match I18n.t("financial_planning.debt_summary.none"), response.body
+  end
+
+  test "updates the budget split" do
+    patch setting_financial_planning_path, params: {
+      planning_setting: { needs_target_pct: 60, wants_target_pct: 20, savings_target_pct: 20 }
+    }
+
+    assert_redirected_to financial_planning_path
+    setting = @family.reload.planning_setting
+    assert_equal 60, setting.needs_target_pct
+    assert_equal 20, setting.savings_target_pct
+  end
+
+  test "rejects a split that does not add up to one hundred" do
+    patch setting_financial_planning_path, params: {
+      planning_setting: { needs_target_pct: 60, wants_target_pct: 20, savings_target_pct: 10 }
+    }
+
+    assert_redirected_to financial_planning_path
+    assert_predicate flash[:alert], :present?
   end
 
   test "updates the emergency target months" do

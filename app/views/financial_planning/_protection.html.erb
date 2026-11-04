@@ -17,7 +17,7 @@
       <p class="text-xs text-secondary mt-1"><%= t(".empty_hint") %></p>
     </div>
   <% else %>
-    <dl class="grid grid-cols-1 @md:grid-cols-3 gap-3">
+    <dl class="grid grid-cols-1 @md:grid-cols-2 gap-3">
       <div class="bg-container-inset rounded-lg p-3 space-y-1">
         <dt class="text-xs text-secondary"><%= t(".life_cover") %></dt>
         <dd class="text-sm font-medium text-primary tabular-nums privacy-sensitive"><%= format_money(gap.life_cover_total_money) %></dd>
@@ -36,12 +36,30 @@
         </p>
       </div>
       <div class="bg-container-inset rounded-lg p-3 space-y-1">
-        <dt class="text-xs text-secondary"><%= t(".health_cover") %></dt>
+        <div class="flex items-center justify-between gap-2">
+          <dt class="text-xs text-secondary"><%= t(".health_cover") %></dt>
+          <% if gap.health_recorded? %>
+            <%= render DS::Pill.new(label: t(".health_recorded"), tone: :success, marker: false, size: :sm) %>
+          <% else %>
+            <%= render DS::Pill.new(label: t(".health_missing"), tone: :warning, marker: false, size: :sm) %>
+          <% end %>
+        </div>
         <dd class="text-sm font-medium text-primary tabular-nums privacy-sensitive"><%= format_money(gap.health_cover_total_money) %></dd>
       </div>
       <div class="bg-container-inset rounded-lg p-3 space-y-1">
         <dt class="text-xs text-secondary"><%= t(".annual_premiums") %></dt>
         <dd class="text-sm font-medium text-primary tabular-nums privacy-sensitive"><%= format_money(gap.annual_premium_total_money) %></dd>
+      </div>
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".affordability") %></dt>
+        <dd class="text-sm font-medium text-primary tabular-nums privacy-sensitive">
+          <% if gap.premium_affordability_percent.nil? %>
+            <span class="text-subdued"><%= t(".affordability_unknown") %></span>
+          <% else %>
+            <%= t(".affordability_value", percent: number_to_percentage(gap.premium_affordability_percent, precision: 1)) %>
+          <% end %>
+        </dd>
+        <p class="text-xs text-subdued"><%= t(".affordability_hint") %></p>
       </div>
     </dl>
 

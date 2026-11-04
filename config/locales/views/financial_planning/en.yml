@@ -31,6 +31,12 @@ en:
       net_income: Net income
       unassigned_title: Unassigned categories
       unassigned_body: "%{count} categories (%{amount}) are not in Needs, Wants or Savings and are excluded from the split."
+      target_title: Customise the split
+      needs_target: Needs (%)
+      wants_target: Wants (%)
+      savings_target: Savings (%)
+      target_save: Save split
+      target_hint: The three shares must add up to 100%. Needs and wants are ceilings; savings is a floor — the analyzer marks each bucket against the direction that matters.
     bucket_picker:
       title: Customise buckets
       description: Tell Sure which bucket each category belongs to. Needs and wants are ceilings, savings is a floor.
@@ -297,7 +303,13 @@ en:
       empty_hint: Add term life, health or other cover so the plan can show what is actually protected.
       life_cover: Life cover
       health_cover: Health cover
+      health_recorded: Recorded
+      health_missing: Not recorded
       annual_premiums: Annual premiums
+      affordability: Premium affordability
+      affordability_value: "%{percent} of income"
+      affordability_unknown: Add income to compare
+      affordability_hint: Under 5–10% of income is the usual range for insurance premiums.
       cover_guide: "Guide: about %{multiple}x annual income (%{amount})"
       cover_guide_unknown: Record some income to compare life cover against the usual 10x guide.
       gap: "%{amount} short of that guide"

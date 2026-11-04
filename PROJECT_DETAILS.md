@@ -173,7 +173,7 @@ bin/deploy does: pull, tailwindcss:build, assets:precompile, db:migrate, restart
 - Household routes: /financial_planning/household_members (create/destroy, preview-gated); the card on the planning page lists people, ages and dependants
 - Protection routes: /financial_planning/insurance_policies (create/destroy, preview-gated); the Protection card lists cover, premiums and renewals, compares life cover with 10x recorded annual income, and feeds the health scorecard's protection check
 - Advisory framework and feature roadmap: docs/financial-planning/advisory-framework.md
-- PlanningSetting model: buckets, category_buckets, fire_variant, fire_target_year, fire_withdrawal_rate_pct, annual_growth_rate_pct, emergency_target_months
+- PlanningSetting model: buckets, category_buckets, fire_variant, fire_target_year, fire_withdrawal_rate_pct, annual_growth_rate_pct, emergency_target_months, needs/wants/savings_target_pct (must total 100)
 
 ### Kite/Zerodha
 - 10th investment provider in Settings > Providers

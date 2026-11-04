@@ -1,4 +1,5 @@
 <%# locals: (analyzer:, period:) %>
+<% setting = Current.family.planning_setting || Current.family.build_planning_setting %>
 <%# 50/30/20 split of the selected period's spending. Each bucket is scored
     against its target share of net income — needs and wants as ceilings,
     savings as a floor. The donut makes the shape of the month legible at a
@@ -122,7 +123,31 @@
     <% end %>
   <% end %>
 
+  <%= render DS::Disclosure.new(variant: :card_inset, class: "mt-2") do |disclosure| %>
+    <% disclosure.with_summary_content do %>
+      <div class="flex items-center gap-2">
+        <%= icon "settings", size: "sm", color: "secondary" %>
+        <p class="text-sm font-medium text-primary"><%= t(".target_title") %></p>
+      </div>
+    <% end %>
+
+    <%= styled_form_with model: setting,
+                         url: setting_financial_planning_path,
+                         method: :patch,
+                         scope: :planning_setting,
+                         class: "mt-3 grid grid-cols-1 @md:grid-cols-3 gap-3" do |form| %>
+      <%= form.number_field :needs_target_pct, label: t(".needs_target"), min: 0, max: 100, step: 1 %>
+      <%= form.number_field :wants_target_pct, label: t(".wants_target"), min: 0, max: 100, step: 1 %>
+      <%= form.number_field :savings_target_pct, label: t(".savings_target"), min: 0, max: 100, step: 1 %>
+      <div class="flex justify-end @md:col-span-3">
+        <%= form.submit t(".target_save") %>
+      </div>
+    <% end %>
+
+    <p class="text-xs text-subdued mt-2"><%= t(".target_hint") %></p>
+  <% end %>
+
   <%= render "financial_planning/bucket_picker",
              analyzer: analyzer,
-             setting: Current.family.planning_setting || Current.family.build_planning_setting %>
+             setting: setting %>
 <% end %>

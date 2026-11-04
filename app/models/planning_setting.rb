@@ -4,8 +4,16 @@ class PlanningSetting < ApplicationRecord
   # 50/30/20 targets, expressed as a share of net income. Needs and wants are
   # ceilings, savings is a floor -- the analyzer scores each bucket against the
   # matching direction rather than treating all three as "spend less".
+  #
+  # TARGET_SHARE_PCT holds the *defaults*; a family's own shares live on the
+  # record and must total 100, which the validation below enforces.
   BUCKETS = %w[needs wants savings].freeze
   TARGET_SHARE_PCT = { "needs" => 50, "wants" => 30, "savings" => 20 }.freeze
+  TARGET_ATTRIBUTES = {
+    "needs" => :needs_target_pct,
+    "wants" => :wants_target_pct,
+    "savings" => :savings_target_pct
+  }.freeze
 
   # Submitted by the bucket picker to mean "drop my override and go back to the
   # built-in mapping". Deliberately not a member of BUCKETS: the model validates
@@ -88,6 +96,9 @@ class PlanningSetting < ApplicationRecord
             numericality: { greater_than: 0, less_than_or_equal_to: 100 }
   validates :fire_variant, inclusion: { in: FIRE_VARIANTS.keys }
   validates :emergency_target_months, inclusion: { in: EMERGENCY_TARGET_MONTHS_RANGE }
+  validates :needs_target_pct, :wants_target_pct, :savings_target_pct,
+            numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }
+  validate :budget_targets_add_up_to_one_hundred
   validates :fire_target_year,
             numericality: {
               only_integer: true,
@@ -149,6 +160,13 @@ class PlanningSetting < ApplicationRecord
   # The synthetic Uncategorized / Other Investments pseudo-categories are never
   # persisted, so they have no id and cannot carry an override -- they resolve
   # through DEFAULT_BUCKETS alone.
+  # The family's chosen share for one bucket, defaulting to the guideline when
+  # the column is somehow absent (a record built before the setting existed).
+  def target_share_pct(bucket)
+    attribute = TARGET_ATTRIBUTES.fetch(bucket.to_s)
+    public_send(attribute) || TARGET_SHARE_PCT.fetch(bucket.to_s)
+  end
+
   def bucket_for(category, key: nil)
     override = category.id && category_buckets[category.id.to_s]
 
@@ -160,6 +178,15 @@ class PlanningSetting < ApplicationRecord
   end
 
   private
+    # Three shares that do not total 100 would make the analyzer's targets
+    # meaningless, so this is a validation rather than a clamp.
+    def budget_targets_add_up_to_one_hundred
+      total = needs_target_pct.to_i + wants_target_pct.to_i + savings_target_pct.to_i
+      return if total == 100
+
+      errors.add(:base, "needs, wants and savings targets must add up to 100")
+    end
+
     def coast_fire_requires_a_target_year
       return unless coast_fire?
       return if fire_target_year.present?

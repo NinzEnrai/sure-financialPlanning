@@ -15,6 +15,12 @@ class FinancialPlanning::ProtectionGap
 
   EXPENSE_HISTORY_MONTHS = 12
 
+  # Premiums are only affordable relative to income. Under 5% is comfortable;
+  # 5-10% is worth reviewing; above 10% the household is likely over-insured
+  # for its income. Practitioner heuristics, stated as such on screen.
+  AFFORDABILITY_COMFORT_PCT = 5
+  AFFORDABILITY_WATCH_PCT = 10
+
   attr_reader :family, :user
 
   def initialize(family, user: nil)
@@ -93,6 +99,27 @@ class FinancialPlanning::ProtectionGap
 
   def renewing_soon
     @renewing_soon ||= policies.select(&:renewing_soon?)
+  end
+
+  def health_recorded?
+    health_policies.any?
+  end
+
+  # Annual premium as a share of recorded income. Nil without income -- a
+  # premium has no affordability without something to afford it from.
+  def premium_affordability_percent
+    return @premium_affordability_percent if defined?(@premium_affordability_percent)
+    return @premium_affordability_percent = nil if annual_income.nil? || annual_income.zero?
+
+    @premium_affordability_percent = ((annual_premium_total / annual_income) * 100).round(1)
+  end
+
+  def premium_affordability_status
+    return :unknown if premium_affordability_percent.nil?
+    return :attention if premium_affordability_percent > AFFORDABILITY_WATCH_PCT
+    return :watch if premium_affordability_percent > AFFORDABILITY_COMFORT_PCT
+
+    :good
   end
 
   def status
