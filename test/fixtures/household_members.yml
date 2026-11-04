@@ -1,0 +1,13 @@
+self_member:
+  family: dylan_family
+  name: Dylan
+  relationship: self
+  date_of_birth: 1990-06-15
+  dependent: false
+
+child_member:
+  family: dylan_family
+  name: Robin
+  relationship: child
+  date_of_birth: 2015-03-01
+  dependent: true

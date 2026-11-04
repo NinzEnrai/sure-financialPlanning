@@ -34,6 +34,16 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "renders the household card and the add form" do
+    get financial_planning_url
+
+    assert_response :success
+    assert_select "[data-testid='household']"
+    assert_match I18n.t("financial_planning.household.title"), response.body
+    assert_select "input[name='household_member[name]']"
+    assert_match household_members(:self_member).name, response.body
+  end
+
   test "renders the emergency fund card" do
     get financial_planning_url
 

@@ -259,6 +259,37 @@ en:
         tax_advantaged:
           label: Tax-advantaged accounts
           detail: "%{count} accounts carry a tax treatment."
+    household:
+      title: Household
+      intro: Who this plan is for. Ages and dependants decide how much protection the earners need and how far retirement money has to stretch.
+      empty: Nobody added yet
+      empty_hint: Add yourself first, then a spouse, children or parents who depend on you.
+      new_title: Add a person
+      name: Name
+      name_placeholder: e.g. Priya
+      relationship: Relationship
+      choose: Choose
+      date_of_birth: Date of birth
+      dependent: Dependant
+      dependent_pill: Dependant
+      add: Add person
+      remove: Remove
+      no_age: date of birth not set
+      age:
+        one: "%{count} year old"
+        other: "%{count} years old"
+      relationships:
+        self: You
+        spouse: Spouse
+        partner: Partner
+        child: Child
+        parent: Parent
+        sibling: Sibling
+        other: Other
+    household_members:
+      created: Person added
+      removed: Person removed
+      not_found: That person is not part of this family.
   planning_setting:
     buckets:
       needs: Needs

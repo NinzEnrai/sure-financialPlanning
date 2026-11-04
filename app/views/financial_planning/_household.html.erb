@@ -1,0 +1,66 @@
+<%# locals: (members:, member:) %>
+<%# Who the plan is for. The people list is deliberately separate from app users:
+    a dependant child or a non-app-using parent is exactly who protection and
+    retirement planning need to know about. %>
+<%= render DS::Card.new(data: { testid: "household" }, class: "gap-4") do %>
+  <div class="flex items-center justify-between gap-3">
+    <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+    <%= icon "users", size: "sm", color: "info" %>
+  </div>
+
+  <p class="text-xs text-secondary"><%= t(".intro") %></p>
+
+  <% if members.empty? %>
+    <div class="bg-container-inset rounded-lg p-4">
+      <p class="text-sm text-primary"><%= t(".empty") %></p>
+      <p class="text-xs text-secondary mt-1"><%= t(".empty_hint") %></p>
+    </div>
+  <% else %>
+    <ul class="divide-y divide-subdued">
+      <% members.each do |person| %>
+        <li class="py-2.5 flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-sm text-primary truncate"><%= person.name %></p>
+            <p class="text-xs text-secondary">
+              <%= t(".relationships.#{person.relationship}") %>
+              <% if person.age %>
+                · <%= t(".age", count: person.age) %>
+              <% else %>
+                · <%= t(".no_age") %>
+              <% end %>
+            </p>
+          </div>
+          <div class="flex items-center gap-3 shrink-0">
+            <% if person.dependent? %>
+              <%= render DS::Pill.new(label: t(".dependent_pill"), tone: :neutral, marker: false, size: :sm) %>
+            <% end %>
+            <%= button_to t(".remove"),
+                          financial_planning_household_member_path(person),
+                          method: :delete,
+                          form_class: "inline",
+                          class: "text-xs text-destructive underline underline-offset-2 focus-ring" %>
+          </div>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+
+  <div>
+    <p class="text-sm font-medium text-primary mb-2"><%= t(".new_title") %></p>
+    <%= styled_form_with model: member,
+                         url: financial_planning_household_members_path,
+                         scope: :household_member,
+                         class: "grid grid-cols-1 @md:grid-cols-2 gap-3" do |form| %>
+      <%= form.text_field :name, label: t(".name"), placeholder: t(".name_placeholder") %>
+      <%= form.select :relationship,
+          options_for_select(HouseholdMember::RELATIONSHIPS.map { |relationship| [ t(".relationships.#{relationship}"), relationship ] }, member.relationship),
+          { include_blank: t(".choose") },
+          label: t(".relationship") %>
+      <%= form.date_field :date_of_birth, label: t(".date_of_birth"), max: Date.current %>
+      <%= form.toggle :dependent, label: t(".dependent") %>
+      <div class="flex justify-end @md:col-span-2">
+        <%= form.submit t(".add") %>
+      </div>
+    <% end %>
+  </div>
+<% end %>

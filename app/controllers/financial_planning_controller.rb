@@ -37,6 +37,10 @@ class FinancialPlanningController < ApplicationController
     @goal_funding = FinancialPlanning::GoalFunding.new(Current.family, user: Current.user)
     @data_confidence = FinancialPlanning::DataConfidence.new(Current.family, user: Current.user)
     @tax_readiness = FinancialPlanning::TaxReadiness.new(Current.family, user: Current.user)
+
+    # People the plan is for, plus a blank record for the add form.
+    @household_members = Current.family.household_members.order(:created_at)
+    @household_member = HouseholdMember.new
   end
 
   # Drives the projection chart. Kept as a separate action so the series can be

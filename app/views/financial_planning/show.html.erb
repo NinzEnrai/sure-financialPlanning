@@ -13,6 +13,9 @@
       to "where should we look first", which is what a planner opens with. %>
   <%= render "financial_planning/health_scorecard", scorecard: @health_scorecard %>
 
+  <%# Who the plan is for, before any of the figures that depend on it. %>
+  <%= render "financial_planning/household", members: @household_members, member: @household_member %>
+
   <%# The FIRE card edits the family's saved assumptions, so it needs the
       PlanningSetting record rather than deriving them again. %>
   <div class="grid grid-cols-1 @3xl:grid-cols-2 gap-4 items-stretch">

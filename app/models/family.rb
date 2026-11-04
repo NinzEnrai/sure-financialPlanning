@@ -80,6 +80,9 @@ class Family < ApplicationRecord
 
   has_one :planning_setting, dependent: :destroy
 
+  # People the advisory plan is for -- including dependants who are not users.
+  has_many :household_members, dependent: :destroy
+
   # Net inflow into every depository account linked to any primary-currency
   # goal, over the given window. Transfers between linked accounts net to zero
   # because both sides of an internal move land inside the same account set;

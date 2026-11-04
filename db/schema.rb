@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_05_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -1209,6 +1209,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.index ["account_provider_id"], name: "index_holdings_on_account_provider_id"
     t.index ["provider_security_id"], name: "index_holdings_on_provider_security_id"
     t.index ["security_id"], name: "index_holdings_on_security_id"
+  end
+
+  create_table "household_members", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.date "date_of_birth"
+    t.boolean "dependent", default: false, null: false
+    t.uuid "family_id", null: false
+    t.string "name", null: false
+    t.string "relationship", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_household_members_on_family_id"
+    t.check_constraint "relationship::text = ANY (ARRAY['self'::character varying, 'spouse'::character varying, 'partner'::character varying, 'child'::character varying, 'parent'::character varying, 'sibling'::character varying, 'other'::character varying]::text[])", name: "household_members_relationship_check"
   end
 
   create_table "ibkr_accounts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -3170,6 +3182,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
   add_foreign_key "holdings", "accounts", on_delete: :cascade
   add_foreign_key "holdings", "securities"
   add_foreign_key "holdings", "securities", column: "provider_security_id"
+  add_foreign_key "household_members", "families"
   add_foreign_key "ibkr_accounts", "ibkr_items"
   add_foreign_key "ibkr_items", "families"
   add_foreign_key "impersonation_session_logs", "impersonation_sessions"
