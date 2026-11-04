@@ -106,6 +106,22 @@ en:
       shortfall: "You are %{amount} short of a %{months}-month buffer."
       surplus: "You hold %{amount} more than a %{months}-month buffer."
       hint: Three to six months of expenses is the usual guidance, and six suits a single-income household. Only bank and cash accounts count; investments are not a buffer.
+    debt_summary:
+      title: Debt
+      none: No debt recorded
+      none_hint: Balances on credit cards, loans and other liabilities you add to Sure appear here with their interest cost.
+      total: Total debt
+      accounts:
+        one: "%{count} account"
+        other: "%{count} accounts"
+      weighted_rate: Weighted average rate
+      no_rate: No rate recorded
+      interest_cost: Interest accruing
+      interest_cost_hint: Per month, at the rates on record
+      debt_to_assets: Debt-to-assets
+      no_assets: No assets recorded
+      priority_title: Highest cost first
+      hint: Credit cards and other debt above about 10% usually cost more than investing earns, so they are normally cleared first — after a small emergency buffer is in place.
   planning_setting:
     buckets:
       needs: Needs

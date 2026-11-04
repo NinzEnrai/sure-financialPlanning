@@ -1,0 +1,82 @@
+<%# locals: (debt:) %>
+<%# Debt the way a planner frames it: what is owed, how much of it is expensive,
+    and what it costs to carry per month. Ordered highest-rate first, which is
+    the "avalanche" order that minimises total interest -- the view says so
+    rather than silently ranking accounts. %>
+<%= render DS::Card.new(data: { testid: "debt-summary" }, class: "gap-4") do %>
+  <div class="flex items-center justify-between gap-3">
+    <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+    <%= icon "credit-card", size: "sm", color: debt.empty? ? "success" : "warning" %>
+  </div>
+
+  <% if debt.empty? %>
+    <div class="bg-container-inset rounded-lg p-4">
+      <p class="text-2xl font-medium text-subdued"><%= t(".none") %></p>
+      <p class="text-xs text-secondary mt-1"><%= t(".none_hint") %></p>
+    </div>
+  <% else %>
+    <div class="bg-container-inset rounded-lg p-3 space-y-1">
+      <p class="text-xs text-secondary"><%= t(".total") %></p>
+      <p class="text-3xl font-medium text-primary tabular-nums privacy-sensitive">
+        <%= format_money(debt.total_debt_money) %>
+      </p>
+      <p class="text-xs text-secondary tabular-nums">
+        <%= t(".accounts", count: debt.debts.size) %>
+      </p>
+    </div>
+
+    <dl class="grid grid-cols-1 @md:grid-cols-3 gap-3">
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".weighted_rate") %></dt>
+        <dd class="text-sm font-medium text-primary tabular-nums">
+          <% if debt.weighted_average_rate_pct.nil? %>
+            <span class="text-subdued"><%= t(".no_rate") %></span>
+          <% else %>
+            <%= number_to_percentage(debt.weighted_average_rate_pct, precision: 1) %>
+          <% end %>
+        </dd>
+      </div>
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".interest_cost") %></dt>
+        <dd class="text-sm font-medium text-primary tabular-nums privacy-sensitive">
+          <% if debt.monthly_interest_cost.nil? %>
+            <span class="text-subdued"><%= t(".no_rate") %></span>
+          <% else %>
+            <%= format_money(debt.monthly_interest_cost_money) %>
+          <% end %>
+        </dd>
+        <p class="text-xs text-subdued"><%= t(".interest_cost_hint") %></p>
+      </div>
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".debt_to_assets") %></dt>
+        <dd class="text-sm font-medium text-primary tabular-nums">
+          <% if debt.debt_to_assets_percent.nil? %>
+            <span class="text-subdued"><%= t(".no_assets") %></span>
+          <% else %>
+            <%= number_to_percentage(debt.debt_to_assets_percent, precision: 0) %>
+          <% end %>
+        </dd>
+      </div>
+    </dl>
+
+    <div>
+      <p class="text-xs text-secondary"><%= t(".priority_title") %></p>
+      <ul class="mt-2 space-y-2">
+        <% debt.debts.first(3).each do |item| %>
+          <li class="flex items-center justify-between gap-3 text-sm">
+            <span class="truncate text-primary"><%= item.account.name %></span>
+            <span class="flex items-center gap-2 shrink-0 tabular-nums privacy-sensitive">
+              <% if item.rate? %>
+                <span class="<%= item.high_interest ? "text-warning" : "text-secondary" %>">
+                  <%= number_to_percentage(item.rate_pct, precision: 1) %>
+                </span>
+              <% end %>
+              <span class="text-secondary"><%= format_money(item.balance_money(Current.family.currency), precision: 0) %></span>
+            </span>
+          </li>
+        <% end %>
+      </ul>
+      <p class="text-xs text-subdued mt-2"><%= t(".hint") %></p>
+    </div>
+  <% end %>
+<% end %>

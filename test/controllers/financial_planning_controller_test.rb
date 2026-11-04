@@ -51,6 +51,23 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     assert_match I18n.t("financial_planning.emergency_fund.unavailable"), response.body
   end
 
+  test "renders the debt summary card" do
+    get financial_planning_url
+
+    assert_response :success
+    assert_select "[data-testid='debt-summary']"
+    assert_match I18n.t("financial_planning.debt_summary.title"), response.body
+  end
+
+  test "renders the debt placeholder when no liabilities are visible" do
+    @family.accounts.liabilities.update_all(status: "disabled")
+
+    get financial_planning_url
+
+    assert_response :success
+    assert_match I18n.t("financial_planning.debt_summary.none"), response.body
+  end
+
   test "projection returns one balance per year in the family currency" do
     get projection_financial_planning_url
 
