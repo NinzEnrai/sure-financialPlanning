@@ -1,0 +1,65 @@
+<%# locals: (funding:) %>
+<%# The roll-up the goals index does not show: can this household afford all of
+    its dated goals at the current pace, and if not, by how much is it short? %>
+<%= render DS::Card.new(data: { testid: "goal-funding" }, class: "gap-4") do %>
+  <div class="flex items-center justify-between gap-3">
+    <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+    <%= icon "target", size: "sm", color: "info" %>
+  </div>
+
+  <% if funding.empty? %>
+    <div class="bg-container-inset rounded-lg p-4">
+      <p class="text-2xl font-medium text-subdued"><%= t(".empty") %></p>
+      <p class="text-xs text-secondary mt-1"><%= t(".empty_hint") %></p>
+      <%= render DS::Link.new(text: t(".goals_link"), href: goals_path) %>
+    </div>
+  <% else %>
+    <% if funding.rows.any? %>
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <p class="text-xs text-secondary"><%= t(".required_label") %></p>
+        <p class="text-3xl font-medium text-primary tabular-nums privacy-sensitive">
+          <%= format_money(funding.total_required_monthly_money) %>
+        </p>
+        <p class="text-xs text-secondary tabular-nums">
+          <%= t(".required_note", count: funding.rows.size) %>
+        </p>
+      </div>
+
+      <p class="text-xs text-secondary tabular-nums privacy-sensitive">
+        <% if funding.on_track? %>
+          <%= t(".on_track", pace: format_money(funding.total_pace_money)) %>
+        <% else %>
+          <%= t(".gap", gap: format_money(funding.total_gap_money), pace: format_money(funding.total_pace_money)) %>
+        <% end %>
+      </p>
+
+      <ul class="divide-y divide-subdued">
+        <% funding.rows.first(3).each do |row| %>
+          <li class="py-2.5 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-sm text-primary truncate"><%= row.goal.name %></p>
+              <p class="text-xs text-secondary tabular-nums privacy-sensitive">
+                <%= t(".row_required", required: format_money(Money.new(row.required_monthly, funding.family.currency), precision: 0),
+                                        pace: format_money(Money.new(row.pace, funding.family.currency), precision: 0)) %>
+              </p>
+            </div>
+            <%= render DS::Pill.new(
+                  label: t(".statuses.#{row.goal.status}"),
+                  tone: row.goal.status == :behind ? :warning : :success,
+                  marker: false,
+                  size: :sm
+                ) %>
+          </li>
+        <% end %>
+      </ul>
+
+      <%= render DS::Link.new(text: t(".goals_link"), href: goals_path) %>
+    <% else %>
+      <div class="bg-container-inset rounded-lg p-4">
+        <p class="text-sm text-primary"><%= t(".no_dated_goals") %></p>
+        <p class="text-xs text-secondary mt-1"><%= t(".no_dated_goals_hint") %></p>
+      </div>
+      <%= render DS::Link.new(text: t(".goals_link"), href: goals_path) %>
+    <% end %>
+  <% end %>
+<% end %>

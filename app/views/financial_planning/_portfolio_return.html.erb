@@ -1,0 +1,59 @@
+<%# locals: (portfolio:) %>
+<%# Money-weighted return, framed as the question an investor actually asks:
+    what did the money I put in earn? The basis assumption is printed rather
+    than implied, and an ambiguous solver result is hedged with "≈" instead of
+    presented as the one true rate. %>
+<%= render DS::Card.new(data: { testid: "portfolio-return" }, class: "gap-4") do %>
+  <div class="flex items-center justify-between gap-3">
+    <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+    <%= icon "trending-up", size: "sm", color: "success" %>
+  </div>
+
+  <% if portfolio.empty? %>
+    <div class="bg-container-inset rounded-lg p-4">
+      <p class="text-2xl font-medium text-subdued"><%= t(".empty") %></p>
+      <p class="text-xs text-secondary mt-1"><%= t(".empty_hint") %></p>
+    </div>
+  <% else %>
+    <div class="bg-container-inset rounded-lg p-3 space-y-1">
+      <p class="text-xs text-secondary"><%= t(".return_label") %></p>
+      <p class="text-3xl font-medium text-primary tabular-nums privacy-sensitive">
+        <% if portfolio.available? %>
+          <%= "≈ " if portfolio.ambiguous? %><%= number_to_percentage(portfolio.rate_percent, precision: 1) %>
+        <% else %>
+          <span class="text-lg text-subdued"><%= t(".unavailable") %></span>
+        <% end %>
+      </p>
+      <p class="text-xs text-secondary">
+        <% if portfolio.available? && portfolio.since.present? %>
+          <%= t(".since", date: l(portfolio.since, format: "%b %Y")) %>
+        <% else %>
+          <%= t(".unavailable_hint") %>
+        <% end %>
+      </p>
+    </div>
+
+    <dl class="grid grid-cols-1 @md:grid-cols-3 gap-3">
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".value") %></dt>
+        <dd class="text-sm font-medium text-primary tabular-nums privacy-sensitive"><%= format_money(portfolio.portfolio_value_money) %></dd>
+      </div>
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".contributions", months: FinancialPlanning::PortfolioReturn::PERIOD_MONTHS) %></dt>
+        <dd class="text-sm font-medium text-primary tabular-nums privacy-sensitive"><%= format_money(portfolio.contributions_money) %></dd>
+      </div>
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".income", months: FinancialPlanning::PortfolioReturn::PERIOD_MONTHS) %></dt>
+        <dd class="text-sm font-medium text-primary tabular-nums privacy-sensitive"><%= format_money(portfolio.income_money) %></dd>
+      </div>
+    </dl>
+
+    <div>
+      <p class="text-xs text-subdued"><%= t(".basis") %></p>
+      <% if portfolio.ambiguous? %>
+        <p class="text-xs text-warning mt-1"><%= t(".ambiguous") %></p>
+      <% end %>
+      <%= render DS::Link.new(text: t(".report_link"), href: reports_path) %>
+    </div>
+  <% end %>
+<% end %>

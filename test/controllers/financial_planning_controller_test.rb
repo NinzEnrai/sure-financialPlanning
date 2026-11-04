@@ -68,6 +68,22 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     assert_match I18n.t("financial_planning.debt_summary.none"), response.body
   end
 
+  test "renders the portfolio return card" do
+    get financial_planning_url
+
+    assert_response :success
+    assert_select "[data-testid='portfolio-return']"
+    assert_match I18n.t("financial_planning.portfolio_return.title"), response.body
+  end
+
+  test "renders the goal funding card" do
+    get financial_planning_url
+
+    assert_response :success
+    assert_select "[data-testid='goal-funding']"
+    assert_match I18n.t("financial_planning.goal_funding.title"), response.body
+  end
+
   test "renders the financial health scorecard" do
     get financial_planning_url
 

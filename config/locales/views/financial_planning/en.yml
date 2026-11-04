@@ -161,6 +161,41 @@ en:
         high_interest_debt: Clear the balances above 10% before adding new investments.
         goals: A dated goal is behind pace — the goals page shows the monthly catch-up amount.
         protection: Once insurance is recorded, this check will compare cover against income and dependants.
+    portfolio_return:
+      title: Portfolio return
+      empty: No investments yet
+      empty_hint: Add an investment account or connect a broker to see what your money has earned.
+      return_label: Money-weighted return (XIRR)
+      unavailable: Not enough history
+      unavailable_hint: Add trades or contributions and this will show the annualised return on the money you put in.
+      since: "Since %{date}"
+      value: Portfolio value
+      contributions: "Money in (%{months}m)"
+      income: "Income (%{months}m)"
+      basis: Assumes each buy was money arriving and each sell money leaving; cash left idle in the account is not counted.
+      ambiguous: This series may have more than one valid rate — treat the figure as approximate.
+      report_link: See the investment report
+    goal_funding:
+      title: Goal funding
+      empty: No goals yet
+      empty_hint: Set a target and a date, and this card will show the monthly saving needed to reach it.
+      goals_link: Go to goals
+      required_label: Needed each month
+      required_note:
+        one: "Across %{count} dated goal"
+        other: "Across %{count} dated goals"
+      on_track: "Your current pace of %{pace}/month covers them."
+      gap: "Your current pace of %{pace}/month leaves a %{gap} gap."
+      row_required: "%{required} needed · %{pace} actual"
+      no_dated_goals: No goals with a deadline
+      no_dated_goals_hint: Open-ended goals have no monthly requirement; add a target date to plan one.
+      statuses:
+        on_track: On track
+        behind: Behind
+        reached: Reached
+        funded: Funded
+        depleted: Short
+        no_target_date: No deadline
   planning_setting:
     buckets:
       needs: Needs

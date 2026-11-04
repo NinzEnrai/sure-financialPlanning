@@ -29,6 +29,12 @@
     <%= render "financial_planning/debt_summary", debt: @debt_summary %>
   </div>
 
+  <%# What the money earned, and whether the goals can all be funded at once. %>
+  <div class="grid grid-cols-1 @3xl:grid-cols-2 gap-4 items-stretch">
+    <%= render "financial_planning/portfolio_return", portfolio: @portfolio_return %>
+    <%= render "financial_planning/goal_funding", funding: @goal_funding %>
+  </div>
+
   <%# Only the analyzer follows @period; savings rate, FIRE and the projection
       are anchored to today / trailing windows. %>
   <div class="flex justify-end">
