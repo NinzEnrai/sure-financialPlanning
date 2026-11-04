@@ -42,6 +42,8 @@ class FinancialPlanningController < ApplicationController
     @capital_gains = FinancialPlanning::CapitalGainsEstimate.new(Current.family, user: Current.user)
     @tax_harvesting = FinancialPlanning::TaxHarvesting.new(Current.family, user: Current.user)
     @retirement_stress = FinancialPlanning::RetirementStressTest.new(Current.family, user: Current.user)
+    @tax_users = Current.family.users.order(:created_at)
+    @tax_profiles = @tax_users.index_with { |user| Current.family.tax_profiles.find_or_initialize_by(user: user) }
     @data_confidence = FinancialPlanning::DataConfidence.new(Current.family, user: Current.user)
     @tax_readiness = FinancialPlanning::TaxReadiness.new(Current.family, user: Current.user)
     @tradebook_accounts = Current.family.accounts.visible
@@ -101,6 +103,21 @@ class FinancialPlanningController < ApplicationController
       flash[:notice] = t(".imported", imported: result.imported_count, skipped: result.skipped)
       flash[:alert] = t(".unresolved", symbols: result.unresolved.join(", ")) if result.unresolved.any?
       redirect_to financial_planning_path
+    end
+  end
+
+  # Save one person's declared tax inputs. Scoped to the current family's users,
+  # so a submitted id cannot write another household's profile.
+  def update_tax_profile
+    user = Current.family.users.find_by(id: params[:user_id])
+    return redirect_to(financial_planning_path, alert: t("financial_planning.tax_profile.user_not_found")) if user.nil?
+
+    profile = Current.family.tax_profiles.find_or_initialize_by(user: user)
+
+    if profile.update(tax_profile_params)
+      redirect_to financial_planning_path, notice: t("financial_planning.tax_profile.saved")
+    else
+      redirect_to financial_planning_path, alert: profile.errors.full_messages.to_sentence
     end
   end
 
@@ -211,6 +228,12 @@ class FinancialPlanningController < ApplicationController
 
     def year_to_date_period
       Period.from_key("current_year")
+    end
+
+    def tax_profile_params
+      params.require(:tax_profile).permit(
+        :regime, *TaxProfile::DEDUCTION_ATTRIBUTES
+      )
     end
 
     def setting_params

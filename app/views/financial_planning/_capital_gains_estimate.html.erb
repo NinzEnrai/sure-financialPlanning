@@ -29,7 +29,7 @@
         <li class="py-3 space-y-1">
           <div class="flex items-center justify-between gap-3">
             <p class="text-sm font-medium text-primary">
-              <%= person.owner&.name.presence || person.owner&.email.presence || t(".unassigned") %>
+              <%= person.owner&.display_name.presence || person.owner&.email.presence || t(".unassigned") %>
             </p>
             <p class="text-xs text-secondary tabular-nums"><%= t(".sales_count", count: person.sales_count) %></p>
           </div>

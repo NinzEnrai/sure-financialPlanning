@@ -32,6 +32,7 @@ Open **Investments → Financial Planning** (preview feature). In order:
 | Realised gains | What did we sell this year, and what did it realise? | Trades, prices, FX rates |
 | Capital gains estimate | What is each person's taxable gain? | The above, per account owner |
 | Tax harvesting | Are there losses worth booking? | Open lots, latest prices |
+| Tax profile | What has each person declared for tax? | Regime and declared deductions |
 | Budget split | Are we inside our own 50/30/20? | Categories, transactions |
 | Wealth projection | Where could current savings take us? | Net worth, savings pace, growth |
 | Retirement stress test | How likely is the money to last? | Age, spending, savings, growth assumption |
@@ -52,6 +53,8 @@ figures into one printable summary with a review date.
   policies (cover, premiums, renewals, nominees).
 - **Retirement age** — set on the retirement stress test card; age comes from
   the "self" household member's date of birth.
+- **Tax profile** — per person: regime and declared deductions, for the
+  household's CA. Declarations only; the module computes no tax from them.
 
 ## How the numbers stay honest
 
@@ -113,7 +116,8 @@ paths for these cards; if a card changes, change its tests with it.
 ## Known limitations
 
 - Tax rates, surcharge and cess are **not** applied; rates must be re-checked
-  against the current Finance Act.
+  against the current Finance Act. The tax-profile card records declared
+  deductions but does not compare regimes or compute any liability.
 - Asset classification for allocation and tax rules relies on security metadata;
   unclassified holdings are shown as such and debt-fund detection needs the
   mutual-fund + fixed-income flags.

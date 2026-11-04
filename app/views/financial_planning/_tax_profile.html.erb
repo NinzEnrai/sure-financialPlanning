@@ -1,0 +1,51 @@
+<%# locals: (users:, profiles:) %>
+<%# Declared tax inputs per person. No tax is calculated here: current-year
+    rules must be verified, and the record is for the household and its CA. %>
+<%= render DS::Card.new(data: { testid: "tax-profile" }, class: "gap-4") do %>
+  <div class="flex items-center justify-between gap-3">
+    <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+    <%= icon "file-text", size: "sm", color: "info" %>
+  </div>
+
+  <p class="text-xs text-secondary"><%= t(".intro") %></p>
+
+  <% users.each do |user| %>
+    <% profile = profiles.fetch(user) %>
+    <%= render DS::Disclosure.new(variant: :card_inset, class: "mt-2") do |disclosure| %>
+      <% disclosure.with_summary_content do %>
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <p class="text-sm font-medium text-primary"><%= user.display_name.presence || user.email %></p>
+            <% if profile.regime.present? %>
+              <%= render DS::Pill.new(label: t(".regimes.#{profile.regime}"), tone: :neutral, marker: false, size: :sm) %>
+            <% end %>
+          </div>
+          <p class="text-xs text-secondary tabular-nums privacy-sensitive">
+            <%= t(".declared_total", amount: format_money(profile.total_declared_deductions_money)) %>
+          </p>
+        </div>
+      <% end %>
+
+      <%= styled_form_with model: profile,
+                           url: tax_profile_financial_planning_path(user_id: user.id),
+                           method: :patch,
+                           scope: :tax_profile,
+                           class: "mt-3 grid grid-cols-1 @md:grid-cols-3 gap-3" do |form| %>
+        <%= form.select :regime,
+            options_for_select(TaxProfile::REGIMES.map { |regime| [ t(".regimes.#{regime}"), regime ] }, profile.regime),
+            { include_blank: t(".not_set") },
+            label: t(".regime") %>
+        <%= form.number_field :deductions_80c, label: t(".deductions_80c"), min: 0, step: "0.01" %>
+        <%= form.number_field :deductions_80d, label: t(".deductions_80d"), min: 0, step: "0.01" %>
+        <%= form.number_field :deductions_nps, label: t(".deductions_nps"), min: 0, step: "0.01" %>
+        <%= form.number_field :hra_exemption, label: t(".hra_exemption"), min: 0, step: "0.01" %>
+        <%= form.number_field :home_loan_interest, label: t(".home_loan_interest"), min: 0, step: "0.01" %>
+        <div class="flex justify-end @md:col-span-3">
+          <%= form.submit t(".save") %>
+        </div>
+      <% end %>
+    <% end %>
+  <% end %>
+
+  <p class="text-xs text-subdued"><%= t(".footnote") %></p>
+<% end %>

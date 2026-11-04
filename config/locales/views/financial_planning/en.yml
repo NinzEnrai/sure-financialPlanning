@@ -390,6 +390,24 @@ en:
       stale: price may be stale
       excluded: "%{unpriced} securities have no price and %{unconverted} could not be converted, so they are excluded."
       caveat: Selling is real — it books the loss, carries costs and changes the portfolio. India has no wash-sale rule, so buying back is allowed, but the price can move. Sure never places orders; confirm with a chartered accountant before acting.
+    tax_profile:
+      title: Tax profile
+      intro: Declared inputs per person. Tax is not calculated here — current-year rules must be verified, and a chartered accountant should review the return.
+      regimes:
+        old: Old regime
+        new: New regime
+      not_set: Regime not set
+      regime: Tax regime
+      deductions_80c: 80C
+      deductions_80d: 80D
+      deductions_nps: 80CCD(1B) NPS
+      hra_exemption: HRA exemption
+      home_loan_interest: Home-loan interest (24b)
+      declared_total: "Declared deductions %{amount}"
+      save: Save profile
+      saved: Tax profile saved
+      user_not_found: That person is not part of this family.
+      footnote: Filing limits change with the Finance Act. Sure records what you declare and computes no tax from it.
     data_confidence:
       title: Data confidence
       all_good: All the inputs behind these figures look complete.

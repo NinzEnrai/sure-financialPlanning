@@ -74,6 +74,11 @@
   <%# Losses available to book, with the costs of selling stated. %>
   <%= render "financial_planning/tax_harvesting", harvesting: @tax_harvesting %>
 
+  <%# Declared per-person tax inputs. Admin-only: tax data is personal. %>
+  <% if Current.user.admin? %>
+    <%= render "financial_planning/tax_profile", users: @tax_users, profiles: @tax_profiles %>
+  <% end %>
+
   <%# Only the analyzer follows @period; savings rate, FIRE and the projection
       are anchored to today / trailing windows. %>
   <div class="flex justify-end">

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_05_200000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_05_210000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -2780,6 +2780,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_200000) do
     t.index ["family_id"], name: "index_tags_on_family_id"
   end
 
+  create_table "tax_profiles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.decimal "deductions_80c", precision: 19, scale: 2, default: "0.0", null: false
+    t.decimal "deductions_80d", precision: 19, scale: 2, default: "0.0", null: false
+    t.decimal "deductions_nps", precision: 19, scale: 2, default: "0.0", null: false
+    t.uuid "family_id", null: false
+    t.decimal "home_loan_interest", precision: 19, scale: 2, default: "0.0", null: false
+    t.decimal "hra_exemption", precision: 19, scale: 2, default: "0.0", null: false
+    t.string "regime"
+    t.datetime "updated_at", null: false
+    t.uuid "user_id", null: false
+    t.index ["family_id", "user_id"], name: "index_tax_profiles_on_family_id_and_user_id", unique: true
+    t.index ["family_id"], name: "index_tax_profiles_on_family_id"
+    t.index ["user_id"], name: "index_tax_profiles_on_user_id"
+    t.check_constraint "deductions_80c >= 0::numeric AND deductions_80d >= 0::numeric AND deductions_nps >= 0::numeric AND hra_exemption >= 0::numeric AND home_loan_interest >= 0::numeric", name: "tax_profiles_deductions_non_negative"
+    t.check_constraint "regime IS NULL OR (regime::text = ANY (ARRAY['old'::character varying, 'new'::character varying]::text[]))", name: "tax_profiles_regime_check"
+  end
+
   create_table "tool_calls", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.jsonb "extra_content"
@@ -3306,6 +3324,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_200000) do
   add_foreign_key "syncs", "syncs", column: "parent_id"
   add_foreign_key "taggings", "tags"
   add_foreign_key "tags", "families"
+  add_foreign_key "tax_profiles", "families"
+  add_foreign_key "tax_profiles", "users"
   add_foreign_key "tool_calls", "messages"
   add_foreign_key "trade_republic_accounts", "trade_republic_items"
   add_foreign_key "trade_republic_items", "families"

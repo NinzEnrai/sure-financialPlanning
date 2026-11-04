@@ -504,6 +504,7 @@ Rails.application.routes.draw do
     get :projection
     get :review
     patch :mark_reviewed
+    patch :tax_profile, action: :update_tax_profile
     post :import_tradebook
     patch :setting, action: :update_setting
     patch :bucket, action: :update_bucket

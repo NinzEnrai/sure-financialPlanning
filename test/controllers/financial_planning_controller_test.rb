@@ -52,6 +52,42 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     assert_equal 65, @family.reload.planning_setting.retirement_age
   end
 
+  test "saves a person's declared tax inputs" do
+    patch tax_profile_financial_planning_path(user_id: users(:family_admin).id), params: {
+      tax_profile: { regime: "new", deductions_80c: 150_000, deductions_80d: 25_000 }
+    }
+
+    assert_redirected_to financial_planning_path
+    profile = @family.reload.tax_profiles.find_by(user: users(:family_admin))
+    assert_equal "new", profile.regime
+    assert_in_delta 175_000, profile.total_declared_deductions, 0.01
+  end
+
+  test "rejects tax inputs for somebody outside the family" do
+    outsider = families(:empty).users.create!(
+      email: "outsider-#{SecureRandom.hex(3)}@example.com",
+      password: "password123",
+      first_name: "Outsider",
+      family: families(:empty)
+    )
+
+    patch tax_profile_financial_planning_path(user_id: outsider.id), params: {
+      tax_profile: { regime: "new" }
+    }
+
+    assert_redirected_to financial_planning_path
+    assert_nil @family.reload.tax_profiles.find_by(user: outsider)
+    assert_predicate flash[:alert], :present?
+  end
+
+  test "renders the tax profile card for an admin" do
+    get financial_planning_url
+
+    assert_response :success
+    assert_select "[data-testid='tax-profile']"
+    assert_select "select[name='tax_profile[regime]']"
+  end
+
   test "renders the retirement stress test card" do
     get financial_planning_url
 
