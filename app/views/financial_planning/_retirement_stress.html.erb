@@ -1,0 +1,57 @@
+<%# locals: (stress:, setting:) %>
+<%# Monte Carlo, stated as a model rather than a prediction: the share of
+    plausible market paths in which the money lasts, plus a bad-decade variant. %>
+<%= render DS::Card.new(data: { testid: "retirement-stress" }, class: "gap-4") do %>
+  <div class="flex items-center justify-between gap-3">
+    <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+    <%= icon "activity", size: "sm", color: "info" %>
+  </div>
+
+  <% if stress.result.nil? %>
+    <div class="bg-container-inset rounded-lg p-4">
+      <p class="text-sm text-primary"><%= t(".unavailable") %></p>
+      <p class="text-xs text-secondary mt-1"><%= t(".unavailable_hint") %></p>
+    </div>
+  <% else %>
+    <div class="bg-container-inset rounded-lg p-3 space-y-1">
+      <p class="text-xs text-secondary"><%= t(".success_label") %></p>
+      <p class="text-3xl font-medium text-primary tabular-nums"><%= t(".success_value", percent: stress.result.success_percent) %></p>
+      <p class="text-xs text-secondary"><%= t(".success_hint") %></p>
+    </div>
+
+    <dl class="grid grid-cols-1 @md:grid-cols-2 gap-3">
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".bad_decade_label") %></dt>
+        <dd class="text-sm font-medium text-primary tabular-nums"><%= t(".success_value", percent: stress.result.bad_decade_percent) %></dd>
+        <p class="text-xs text-subdued"><%= t(".bad_decade_hint") %></p>
+      </div>
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".median_label") %></dt>
+        <dd class="text-sm font-medium text-primary tabular-nums privacy-sensitive">
+          <%= format_money(stress.result.median_corpus_money(Current.family.currency), precision: 0) %>
+        </dd>
+        <p class="text-xs text-subdued"><%= t(".median_hint") %></p>
+      </div>
+    </dl>
+
+    <p class="text-xs text-secondary">
+      <%= t(".assumptions",
+             age: stress.current_age,
+             retirement_age: stress.retirement_age,
+             mean: number_to_percentage(stress.mean_return_pct, precision: 1),
+             volatility: number_to_percentage(FinancialPlanning::RetirementStressTest::VOLATILITY_PCT, precision: 0),
+             inflation: number_to_percentage(stress.inflation_pct, precision: 1),
+             trials: FinancialPlanning::RetirementStressTest::TRIALS) %>
+    </p>
+    <p class="text-xs text-subdued"><%= t(".footnote") %></p>
+  <% end %>
+
+  <%= styled_form_with model: setting,
+                       url: setting_financial_planning_path,
+                       method: :patch,
+                       scope: :planning_setting,
+                       class: "flex flex-wrap items-end gap-2" do |form| %>
+    <%= form.number_field :retirement_age, label: t(".retirement_age_label"), min: PlanningSetting::RETIREMENT_AGE_RANGE.begin, max: PlanningSetting::RETIREMENT_AGE_RANGE.end, step: 1 %>
+    <%= form.submit t(".retirement_age_save") %>
+  <% end %>
+<% end %>

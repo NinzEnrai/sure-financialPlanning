@@ -43,6 +43,24 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/translation missing/, response.body)
   end
 
+  test "updates the retirement age" do
+    patch setting_financial_planning_path, params: {
+      planning_setting: { retirement_age: 65 }
+    }
+
+    assert_redirected_to financial_planning_path
+    assert_equal 65, @family.reload.planning_setting.retirement_age
+  end
+
+  test "renders the retirement stress test card" do
+    get financial_planning_url
+
+    assert_response :success
+    assert_select "[data-testid='retirement-stress']"
+    assert_select "[data-testid='retirement-stress'] h2", text: I18n.t("financial_planning.retirement_stress.title")
+    assert_select "input[name='planning_setting[retirement_age]']"
+  end
+
   test "updates the risk profile" do
     patch setting_financial_planning_path, params: {
       planning_setting: { risk_profile: "aggressive" }

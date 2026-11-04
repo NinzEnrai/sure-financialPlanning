@@ -6,6 +6,17 @@ class PlanningSettingTest < ActiveSupport::TestCase
     @setting = planning_settings(:active_family)
   end
 
+  test "retirement age accepts only the sane range" do
+    @setting.retirement_age = 29
+    assert_not @setting.valid?
+
+    @setting.retirement_age = 60
+    assert @setting.valid?
+
+    @setting.retirement_age = 91
+    assert_not @setting.valid?
+  end
+
   test "risk profile accepts the three profiles or nothing" do
     @setting.risk_profile = "reckless"
     assert_not @setting.valid?

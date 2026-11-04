@@ -58,6 +58,9 @@ class PlanningSetting < ApplicationRecord
   DEFAULT_EMERGENCY_TARGET_MONTHS = 6
   EMERGENCY_TARGET_MONTHS_RANGE = (1..24).freeze
 
+  DEFAULT_RETIREMENT_AGE = 60
+  RETIREMENT_AGE_RANGE = (30..90).freeze
+
   # Optional risk profile, used only to frame the allocation card's equity
   # range. The bands are conventional ranges, not advice: a household is free
   # to sit outside them, and the card says so rather than blocking anything.
@@ -106,6 +109,7 @@ class PlanningSetting < ApplicationRecord
   validates :fire_variant, inclusion: { in: FIRE_VARIANTS.keys }
   validates :risk_profile, inclusion: { in: RISK_PROFILES.keys }, allow_nil: true
   validates :emergency_target_months, inclusion: { in: EMERGENCY_TARGET_MONTHS_RANGE }
+  validates :retirement_age, inclusion: { in: RETIREMENT_AGE_RANGE }
   validates :needs_target_pct, :wants_target_pct, :savings_target_pct,
             numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }
   validate :budget_targets_add_up_to_one_hundred

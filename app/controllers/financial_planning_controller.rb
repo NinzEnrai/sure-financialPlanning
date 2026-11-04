@@ -41,6 +41,7 @@ class FinancialPlanningController < ApplicationController
     @realised_gains = FinancialPlanning::RealisedGains.new(Current.family, user: Current.user)
     @capital_gains = FinancialPlanning::CapitalGainsEstimate.new(Current.family, user: Current.user)
     @tax_harvesting = FinancialPlanning::TaxHarvesting.new(Current.family, user: Current.user)
+    @retirement_stress = FinancialPlanning::RetirementStressTest.new(Current.family, user: Current.user)
     @data_confidence = FinancialPlanning::DataConfidence.new(Current.family, user: Current.user)
     @tax_readiness = FinancialPlanning::TaxReadiness.new(Current.family, user: Current.user)
     @tradebook_accounts = Current.family.accounts.visible
@@ -216,7 +217,7 @@ class FinancialPlanningController < ApplicationController
       params.require(:planning_setting).permit(
         :fire_variant, :fire_target_year, :fire_withdrawal_rate_pct, :annual_growth_rate_pct,
         :emergency_target_months, :needs_target_pct, :wants_target_pct, :savings_target_pct,
-        :risk_profile
+        :risk_profile, :retirement_age
       )
     end
 

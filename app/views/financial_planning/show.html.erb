@@ -83,4 +83,7 @@
   <%= render "financial_planning/budget_analyzer", analyzer: @budget_analyzer, period: @period %>
 
   <%= render "financial_planning/wealth_projector", projector: @projector %>
+
+  <%# The plan against market paths, not just one line. %>
+  <%= render "financial_planning/retirement_stress", stress: @retirement_stress, setting: @planning_setting %>
 </div>

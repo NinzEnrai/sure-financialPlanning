@@ -538,6 +538,21 @@ en:
       created: Policy added
       removed: Policy removed
       not_found: That policy is not part of this family.
+    retirement_stress:
+      title: Retirement stress test
+      unavailable: Not enough data to model
+      unavailable_hint: This needs the "self" household member's date of birth and some recorded income and spending. Add them on the Household card and record a few months of transactions.
+      success_label: Paths where the money lasts 30 years
+      success_value: "%{percent}%"
+      success_hint: The share of simulated market paths in which retirement spending is covered for thirty years.
+      bad_decade_label: If the first decade returns -10% a year
+      bad_decade_hint: Same plan and same spending, with a lost decade at the start of retirement.
+      median_label: Median corpus at retirement
+      median_hint: Half of the simulated paths end up above this figure, half below.
+      assumptions: "Model: age %{age} retiring at %{retirement_age}; %{mean} mean return with %{volatility} volatility; %{inflation} inflation; %{trials} independent trials."
+      footnote: A model, not a prediction. Returns are independent draws, real markets cluster their bad years, and taxes, fees and health shocks are not in the simulation. Treat it as a sense of the risk, not a plan you can bank.
+      retirement_age_label: Retirement age
+      retirement_age_save: Save age
   planning_setting:
     buckets:
       needs: Needs

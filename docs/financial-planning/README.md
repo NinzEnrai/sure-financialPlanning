@@ -34,6 +34,7 @@ Open **Investments → Financial Planning** (preview feature). In order:
 | Tax harvesting | Are there losses worth booking? | Open lots, latest prices |
 | Budget split | Are we inside our own 50/30/20? | Categories, transactions |
 | Wealth projection | Where could current savings take us? | Net worth, savings pace, growth |
+| Retirement stress test | How likely is the money to last? | Age, spending, savings, growth assumption |
 
 A **Year in review** page (linked from the page header) rolls the important
 figures into one printable summary with a review date.
@@ -49,6 +50,8 @@ figures into one printable summary with a review date.
   goals page keeps the nominal figure.
 - **Household and protection** — people (with ages and dependants) and insurance
   policies (cover, premiums, renewals, nominees).
+- **Retirement age** — set on the retirement stress test card; age comes from
+  the "self" household member's date of birth.
 
 ## How the numbers stay honest
 
@@ -115,6 +118,8 @@ paths for these cards; if a card changes, change its tests with it.
   unclassified holdings are shown as such and debt-fund detection needs the
   mutual-fund + fixed-income flags.
 - The cash-flow forecast is average-based, not a day-level bill calendar.
+- The retirement stress test draws independent returns; real markets cluster
+  their bad years, and taxes, fees and health shocks are outside the model.
 - Insurance cover adequacy for health is a country-aware guide, not advice.
 - Household members are add/remove only; income per member and editing are not
   implemented yet.

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_05_190000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_05_200000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -2048,6 +2048,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_190000) do
     t.decimal "fire_withdrawal_rate_pct", precision: 5, scale: 2, default: "4.0", null: false
     t.date "last_reviewed_on"
     t.integer "needs_target_pct", default: 50, null: false
+    t.integer "retirement_age", default: 60, null: false
     t.string "risk_profile"
     t.integer "savings_target_pct", default: 20, null: false
     t.datetime "updated_at", null: false
@@ -2056,7 +2057,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_190000) do
     t.check_constraint "emergency_target_months >= 1 AND emergency_target_months <= 24", name: "planning_settings_emergency_target_months_range"
     t.check_constraint "fire_target_year IS NULL OR fire_target_year >= 2000 AND fire_target_year <= 2200", name: "planning_settings_fire_target_year_range"
     t.check_constraint "needs_target_pct >= 0 AND needs_target_pct <= 100 AND wants_target_pct >= 0 AND wants_target_pct <= 100 AND savings_target_pct >= 0 AND savings_target_pct <= 100", name: "planning_settings_budget_targets_range"
-    t.check_constraint "risk_profile IS NULL OR (risk_profile::text = ANY (ARRAY['conservative'::character varying, 'moderate'::character varying, 'aggressive'::character varying]::text[]))", name: "planning_settings_risk_profile_check"
+    t.check_constraint "retirement_age >= 30 AND retirement_age <= 90", name: "planning_settings_retirement_age_range"
+    t.check_constraint "risk_profile IS NULL OR (risk_profile::text = ANY (ARRAY['conservative'::character varying::text, 'moderate'::character varying::text, 'aggressive'::character varying::text]))", name: "planning_settings_risk_profile_check"
   end
 
   create_table "properties", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
