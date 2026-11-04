@@ -290,6 +290,55 @@ en:
       created: Person added
       removed: Person removed
       not_found: That person is not part of this family.
+    protection:
+      title: Protection
+      intro: The part of a plan that cannot be rebuilt from transactions. If income stopped tomorrow, what would the household actually get?
+      empty: No policies recorded
+      empty_hint: Add term life, health or other cover so the plan can show what is actually protected.
+      life_cover: Life cover
+      health_cover: Health cover
+      annual_premiums: Annual premiums
+      cover_guide: "Guide: about %{multiple}x annual income (%{amount})"
+      cover_guide_unknown: Record some income to compare life cover against the usual 10x guide.
+      gap: "%{amount} short of that guide"
+      no_gap: At or above the guide
+      renewing_title: Renewals due
+      renews_on: Renews %{date}
+      whole_household: Whole household
+      covered_member: Covered
+      renews_soon: Renews soon
+      overdue: Overdue
+      remove: Remove
+      form_title: Add a policy
+      policy_type: Type
+      choose_type: Choose a type
+      provider: Insurer
+      cover_amount: Cover amount (%{currency})
+      premium_amount: Premium (%{currency})
+      premium_frequency: Premium frequency
+      renewal_date: Renewal date
+      nominee: Nominee
+      add: Add policy
+      amount_hint: Amounts are in %{currency}. Leave blank anything you do not know.
+      types:
+        term_life: Term life
+        whole_life: Whole life
+        ulip: ULIP
+        health: Health
+        critical_illness: Critical illness
+        personal_accident: Personal accident
+        home: Home
+        vehicle: Vehicle
+        other: Other
+      frequencies:
+        monthly: Monthly
+        quarterly: Quarterly
+        half_yearly: Half-yearly
+        yearly: Yearly
+    insurance_policies:
+      created: Policy added
+      removed: Policy removed
+      not_found: That policy is not part of this family.
   planning_setting:
     buckets:
       needs: Needs

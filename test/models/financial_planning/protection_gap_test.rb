@@ -1,0 +1,85 @@
+require "test_helper"
+
+class FinancialPlanning::ProtectionGapTest < ActiveSupport::TestCase
+  include EntriesTestHelper
+
+  setup do
+    @family = families(:dylan_family)
+    @user = users(:family_admin)
+    clear_entries
+  end
+
+  test "is unknown with no policies rather than reassuringly zero" do
+    gap = build_gap
+
+    assert gap.empty?
+    assert_equal :unknown, gap.status
+    assert_equal 0, gap.life_cover_total
+  end
+
+  test "compares life cover with ten times recorded annual income" do
+    create_transaction(amount: -120_000, date: Date.current)
+    add_policy(policy_type: "term_life", cover_amount: 500_000)
+
+    gap = build_gap
+
+    assert_equal 500_000, gap.life_cover_total
+    assert_equal 1_200_000, gap.recommended_life_cover
+    assert_equal 700_000, gap.life_cover_gap
+    assert_equal :attention, gap.status
+  end
+
+  test "is good when cover meets the guide" do
+    create_transaction(amount: -120_000, date: Date.current)
+    add_policy(policy_type: "term_life", cover_amount: 1_500_000)
+
+    gap = build_gap
+
+    assert_equal 0, gap.life_cover_gap
+    assert_equal :good, gap.status
+  end
+
+  test "stays unknown when income has not been recorded" do
+    add_policy(policy_type: "term_life", cover_amount: 1_500_000)
+
+    gap = build_gap
+
+    assert_nil gap.annual_income
+    assert_equal :unknown, gap.status
+  end
+
+  test "sums annual premiums and health cover" do
+    add_policy(policy_type: "health", cover_amount: 300_000, premium_amount: 1000, premium_frequency: "monthly")
+    add_policy(policy_type: "term_life", cover_amount: 500_000, premium_amount: 20_000, premium_frequency: "yearly")
+
+    gap = build_gap
+
+    assert_equal 300_000, gap.health_cover_total
+    assert_equal 32_000, gap.annual_premium_total
+  end
+
+  test "counts dependants from the household profile" do
+    assert_equal 1, build_gap.dependants_count
+  end
+
+  private
+    def build_gap
+      FinancialPlanning::ProtectionGap.new(@family, user: @user)
+    end
+
+    def add_policy(**attrs)
+      @family.insurance_policies.create!(
+        {
+          policy_type: "term_life",
+          provider: "Insurer",
+          cover_amount: 1_000_000,
+          premium_amount: 10_000,
+          premium_frequency: "yearly"
+        }.merge(attrs)
+      )
+    end
+
+    def clear_entries
+      Entry.where(account: @family.accounts).destroy_all
+    end
+end

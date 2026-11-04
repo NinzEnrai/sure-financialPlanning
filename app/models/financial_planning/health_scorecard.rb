@@ -127,10 +127,16 @@ class FinancialPlanning::HealthScorecard
       Check.new(key: :goals, status: status, value: dated.size - behind, unit: :goals, total: dated.size)
     end
 
-    # No insurance table exists yet, so this is the one check that is honestly
-    # "cannot run". Saying so is more useful than a green light nobody earned.
+    # Checkable only once the household has recorded cover and income to size it
+    # against. Until then it stays an honest unknown rather than a green light
+    # nobody earned.
     def protection_check
-      Check.new(key: :protection, status: :unknown, value: nil, unit: :none, total: nil)
+      gap = protection_gap
+      return Check.new(key: :protection, status: :unknown, value: nil, unit: :none, total: nil) if gap.empty?
+      return Check.new(key: :protection, status: :unknown, value: nil, unit: :none, total: nil) if gap.annual_income.nil?
+
+      status = gap.life_cover_gap.positive? ? :attention : :good
+      Check.new(key: :protection, status: status, value: gap.life_cover_total, unit: :money, total: nil)
     end
 
     def savings_rate
@@ -145,6 +151,10 @@ class FinancialPlanning::HealthScorecard
 
     def debt_summary
       @debt_summary ||= FinancialPlanning::DebtSummary.new(family, user: user)
+    end
+
+    def protection_gap
+      @protection_gap ||= FinancialPlanning::ProtectionGap.new(family, user: user)
     end
 
     def active_goals

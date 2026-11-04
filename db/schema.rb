@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_05_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_05_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -1220,7 +1220,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_130000) do
     t.string "relationship", null: false
     t.datetime "updated_at", null: false
     t.index ["family_id"], name: "index_household_members_on_family_id"
-    t.check_constraint "relationship::text = ANY (ARRAY['self'::character varying, 'spouse'::character varying, 'partner'::character varying, 'child'::character varying, 'parent'::character varying, 'sibling'::character varying, 'other'::character varying]::text[])", name: "household_members_relationship_check"
+    t.check_constraint "relationship::text = ANY (ARRAY['self'::character varying::text, 'spouse'::character varying::text, 'partner'::character varying::text, 'child'::character varying::text, 'parent'::character varying::text, 'sibling'::character varying::text, 'other'::character varying::text])", name: "household_members_relationship_check"
   end
 
   create_table "ibkr_accounts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -1507,6 +1507,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_130000) do
     t.index ["family_id", "status"], name: "index_insights_on_family_id_and_status"
     t.check_constraint "priority::text = ANY (ARRAY['high'::character varying::text, 'medium'::character varying::text, 'low'::character varying::text])", name: "chk_insights_priority"
     t.check_constraint "status::text = ANY (ARRAY['active'::character varying::text, 'read'::character varying::text, 'dismissed'::character varying::text, 'expired'::character varying::text])", name: "chk_insights_status"
+  end
+
+  create_table "insurance_policies", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.decimal "cover_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.datetime "created_at", null: false
+    t.uuid "family_id", null: false
+    t.uuid "household_member_id"
+    t.string "nominee"
+    t.text "notes"
+    t.string "policy_number"
+    t.string "policy_type", null: false
+    t.decimal "premium_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.string "premium_frequency", default: "yearly", null: false
+    t.string "provider", null: false
+    t.date "renewal_date"
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_insurance_policies_on_family_id"
+    t.index ["household_member_id"], name: "index_insurance_policies_on_household_member_id"
+    t.check_constraint "cover_amount >= 0::numeric AND premium_amount >= 0::numeric", name: "insurance_policies_amounts_non_negative"
+    t.check_constraint "policy_type::text = ANY (ARRAY['term_life'::character varying, 'whole_life'::character varying, 'ulip'::character varying, 'health'::character varying, 'critical_illness'::character varying, 'personal_accident'::character varying, 'home'::character varying, 'vehicle'::character varying, 'other'::character varying]::text[])", name: "insurance_policies_policy_type_check"
+    t.check_constraint "premium_frequency::text = ANY (ARRAY['monthly'::character varying, 'quarterly'::character varying, 'half_yearly'::character varying, 'yearly'::character varying]::text[])", name: "insurance_policies_premium_frequency_check"
   end
 
   create_table "investments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -3198,6 +3219,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_130000) do
   add_foreign_key "indexa_capital_accounts", "indexa_capital_items"
   add_foreign_key "indexa_capital_items", "families"
   add_foreign_key "insights", "families"
+  add_foreign_key "insurance_policies", "families"
+  add_foreign_key "insurance_policies", "household_members", on_delete: :nullify
   add_foreign_key "invitations", "families"
   add_foreign_key "invitations", "users", column: "inviter_id"
   add_foreign_key "kite_accounts", "kite_items"

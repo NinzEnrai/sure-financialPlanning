@@ -16,6 +16,13 @@
   <%# Who the plan is for, before any of the figures that depend on it. %>
   <%= render "financial_planning/household", members: @household_members, member: @household_member %>
 
+  <%# What the plan would leave behind if income stopped. %>
+  <%= render "financial_planning/protection",
+             policies: @insurance_policies,
+             policy: @insurance_policy,
+             gap: @protection_gap,
+             members: @household_members %>
+
   <%# The FIRE card edits the family's saved assumptions, so it needs the
       PlanningSetting record rather than deriving them again. %>
   <div class="grid grid-cols-1 @3xl:grid-cols-2 gap-4 items-stretch">

@@ -508,6 +508,10 @@ Rails.application.routes.draw do
     # People the plan is for -- a dependant does not need an account.
     resources :household_members, only: %i[create destroy],
               controller: "financial_planning/household_members"
+
+    # Protection cover the household holds.
+    resources :insurance_policies, only: %i[create destroy],
+              controller: "financial_planning/insurance_policies"
   end
 
   resources :budgets, only: %i[index show edit update], param: :month_year do

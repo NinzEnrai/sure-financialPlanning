@@ -1,6 +1,8 @@
 require "test_helper"
 
 class FinancialPlanning::HealthScorecardTest < ActiveSupport::TestCase
+  include EntriesTestHelper
+
   setup do
     @family = families(:dylan_family)
     @user = users(:family_admin)
@@ -31,6 +33,25 @@ class FinancialPlanning::HealthScorecardTest < ActiveSupport::TestCase
 
     assert_equal :attention, statuses_by_key(scorecard)[:emergency_fund]
     assert_equal :emergency_fund, scorecard.next_action_key
+  end
+
+  test "protection turns attention when life cover is below the income guide" do
+    Entry.where(account: @family.accounts).destroy_all
+    create_transaction(amount: -120_000, date: Date.current)
+    @family.insurance_policies.create!(
+      policy_type: "term_life",
+      provider: "Insurer",
+      cover_amount: 500_000,
+      premium_amount: 12_000,
+      premium_frequency: "yearly"
+    )
+
+    stub_metrics(rate: 25.0, months: 7.0, dti: 10.0, high_interest: 0, debts: [])
+
+    check = build_scorecard.checks.find { |candidate| candidate.key == :protection }
+
+    assert_equal :attention, check.status
+    assert_equal 500_000, check.value
   end
 
   test "expensive debt outranks a low savings rate as the next action" do

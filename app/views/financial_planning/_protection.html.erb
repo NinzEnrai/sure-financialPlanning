@@ -1,0 +1,118 @@
+<%# locals: (policies:, policy:, gap:, members:) %>
+<%# What the household would actually get if income stopped. Life cover is
+    compared with a stated guide (10x recorded annual income); health cover is
+    reported as a total because the right number depends on things Sure does
+    not know. No policies means "unknown", never a reassuring zero. %>
+<%= render DS::Card.new(data: { testid: "protection" }, class: "gap-4") do %>
+  <div class="flex items-center justify-between gap-3">
+    <h2 class="text-lg font-medium text-primary"><%= t(".title") %></h2>
+    <%= icon "shield-check", size: "sm", color: gap.status == :good ? "success" : (gap.empty? ? "default" : "warning") %>
+  </div>
+
+  <p class="text-xs text-secondary"><%= t(".intro") %></p>
+
+  <% if gap.empty? %>
+    <div class="bg-container-inset rounded-lg p-4">
+      <p class="text-sm text-primary"><%= t(".empty") %></p>
+      <p class="text-xs text-secondary mt-1"><%= t(".empty_hint") %></p>
+    </div>
+  <% else %>
+    <dl class="grid grid-cols-1 @md:grid-cols-3 gap-3">
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".life_cover") %></dt>
+        <dd class="text-sm font-medium text-primary tabular-nums privacy-sensitive"><%= format_money(gap.life_cover_total_money) %></dd>
+        <p class="text-xs text-subdued">
+          <% if gap.recommended_life_cover %>
+            <%= t(".cover_guide", multiple: FinancialPlanning::ProtectionGap::INCOME_MULTIPLE, amount: format_money(Money.new(gap.recommended_life_cover, Current.family.currency))) %>
+            <br>
+            <% if gap.life_cover_gap.positive? %>
+              <%= t(".gap", amount: format_money(Money.new(gap.life_cover_gap, Current.family.currency))) %>
+            <% else %>
+              <%= t(".no_gap") %>
+            <% end %>
+          <% else %>
+            <%= t(".cover_guide_unknown") %>
+          <% end %>
+        </p>
+      </div>
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".health_cover") %></dt>
+        <dd class="text-sm font-medium text-primary tabular-nums privacy-sensitive"><%= format_money(gap.health_cover_total_money) %></dd>
+      </div>
+      <div class="bg-container-inset rounded-lg p-3 space-y-1">
+        <dt class="text-xs text-secondary"><%= t(".annual_premiums") %></dt>
+        <dd class="text-sm font-medium text-primary tabular-nums privacy-sensitive"><%= format_money(gap.annual_premium_total_money) %></dd>
+      </div>
+    </dl>
+
+    <% if gap.renewing_soon.any? %>
+      <div class="rounded-lg bg-warning/10 p-3">
+        <p class="text-xs font-medium text-primary"><%= t(".renewing_title") %></p>
+        <p class="text-xs text-secondary mt-1">
+          <%= gap.renewing_soon.map { |item| "#{item.provider} (#{l(item.renewal_date, format: "%d %b")})" }.join(" · ") %>
+        </p>
+      </div>
+    <% end %>
+
+    <ul class="divide-y divide-subdued">
+      <% policies.each do |item| %>
+        <li class="py-2.5 flex items-center justify-between gap-3" data-policy="<%= item.id %>">
+          <div class="min-w-0">
+            <p class="text-sm text-primary truncate">
+              <%= t(".types.#{item.policy_type}") %> · <%= item.provider %>
+            </p>
+            <p class="text-xs text-secondary">
+              <%= item.household_member&.name || t(".whole_household") %>
+              <% if item.renewal_date %>
+                · <%= t(".renews_on", date: l(item.renewal_date, format: "%d %b %Y")) %>
+              <% end %>
+            </p>
+          </div>
+          <div class="flex items-center gap-3 shrink-0">
+            <% if item.renewal_overdue? %>
+              <%= render DS::Pill.new(label: t(".overdue"), tone: :destructive, marker: false, size: :sm) %>
+            <% elsif item.renewing_soon? %>
+              <%= render DS::Pill.new(label: t(".renews_soon"), tone: :warning, marker: false, size: :sm) %>
+            <% end %>
+            <span class="text-sm font-medium text-primary tabular-nums privacy-sensitive"><%= format_money(Money.new(item.cover_amount.to_d, Current.family.currency), precision: 0) %></span>
+            <%= button_to t(".remove"),
+                          financial_planning_insurance_policy_path(item),
+                          method: :delete,
+                          form_class: "inline",
+                          class: "text-xs text-destructive underline underline-offset-2 focus-ring" %>
+          </div>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+
+  <div>
+    <p class="text-sm font-medium text-primary mb-2"><%= t(".form_title") %></p>
+    <%= styled_form_with model: policy,
+                         url: financial_planning_insurance_policies_path,
+                         scope: :insurance_policy,
+                         class: "grid grid-cols-1 @md:grid-cols-2 gap-3" do |form| %>
+      <%= form.select :policy_type,
+          options_for_select(InsurancePolicy::POLICY_TYPES.map { |type| [ t(".types.#{type}"), type ] }, policy.policy_type),
+          { include_blank: t(".choose_type") },
+          label: t(".policy_type") %>
+      <%= form.select :household_member_id,
+          options_for_select(members.map { |member| [ member.name, member.id ] }, policy.household_member_id),
+          { include_blank: t(".whole_household") },
+          label: t(".covered_member") %>
+      <%= form.text_field :provider, label: t(".provider") %>
+      <%= form.number_field :cover_amount, label: t(".cover_amount", currency: Current.family.currency), min: 0, step: "0.01" %>
+      <%= form.number_field :premium_amount, label: t(".premium_amount", currency: Current.family.currency), min: 0, step: "0.01" %>
+      <%= form.select :premium_frequency,
+          options_for_select(InsurancePolicy::PREMIUM_FREQUENCIES.keys.map { |frequency| [ t(".frequencies.#{frequency}"), frequency ] }, policy.premium_frequency.presence || "yearly"),
+          {},
+          label: t(".premium_frequency") %>
+      <%= form.date_field :renewal_date, label: t(".renewal_date") %>
+      <%= form.text_field :nominee, label: t(".nominee") %>
+      <p class="text-xs text-subdued @md:col-span-2"><%= t(".amount_hint", currency: Current.family.currency) %></p>
+      <div class="flex justify-end @md:col-span-2">
+        <%= form.submit t(".add") %>
+      </div>
+    <% end %>
+  </div>
+<% end %>

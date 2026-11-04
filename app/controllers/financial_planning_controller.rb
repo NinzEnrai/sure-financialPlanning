@@ -41,6 +41,11 @@ class FinancialPlanningController < ApplicationController
     # People the plan is for, plus a blank record for the add form.
     @household_members = Current.family.household_members.order(:created_at)
     @household_member = HouseholdMember.new
+
+    # Protection cover, and the gap between what is held and the income guide.
+    @insurance_policies = Current.family.insurance_policies.order(:created_at)
+    @insurance_policy = InsurancePolicy.new
+    @protection_gap = FinancialPlanning::ProtectionGap.new(Current.family, user: Current.user)
   end
 
   # Drives the projection chart. Kept as a separate action so the series can be
