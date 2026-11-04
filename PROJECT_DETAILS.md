@@ -175,7 +175,7 @@ bin/deploy does: pull, tailwindcss:build, assets:precompile, db:migrate, restart
 - Review route: GET /financial_planning/review renders the annual review (net-worth movement, savings rate, protection, goals, checks and priorities); PATCH /financial_planning/mark_reviewed stores planning_settings.last_reviewed_on
 - Goal priority: goals.priority (high/medium/low, default medium) orders the goal-funding card; it never changes a goal's maths
 - Goal inflation: goals.inflation_pct (0-50, optional) makes the goal-funding card plan against the future-rupee target; the goals page keeps the nominal figure
-- Risk profile: planning_settings.risk_profile (conservative/moderate/aggressive, optional) frames the allocation card's conventional equity range and flags how far the current mix sits from it
+- Risk profile: planning_settings.risk_profile (conservative/moderate/aggressive, optional) frames the allocation card's conventional equity range, flags how far the current mix sits from it, and (outside the band) computes the tax-unaware amount to move back to the middle of the range
 - Protection card also counts adults (self/spouse/partner) with life cover attached, treating a household-wide policy as covering everyone
 - Advisory framework and feature roadmap: docs/financial-planning/advisory-framework.md
 - PlanningSetting model: buckets, category_buckets, fire_variant, fire_target_year, fire_withdrawal_rate_pct, annual_growth_rate_pct, emergency_target_months, needs/wants/savings_target_pct (must total 100)

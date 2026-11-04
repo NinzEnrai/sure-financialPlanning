@@ -291,6 +291,10 @@ en:
       risk_good: Your equity share is inside the range.
       risk_watch: Your equity share is just outside the range; worth checking it was deliberate.
       risk_outside: Your equity share is well outside the range for this profile.
+      rebalance_trim_equity: "To return to the middle of the band (%{target} equity), move about %{amount} out of equity."
+      rebalance_add_equity: "To return to the middle of the band (%{target} equity), add about %{amount} to equity."
+      rebalance_none: Within the band — no rebalancing needed.
+      rebalance_caveat: A plan, not a trade. Sure never places orders, and selling may realise capital gains, so check the tax position before acting.
       risk_profiles:
         conservative: Conservative
         moderate: Moderate

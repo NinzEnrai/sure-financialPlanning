@@ -112,6 +112,40 @@ class FinancialPlanning::PortfolioAllocation
     distance <= 10 ? :watch : :attention
   end
 
+  # The middle of the profile's equity range: the conventional anchor a
+  # rebalancing plan moves toward. The plan is deliberately tax-unaware and is
+  # never executed by the app.
+  def risk_target_equity_percent
+    range = equity_target_range
+    return nil if range.nil?
+
+    ((range.begin + range.end) / 2.0).round(1)
+  end
+
+  def equity_drift_percent
+    return nil if equity_percent.nil? || risk_target_equity_percent.nil?
+
+    (equity_percent - risk_target_equity_percent).round(1)
+  end
+
+  def rebalance_direction
+    return nil if equity_drift_percent.nil? || equity_drift_percent.zero?
+
+    equity_drift_percent.positive? ? :trim_equity : :add_equity
+  end
+
+  def rebalance_amount
+    return nil if equity_drift_percent.nil? || invested_total.zero?
+
+    ((equity_drift_percent.abs / 100) * invested_total).round(2)
+  end
+
+  # Only outside the band does the plan suggest moving, and only when there is
+  # something to move. Inside the band the whole point of bands is to do nothing.
+  def rebalance_plan?
+    %i[watch attention].include?(equity_status) && rebalance_amount.present? && rebalance_amount.positive?
+  end
+
   # Grouped by the security's asset class; anything without one is grouped as
   # "unclassified" rather than being dropped, so the percentages still add up.
   def asset_classes

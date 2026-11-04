@@ -62,6 +62,44 @@ class FinancialPlanning::PortfolioAllocationTest < ActiveSupport::TestCase
     assert_equal :attention, build_allocation.equity_status
   end
 
+  test "plans a shift back to the middle of the band" do
+    setting = @family.planning_setting || @family.create_planning_setting
+    setting.update!(risk_profile: "moderate") # 50-70%, middle 60%; portfolio holds 80% equity
+
+    allocation = build_allocation
+
+    assert_in_delta 60.0, allocation.risk_target_equity_percent, 0.05
+    assert_in_delta 20.0, allocation.equity_drift_percent, 0.05
+    assert_equal :trim_equity, allocation.rebalance_direction
+    assert_in_delta 100.0, allocation.rebalance_amount, 0.01
+    assert allocation.rebalance_plan?
+  end
+
+  test "plans adding to equity when the mix is under the band" do
+    holdings_of(@equity).update!(amount: 50, qty: 5, price: 10)
+    setting = @family.planning_setting || @family.create_planning_setting
+    setting.update!(risk_profile: "aggressive") # 70-90%, middle 80%
+
+    allocation = build_allocation
+
+    assert_equal :add_equity, allocation.rebalance_direction
+    assert_operator allocation.rebalance_amount, :>, 0
+    assert allocation.rebalance_plan?
+  end
+
+  test "no rebalancing plan inside the band or without a profile" do
+    setting = @family.planning_setting || @family.create_planning_setting
+    setting.update!(risk_profile: "aggressive") # middle 80 equals the current 80%
+
+    assert_not build_allocation.rebalance_plan?
+    assert_equal :good, build_allocation.equity_status
+
+    setting.update!(risk_profile: nil)
+
+    assert_not build_allocation.rebalance_plan?
+    assert_nil build_allocation.rebalance_amount
+  end
+
   test "risk comparison is unknown without a profile" do
     setting = @family.planning_setting || @family.create_planning_setting
     setting.update!(risk_profile: nil)

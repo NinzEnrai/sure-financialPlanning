@@ -118,6 +118,17 @@
         <% when :attention %>
           <p class="text-xs text-destructive"><%= t(".risk_outside") %></p>
         <% end %>
+
+        <% if allocation.rebalance_plan? %>
+          <p class="text-xs text-secondary tabular-nums privacy-sensitive">
+            <%= t(".rebalance_#{allocation.rebalance_direction}",
+                   amount: format_money(Money.new(allocation.rebalance_amount, Current.family.currency), precision: 0),
+                   target: number_to_percentage(allocation.risk_target_equity_percent, precision: 0)) %>
+          </p>
+          <p class="text-xs text-subdued"><%= t(".rebalance_caveat") %></p>
+        <% elsif allocation.equity_status == :good %>
+          <p class="text-xs text-subdued"><%= t(".rebalance_none") %></p>
+        <% end %>
       <% else %>
         <p class="text-xs text-secondary"><%= t(".risk_none") %></p>
       <% end %>
