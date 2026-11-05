@@ -40,11 +40,12 @@ class FinancialPlanning::RealisedGains
 
   # `account_ids:` scopes the engine to one owner's accounts; nil means every
   # visible account in the family (the family-wide view).
-  def initialize(family, user: nil, as_of: Date.current, account_ids: nil)
+  def initialize(family, user: nil, as_of: Date.current, account_ids: nil, tax_lots: nil)
     @family = family
     @user = user || Current.user
     @as_of = as_of.to_date
     @account_ids_override = account_ids
+    @tax_lots = tax_lots
   end
 
   def rows
@@ -181,7 +182,7 @@ class FinancialPlanning::RealisedGains
     end
 
     def engine
-      @engine ||= Portfolio::TaxLots.new(account_ids: account_ids, as_of: as_of)
+      @engine ||= @tax_lots || Portfolio::TaxLots.new(account_ids: account_ids, as_of: as_of)
     end
 
     def account_ids

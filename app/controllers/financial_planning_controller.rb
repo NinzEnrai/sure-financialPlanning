@@ -17,51 +17,75 @@ class FinancialPlanningController < ApplicationController
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
 
-    @savings_rate = FinancialPlanning::SavingsRate.new(Current.family, period: current_month_period, user: Current.user)
-    @year_to_date_savings_rate = FinancialPlanning::SavingsRate.new(Current.family, period: year_to_date_period, user: Current.user)
+    # One income statement, balance sheet and investment statement per request:
+    # every card reads through these, and each memoises its aggregates per
+    # period. Sharing them removes the duplicated aggregate queries that made
+    # this page the slowest in the app.
+    family = Current.family
+    user = Current.user
+    income_statement = family.income_statement(user: user)
+    balance_sheet = family.balance_sheet(user: user)
+    investment_statement = family.investment_statement(user: user)
+    active_goals = Goal.prepared_for(family, scope: family.goals.where(state: "active"))
+    funding_goals = Goal.active_prepared_for(family)
+    tax_lots = Portfolio::TaxLots.new(account_ids: family.accounts.visible.pluck(:id), as_of: Date.current)
 
-    @budget_analyzer = FinancialPlanning::BudgetAnalyzer.new(Current.family, period: @period, user: Current.user)
+    @savings_rate = FinancialPlanning::SavingsRate.new(family, period: current_month_period, user: user, income_statement: income_statement)
+    @year_to_date_savings_rate = FinancialPlanning::SavingsRate.new(family, period: year_to_date_period, user: user, income_statement: income_statement)
 
-    @fire_progress = FinancialPlanning::FireProgress.new(Current.family, user: Current.user)
+    @budget_analyzer = FinancialPlanning::BudgetAnalyzer.new(family, period: @period, user: user, income_statement: income_statement)
+
+    @fire_progress = FinancialPlanning::FireProgress.new(family, user: user, income_statement: income_statement, balance_sheet: balance_sheet)
     # Built here rather than inside the card so the FIRE form edits the persisted
     # record instead of writing to an unsaved copy that would silently vanish.
-    @planning_setting = Current.family.planning_setting || Current.family.build_planning_setting
-    @projector = FinancialPlanning::WealthProjector.new(Current.family, user: Current.user)
+    @planning_setting = family.planning_setting || family.build_planning_setting
+    @projector = FinancialPlanning::WealthProjector.new(family, user: user, savings_rate: @savings_rate, balance_sheet: balance_sheet)
 
     # Cash-only buffer: deliberately separate from FIRE, which is the whole net
     # worth against the same spending figure.
-    @emergency_fund = FinancialPlanning::EmergencyFund.new(Current.family, user: Current.user)
-    @debt_summary = FinancialPlanning::DebtSummary.new(Current.family, user: Current.user)
-    @health_scorecard = FinancialPlanning::HealthScorecard.new(Current.family, user: Current.user)
-    @portfolio_return = FinancialPlanning::PortfolioReturn.new(Current.family, user: Current.user)
-    @goal_funding = FinancialPlanning::GoalFunding.new(Current.family, user: Current.user)
-    @portfolio_allocation = FinancialPlanning::PortfolioAllocation.new(Current.family, user: Current.user)
-    @cash_flow_forecast = FinancialPlanning::CashFlowForecast.new(Current.family, user: Current.user)
-    @coaching = FinancialPlanning::BehaviouralNudges.new(Current.family, user: Current.user)
-    @realised_gains = FinancialPlanning::RealisedGains.new(Current.family, user: Current.user)
-    @capital_gains = FinancialPlanning::CapitalGainsEstimate.new(Current.family, user: Current.user)
-    @tax_harvesting = FinancialPlanning::TaxHarvesting.new(Current.family, user: Current.user)
-    @retirement_stress = FinancialPlanning::RetirementStressTest.new(Current.family, user: Current.user)
-    @fee_audit = FinancialPlanning::FeeAudit.new(Current.family, user: Current.user)
-    @tax_users = Current.family.users.order(:created_at)
-    @tax_profiles = @tax_users.index_with { |user| Current.family.tax_profiles.find_or_initialize_by(user: user) }
-    @data_confidence = FinancialPlanning::DataConfidence.new(Current.family, user: Current.user)
-    @tax_readiness = FinancialPlanning::TaxReadiness.new(Current.family, user: Current.user)
-    @tradebook_accounts = Current.family.accounts.visible
+    @emergency_fund = FinancialPlanning::EmergencyFund.new(family, user: user, income_statement: income_statement)
+    @debt_summary = FinancialPlanning::DebtSummary.new(family, user: user, income_statement: income_statement, balance_sheet: balance_sheet)
+
+    # Protection is cheap but read by four cards; build it once.
+    @insurance_policies = family.insurance_policies.order(:created_at)
+    @insurance_policy = InsurancePolicy.new
+    @protection_gap = FinancialPlanning::ProtectionGap.new(family, user: user)
+
+    @health_scorecard = FinancialPlanning::HealthScorecard.new(
+      family, user: user, savings_rate: @savings_rate, emergency_fund: @emergency_fund,
+      debt_summary: @debt_summary, protection_gap: @protection_gap, goals: active_goals
+    )
+    @portfolio_return = FinancialPlanning::PortfolioReturn.new(family, user: user, investment_statement: investment_statement)
+    @goal_funding = FinancialPlanning::GoalFunding.new(family, user: user, goals: funding_goals)
+    @portfolio_allocation = FinancialPlanning::PortfolioAllocation.new(family, user: user, investment_statement: investment_statement)
+    @fee_audit = FinancialPlanning::FeeAudit.new(family, user: user, investment_statement: investment_statement)
+    @cash_flow_forecast = FinancialPlanning::CashFlowForecast.new(
+      family, user: user, emergency_fund: @emergency_fund, debt_summary: @debt_summary, protection_gap: @protection_gap
+    )
+    @coaching = FinancialPlanning::BehaviouralNudges.new(
+      family, user: user, emergency_fund: @emergency_fund, debt_summary: @debt_summary,
+      allocation: @portfolio_allocation, income_statement: income_statement
+    )
+    @realised_gains = FinancialPlanning::RealisedGains.new(family, user: user, tax_lots: tax_lots)
+    @capital_gains = FinancialPlanning::CapitalGainsEstimate.new(family, user: user)
+    @tax_harvesting = FinancialPlanning::TaxHarvesting.new(family, user: user, tax_lots: tax_lots)
+    @retirement_stress = FinancialPlanning::RetirementStressTest.new(
+      family, user: user, fire_progress: @fire_progress, savings_rate: @savings_rate, balance_sheet: balance_sheet
+    )
+    @tax_users = family.users.order(:created_at)
+    @tax_profiles = @tax_users.index_with { |tax_user| family.tax_profiles.find_or_initialize_by(user: tax_user) }
+    @data_confidence = FinancialPlanning::DataConfidence.new(family, user: user)
+    @tax_readiness = FinancialPlanning::TaxReadiness.new(family, user: user)
+    @tradebook_accounts = family.accounts.visible
       .where(accountable_type: %w[Investment Crypto])
       .order(:name)
 
     # People the plan is for, plus a blank record for the add form.
-    @household_members = Current.family.household_members.order(:created_at)
+    @household_members = family.household_members.order(:created_at)
     @household_member = HouseholdMember.new
 
-    # Protection cover, and the gap between what is held and the income guide.
-    @insurance_policies = Current.family.insurance_policies.order(:created_at)
-    @insurance_policy = InsurancePolicy.new
-    @protection_gap = FinancialPlanning::ProtectionGap.new(Current.family, user: Current.user)
-
     # Succession checklist, plus a blank record for the add form.
-    @estate_items = Current.family.estate_items.order(:created_at)
+    @estate_items = family.estate_items.order(:created_at)
     @estate_item = EstateItem.new
   end
 

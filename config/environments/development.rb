@@ -24,6 +24,7 @@ Rails.application.configure do
     config.action_controller.enable_fragment_cache_logging = true
 
     config.cache_store = :memory_store
+    config.action_view.cache_template_loading = true
     config.public_file_server.headers = {
       "Cache-Control" => "public, max-age=#{2.days.to_i}"
     }
@@ -65,8 +66,14 @@ Rails.application.configure do
   config.active_record.migration_error = :page_load
 
   config.assets.quiet = true
-  config.active_record.verbose_query_logs = true
-  config.active_job.verbose_enqueue_logs = true
+
+  # A planning page runs hundreds of aggregate queries, and logging each SQL
+  # statement with its caller trace is a measurable slice of the response. :info
+  # keeps request logs, warnings and errors; set RAILS_LOG_LEVEL=debug and
+  # RAILS_VERBOSE_SQL=true when you actually want query traces.
+  config.log_level = ENV.fetch("RAILS_LOG_LEVEL", "info").to_sym
+  config.active_record.verbose_query_logs = ENV.fetch("RAILS_VERBOSE_SQL", "false") == "true"
+  config.active_job.verbose_enqueue_logs = ENV.fetch("RAILS_VERBOSE_SQL", "false") == "true"
 
   # Set Active Job queue adapter. Production (19cc63c8f) and test both set one
   # explicitly, so development was the only environment inheriting ActiveJob's

@@ -901,6 +901,70 @@ and setting it true would break `finance.lan`, which is HTTP.
 
 ---
 
+# 24. Performance pass (2026-11-05)
+
+## 24.1 Where it stood
+
+Development server on this VM, demo data (8,404 entries, 30 accounts), measured with
+`curl` after login (warm server, no other load):
+
+| Page | Time | SQL queries (logged) |
+| --- | --- | --- |
+| Financial planning | 2.17 s | 692 |
+| Dashboard | 0.82 s | 138 |
+| Accounts | 0.38 s | 82 |
+| Reports | 1.16 s | 354 |
+
+Rails process: ~615 MB RSS. `log/development.log` had reached 38 MB in a session
+because every SQL statement was logged with its caller trace.
+
+## 24.2 What changed
+
+- **Shared collaborators per request.** The planning controller now builds one
+  income statement, balance sheet, investment statement, tax-lot engine and set of
+  prepared goals, and passes them into the cards. Each of those objects memoises its
+  own aggregates, so the page stopped re-running the same twelve-month expense,
+  balance and contribution queries for every card (savings rate, emergency fund,
+  debt, FIRE, health score, cash flow, coaching, stress test, allocation, fees, tax
+  harvesting). Constructors keep working without the injected collaborators, which
+  is why the existing tests needed no changes.
+- **Development caching enabled** (`bin/rails dev:cache`; memory store + compiled
+  template caching). The app's income-statement queries are already written to be
+  cached and invalidated by `family.entries_cache_version`, so repeat loads became
+  cheap without serving stale figures when data changes.
+- **Cheaper development logging**: log level is `:info` (overridable with
+  `RAILS_LOG_LEVEL`), verbose SQL caller traces are off (overridable with
+  `RAILS_VERBOSE_SQL=true`). Request logs and errors remain.
+- Deleted the rotated 101 MB test log.
+
+## 24.3 Numbers after
+
+| Page | Before | After (warm) |
+| --- | --- | --- |
+| Financial planning | 2.17 s | ~1.05–1.15 s |
+| Dashboard | 0.82 s | ~0.60–0.65 s |
+| Accounts | 0.38 s | ~0.30–0.33 s |
+| Reports | 1.16 s | ~0.70–0.75 s |
+| Transactions | 0.80 s | ~0.55 s |
+
+Planning page cold start (first request after a server restart, empty cache) is
+~2.2 s; every load after that is roughly half the old time. Rails RSS is ~700 MB
+with the in-process cache (the cache costs memory to save CPU).
+
+## 24.4 Trade-offs and how to toggle
+
+- `bin/rails dev:cache` toggles development caching. Off = lower memory, slower
+  repeat loads; on = faster, ~100 MB more RAM. The demo server currently has it on.
+- Restarting the server empties the memory cache, so the first planning load after
+  a restart is the slow one.
+- To trace queries again: start the server with `RAILS_LOG_LEVEL=debug` and
+  `RAILS_VERBOSE_SQL=true`.
+
+## 24.5 Validation
+
+Full suite: 14,721 runs, 93,979 assertions, 0 failures, 0 errors (38 upstream
+skips). RuboCop on the changed files: no offenses.
+
 # 23. Current State and the Indian Tax Phase (2026-10-26)
 
 Written for whoever picks this up next, human or model. Everything in §23.1 and §23.2

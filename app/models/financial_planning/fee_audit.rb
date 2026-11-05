@@ -15,9 +15,10 @@ class FinancialPlanning::FeeAudit
 
   attr_reader :family, :user
 
-  def initialize(family, user: nil)
+  def initialize(family, user: nil, investment_statement: nil)
     @family = family
     @user = user || Current.user
+    @investment_statement = investment_statement
   end
 
   def period

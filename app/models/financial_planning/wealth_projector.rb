@@ -17,13 +17,15 @@ class FinancialPlanning::WealthProjector
 
   attr_reader :family, :years, :opening_balance, :monthly_contribution
 
-  def initialize(family, user: nil, years: DEFAULT_YEARS, opening_balance: nil, monthly_contribution: nil, growth_rate: nil)
+  def initialize(family, user: nil, years: DEFAULT_YEARS, opening_balance: nil, monthly_contribution: nil, growth_rate: nil, savings_rate: nil, balance_sheet: nil)
     @family = family
     @user = user || Current.user
     @years = years
     @opening_balance = opening_balance
     @monthly_contribution = monthly_contribution
     @growth_rate = growth_rate
+    @savings_rate = savings_rate
+    @balance_sheet = balance_sheet
   end
 
   def opening_balance

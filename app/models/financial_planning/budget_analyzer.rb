@@ -53,10 +53,11 @@ class FinancialPlanning::BudgetAnalyzer
 
   attr_reader :family, :period
 
-  def initialize(family, period:, user: nil)
+  def initialize(family, period:, user: nil, income_statement: nil)
     @family = family
     @period = period
     @user = user || Current.user
+    @income_statement = income_statement
   end
 
   def buckets

@@ -23,9 +23,14 @@ class FinancialPlanning::HealthScorecard
 
   attr_reader :family, :user
 
-  def initialize(family, user: nil)
+  def initialize(family, user: nil, savings_rate: nil, emergency_fund: nil, debt_summary: nil, protection_gap: nil, goals: nil)
     @family = family
     @user = user || Current.user
+    @savings_rate = savings_rate
+    @emergency_fund = emergency_fund
+    @debt_summary = debt_summary
+    @protection_gap = protection_gap
+    @active_goals = goals
   end
 
   def checks

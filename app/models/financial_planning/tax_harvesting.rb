@@ -27,10 +27,11 @@ class FinancialPlanning::TaxHarvesting
 
   attr_reader :family, :user, :as_of
 
-  def initialize(family, user: nil, as_of: Date.current)
+  def initialize(family, user: nil, as_of: Date.current, tax_lots: nil)
     @family = family
     @user = user || Current.user
     @as_of = as_of.to_date
+    @tax_lots = tax_lots
   end
 
   def candidates
@@ -98,7 +99,7 @@ class FinancialPlanning::TaxHarvesting
     end
 
     def engine
-      @engine ||= Portfolio::TaxLots.new(account_ids: family.accounts.visible.pluck(:id), as_of: as_of)
+      @engine ||= @tax_lots || Portfolio::TaxLots.new(account_ids: family.accounts.visible.pluck(:id), as_of: as_of)
     end
 
     def estimate

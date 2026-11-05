@@ -25,9 +25,13 @@ class FinancialPlanning::BehaviouralNudges
 
   attr_reader :family, :user
 
-  def initialize(family, user: nil)
+  def initialize(family, user: nil, emergency_fund: nil, debt_summary: nil, allocation: nil, income_statement: nil)
     @family = family
     @user = user || Current.user
+    @emergency_fund = emergency_fund
+    @debt_summary = debt_summary
+    @allocation = allocation
+    @income_statement = income_statement
   end
 
   def idle_cash?

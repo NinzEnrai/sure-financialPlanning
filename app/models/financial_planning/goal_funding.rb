@@ -16,9 +16,10 @@ class FinancialPlanning::GoalFunding
 
   attr_reader :family, :user
 
-  def initialize(family, user: nil)
+  def initialize(family, user: nil, goals: nil)
     @family = family
     @user = user || Current.user
+    @goals = goals
   end
 
   def goals

@@ -15,9 +15,10 @@ class FinancialPlanning::EmergencyFund
 
   attr_reader :family, :user
 
-  def initialize(family, user: nil)
+  def initialize(family, user: nil, income_statement: nil)
     @family = family
     @user = user || Current.user
+    @income_statement = income_statement
   end
 
   # Bank and cash accounts the user can see, minus anything deliberately kept

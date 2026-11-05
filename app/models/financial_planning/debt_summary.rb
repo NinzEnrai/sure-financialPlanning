@@ -35,9 +35,11 @@ class FinancialPlanning::DebtSummary
 
   attr_reader :family, :user
 
-  def initialize(family, user: nil)
+  def initialize(family, user: nil, income_statement: nil, balance_sheet: nil)
     @family = family
     @user = user || Current.user
+    @income_statement = income_statement
+    @balance_sheet = balance_sheet
   end
 
   # Highest rate first: the order a planner would pay them in ("avalanche"),

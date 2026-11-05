@@ -33,11 +33,14 @@ class FinancialPlanning::RetirementStressTest
 
   attr_reader :family, :user, :trials, :seed
 
-  def initialize(family, user: nil, trials: TRIALS, seed: nil)
+  def initialize(family, user: nil, trials: TRIALS, seed: nil, fire_progress: nil, savings_rate: nil, balance_sheet: nil)
     @family = family
     @user = user || Current.user
     @trials = trials
     @seed = seed
+    @fire_progress = fire_progress
+    @savings_rate = savings_rate
+    @balance_sheet = balance_sheet
   end
 
   def available?

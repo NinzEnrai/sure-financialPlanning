@@ -107,6 +107,12 @@ From the repository root (the development environment is set up on this host):
 The full suite covers the empty, single-account, multi-currency and missing-data
 paths for these cards; if a card changes, change its tests with it.
 
+The planning page is the heaviest page in the app. It builds one income statement,
+balance sheet, investment statement and tax-lot engine per request and shares them
+across the cards; development caching (`bin/rails dev:cache`) brings a warm page to
+about a second in the demo dataset. Turn caching off if you would rather have the
+RAM back than the speed.
+
 ## Where the code lives
 
 - Models: app/models/financial_planning/ (one PORO per card), plus

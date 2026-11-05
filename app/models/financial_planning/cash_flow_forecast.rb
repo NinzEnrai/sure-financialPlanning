@@ -22,9 +22,12 @@ class FinancialPlanning::CashFlowForecast
 
   attr_reader :family, :user
 
-  def initialize(family, user: nil)
+  def initialize(family, user: nil, emergency_fund: nil, debt_summary: nil, protection_gap: nil)
     @family = family
     @user = user || Current.user
+    @emergency_fund = emergency_fund
+    @debt_summary = debt_summary
+    @protection_gap = protection_gap
   end
 
   def start_cash
