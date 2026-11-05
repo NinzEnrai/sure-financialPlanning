@@ -17,6 +17,11 @@ Rails.application.configure do
   # loading is working properly before deploying your code.
   config.eager_load = ENV["CI"].present?
 
+  # A full suite otherwise writes tens of megabytes of SQL to log/test.log.
+  # :warn keeps failures and warnings; TEST_LOG_LEVEL=debug brings the queries
+  # back when diagnosing a test.
+  config.log_level = ENV.fetch("TEST_LOG_LEVEL", "warn").to_sym
+
   # Configure public file server for tests with Cache-Control for performance.
   config.public_file_server.enabled = true
   config.public_file_server.headers = {

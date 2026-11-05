@@ -75,7 +75,7 @@ class FinancialPlanningController < ApplicationController
     @tax_users = family.users.order(:created_at)
     @tax_profiles = @tax_users.index_with { |tax_user| family.tax_profiles.find_or_initialize_by(user: tax_user) }
     @data_confidence = FinancialPlanning::DataConfidence.new(family, user: user)
-    @tax_readiness = FinancialPlanning::TaxReadiness.new(family, user: user)
+    @tax_readiness = FinancialPlanning::TaxReadiness.new(family, user: user, data_confidence: @data_confidence)
     @tradebook_accounts = family.accounts.visible
       .where(accountable_type: %w[Investment Crypto])
       .order(:name)

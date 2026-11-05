@@ -15,6 +15,12 @@ class FinancialPlanning::DataConfidence
   # weekend plus a missed run before a price is called stale.
   STALE_PRICE_DAYS = 7
 
+  # Diagnostics, not ledger figures: a couple of minutes of staleness while
+  # someone edits an account is acceptable, and caching avoids re-running the
+  # same price/holding scans every time the planning page is opened. The cache
+  # key carries the family's data versions, so a real change busts it.
+  CACHE_TTL = 2.minutes
+
   attr_reader :family, :user
 
   def initialize(family, user: nil)
@@ -23,13 +29,15 @@ class FinancialPlanning::DataConfidence
   end
 
   def checks
-    @checks ||= [
-      exchange_rate_check,
-      price_history_check,
-      purchase_date_check,
-      classification_check,
-      excluded_accounts_check
-    ]
+    @checks ||= Rails.cache.fetch(cache_key, expires_in: CACHE_TTL) do
+      [
+        exchange_rate_check,
+        price_history_check,
+        purchase_date_check,
+        classification_check,
+        excluded_accounts_check
+      ]
+    end
   end
 
   def issue_count
@@ -132,5 +140,16 @@ class FinancialPlanning::DataConfidence
 
     def accounts
       @accounts ||= family.accounts.visible.to_a
+    end
+
+    def cache_key
+      [
+        "financial_planning", "data_confidence", "v1",
+        family.id, user&.id, Date.current,
+        family.entries_cache_version,
+        family.accounts_status_version,
+        Security.maximum(:updated_at)&.to_i,
+        ExchangeRate.maximum(:updated_at)&.to_i
+      ]
     end
 end

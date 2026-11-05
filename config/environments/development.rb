@@ -23,7 +23,9 @@ Rails.application.configure do
     config.action_controller.perform_caching = true
     config.action_controller.enable_fragment_cache_logging = true
 
-    config.cache_store = :memory_store
+    # Capped so a long-running development server cannot grow without bound;
+    # 64 MB comfortably holds this app's per-family aggregates.
+    config.cache_store = :memory_store, { size: 64.megabytes }
     config.action_view.cache_template_loading = true
     config.public_file_server.headers = {
       "Cache-Control" => "public, max-age=#{2.days.to_i}"

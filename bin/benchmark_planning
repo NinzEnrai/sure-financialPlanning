@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Measure the pages a planning session touches against a running development
+# server. Needs a seeded demo user; defaults match the demo dataset.
+#
+#   bin/benchmark_planning
+#   BASE_URL=http://192.168.1.65:3000 bin/benchmark_planning
+#
+# Prints one line per request: page, seconds. Run it before and after a change
+# to compare, and keep the server otherwise idle for honest numbers.
+set -euo pipefail
+
+BASE_URL="${BASE_URL:-http://127.0.0.1:3000}"
+EMAIL="${EMAIL:-user@example.com}"
+PASSWORD="${PASSWORD:-Password1!}"
+WARM_RUNS="${WARM_RUNS:-3}"
+
+jar=$(mktemp)
+page=$(mktemp)
+trap 'rm -f "$jar" "$page"' EXIT
+
+curl --silent --fail --cookie-jar "$jar" --output "$page" "$BASE_URL/sessions/new"
+token=$(grep -oE 'name="authenticity_token" value="[^"]+"' "$page" | head -1 | sed 's/.*value="//;s/"//')
+
+curl --silent --fail --cookie "$jar" --cookie-jar "$jar" --output /dev/null \
+  --request POST "$BASE_URL/sessions" \
+  --data-urlencode "authenticity_token=$token" \
+  --data-urlencode "email=$EMAIL" \
+  --data-urlencode "password=$PASSWORD"
+
+echo "page,seconds"
+for path in / /financial_planning /accounts /reports /transactions; do
+  seconds=$(curl --silent --cookie "$jar" --output /dev/null --write-out '%{time_total}' "$BASE_URL$path")
+  printf '%s,%s\n' "$path" "$seconds"
+done
+
+for run in $(seq 1 "$WARM_RUNS"); do
+  seconds=$(curl --silent --cookie "$jar" --output /dev/null --write-out '%{time_total}' "$BASE_URL/financial_planning")
+  printf '/financial_planning#%s,%s\n' "$run" "$seconds"
+done

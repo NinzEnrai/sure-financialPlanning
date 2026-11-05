@@ -960,6 +960,41 @@ with the in-process cache (the cache costs memory to save CPU).
 - To trace queries again: start the server with `RAILS_LOG_LEVEL=debug` and
   `RAILS_VERBOSE_SQL=true`.
 
+## 24.6 Second optimisation pass (resource-focused)
+
+- **Diagnostics cached.** `DataConfidence` and `TaxReadiness` now cache their
+  checks for two minutes, keyed by the family's entry/account versions, the latest
+  security and exchange-rate change, the date and the user. Both are diagnostic
+  panels rather than ledger figures, so a couple of minutes of staleness while
+  someone edits a transaction is acceptable, and a real change busts the key.
+- **No duplicate scans.** `TaxReadiness` receives the page's `DataConfidence`
+  instance instead of building a second one, so holdings and price scans run once.
+- **Memory is capped**, not unbounded: the development cache store is limited to
+  64 MB. A development server can no longer grow its cache indefinitely.
+- **Test logs quietened.** The test environment logs at `:warn` (restore with
+  `TEST_LOG_LEVEL=debug`), which took a suite run's log from about 100 MB to under
+  1 MB. The rotated test log was deleted.
+- **Cache pre-warm on boot.** The development launcher warms the planning page
+  once the server accepts requests, so the first visit after a restart no longer
+  pays the cold-cache cost: 2.2 s before, about 1.1 s now.
+- **Repeatable benchmark.** `bin/benchmark_planning` logs in with the demo user
+  and prints per-page times, so any future change can be compared against these
+  numbers. Run it against an idle server.
+
+Current state with the demo dataset (idle server, warm cache):
+
+| Page | Baseline | Now |
+| --- | --- | --- |
+| Financial planning | 2.17 s | ~1.07–1.11 s |
+| Dashboard | 0.82 s | ~0.63–0.69 s |
+| Accounts | 0.38 s | ~0.29–0.33 s |
+| Reports | 1.16 s | ~0.75–0.80 s |
+| Transactions | 0.80 s | ~0.55–0.65 s |
+
+Rails process: ~700 MB RSS (cache capped at 64 MB; baseline was ~615 MB without
+caching — the extra memory is the price of the faster pages). Development and test
+log directories stay under 1 MB per suite run. All five pages return 200.
+
 ## 24.5 Validation
 
 Full suite: 14,721 runs, 93,979 assertions, 0 failures, 0 errors (38 upstream

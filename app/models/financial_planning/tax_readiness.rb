@@ -8,21 +8,26 @@
 class FinancialPlanning::TaxReadiness
   Check = Data.define(:key, :status, :count, :total)
 
+  CACHE_TTL = 2.minutes
+
   attr_reader :family, :user
 
-  def initialize(family, user: nil)
+  def initialize(family, user: nil, data_confidence: nil)
     @family = family
     @user = user || Current.user
+    @data_confidence = data_confidence
   end
 
   def checks
-    @checks ||= [
-      trades_check,
-      trade_price_check,
-      purchase_date_check,
-      foreign_assets_check,
-      tax_advantaged_check
-    ]
+    @checks ||= Rails.cache.fetch(cache_key, expires_in: CACHE_TTL) do
+      [
+        trades_check,
+        trade_price_check,
+        purchase_date_check,
+        foreign_assets_check,
+        tax_advantaged_check
+      ]
+    end
   end
 
   # Used by the card to surface the Schedule FA disclosure for foreign holdings.
@@ -115,6 +120,20 @@ class FinancialPlanning::TaxReadiness
 
     def data_confidence
       @data_confidence ||= FinancialPlanning::DataConfidence.new(family, user: user)
+    end
+
+    # Shares the two-minute diagnostics cache with the confidence panel; the
+    # family versions are in the key so a change to the ledger or accounts still
+    # recomputes immediately.
+    def cache_key
+      [
+        "financial_planning", "tax_readiness", "v1",
+        family.id, user&.id, start_date, end_date,
+        family.entries_cache_version,
+        family.accounts_status_version,
+        Security.maximum(:updated_at)&.to_i,
+        ExchangeRate.maximum(:updated_at)&.to_i
+      ]
     end
 
     def indian?
