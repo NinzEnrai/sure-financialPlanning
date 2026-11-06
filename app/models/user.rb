@@ -704,6 +704,20 @@ class User < ApplicationRecord
     preferences&.[]("hidden_sections") || []
   end
 
+  # Dashboard-style widget visibility for the planning (Wealth) page. Kept
+  # separate from the dashboard's list so the two pages customise independently.
+  def financial_planning_hidden_sections
+    preferences&.[]("financial_planning_hidden_sections") || []
+  end
+
+  def update_financial_planning_section_hidden(section_key, hidden)
+    with_locked_preferences do |prefs|
+      keys = financial_planning_hidden_sections - [ section_key ]
+      keys << section_key if hidden
+      prefs["financial_planning_hidden_sections"] = keys
+    end
+  end
+
   # Adds or removes one key rather than taking the whole list, so a stale tab
   # hiding one widget can't bring back another hidden elsewhere.
   def update_dashboard_section_hidden(section_key, hidden)

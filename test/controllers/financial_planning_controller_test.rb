@@ -27,6 +27,44 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "the planning tab is labelled Wealth" do
+    assert_equal "Wealth", I18n.t("layouts.application.nav.financial_planning")
+  end
+
+  test "edit mode adds widget controls" do
+    get financial_planning_url
+
+    assert_response :success
+    assert_select "[data-planning-section='fee_audit']"
+    assert_select "form[action='#{section_hidden_financial_planning_path("fee_audit")}']", count: 0
+
+    get financial_planning_url(customize: true)
+
+    assert_response :success
+    assert_select "form[action='#{section_hidden_financial_planning_path("fee_audit")}']"
+    assert_match(/Hidden widgets/, response.body)
+  end
+
+  test "hides and restores a planning widget" do
+    get financial_planning_url(customize: true)
+    assert_select "[data-planning-section='fee_audit']"
+
+    patch section_hidden_financial_planning_path("fee_audit"), params: { hidden: true }
+
+    assert_redirected_to financial_planning_path(customize: true, hidden_section: "fee_audit")
+    follow_redirect!
+
+    assert_response :success
+    assert_select "[data-planning-section='fee_audit']", count: 0
+    assert_match(/Investment charges/, response.body)
+
+    patch section_hidden_financial_planning_path("fee_audit"), params: { hidden: false }
+    follow_redirect!
+
+    assert_response :success
+    assert_select "[data-planning-section='fee_audit']"
+  end
+
   test "does not require a persisted planning setting to render" do
     @family.planning_setting.destroy!
 

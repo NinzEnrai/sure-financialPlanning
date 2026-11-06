@@ -1,0 +1,22 @@
+<%# locals: (key:, title:, partial:, locals: {}, span_full: false) %>
+<%# Wrapper for one planning/Wealth card. In edit mode it adds the same eye
+    control the dashboard uses, without every card partial knowing about
+    customisation. %>
+<div class="relative group <%= "@3xl:col-span-2" if span_full %>" data-planning-section="<%= key %>">
+  <%= render partial: partial, locals: locals %>
+
+  <% if @customizing_planning %>
+    <div class="absolute right-2 top-2 z-20">
+      <%= render DS::Button.new(
+            variant: "icon",
+            size: "sm",
+            icon: "eye-off",
+            href: section_hidden_financial_planning_path(key),
+            method: :patch,
+            params: { hidden: true },
+            aria_label: t("financial_planning.customize.hide", title: t(title)),
+            title: t("financial_planning.customize.hide", title: t(title))
+          ) %>
+    </div>
+  <% end %>
+</div>

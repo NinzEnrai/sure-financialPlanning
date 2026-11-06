@@ -1344,3 +1344,36 @@ Implementation notes:
 Tests: savings-bucket spending is invested and not spending (with a bucket
 override), investing above income is still reported, and the existing
 contribution/holdings/cap tests remain green.
+
+# 29. Wealth page: dashboard-style widget hiding and the rename (2026-11-06)
+
+The planning page is now labelled **Wealth** in the navigation and breadcrumbs
+(and its heading), matching the label used before. The route and module names stay
+`financial_planning` so no links or data change.
+
+It also has the dashboard's edit mode:
+
+- An **Edit widgets** button in the header switches to customise mode; **Done**
+  leaves it.
+- Every card gets the same eye control the dashboard uses; clicking it hides that
+  card for the current user and redirects back to customise mode.
+- A **Hidden widgets** card lists what is hidden and restores each with a
+  plus button. The empty state reads "Every widget is shown. Hide one with its
+  eye button.", matching the dashboard.
+- If everything is hidden outside customise mode, an empty state offers Edit
+  widgets rather than a blank page.
+- Preferences are stored per user under
+  `financial_planning_hidden_sections` in the existing user preferences JSON, so
+  no migration is needed.
+- Cards are rendered through a small wrapper partial (`financial_planning/_section`)
+  keyed by a fixed server-side section map; the 23 card partials are unchanged.
+- Paired rows collapse cleanly: if one of two cards is hidden the remaining card
+  spans the row instead of leaving a hole.
+
+Tests: customise mode shows controls, hide removes the card and shows the restore
+button, restore brings it back, and the Wealth label is asserted. The hide/show
+flow was also exercised in a real Chromium session (hide Investment charges, see
+the hidden-widgets card, restore it).
+
+Deploy note: ERB/locale-only change (plus Ruby for the preference method and
+route); restart the app, no migration or asset rebuild.

@@ -3,8 +3,41 @@ en:
   financial_planning:
     title: Financial Planning
     subtitle: Savings rate, budget split, FIRE progress and a long-term projection — all derived from your transactions.
+    sections:
+      health_scorecard: Health check
+      household: Household
+      protection: Protection
+      estate: Estate & nominations
+      savings_rate: Savings rate
+      fire_progress: FIRE progress
+      emergency_fund: Emergency fund
+      debt_summary: Debt
+      portfolio_return: Portfolio return
+      goal_funding: Goal funding
+      allocation: Allocation & concentration
+      fee_audit: Investment charges
+      cash_flow_forecast: Cash-flow forecast
+      coaching: Coaching
+      data_confidence: Data confidence
+      tax_readiness: Tax-year readiness
+      realised_gains: Realised gains
+      capital_gains_estimate: Capital gains estimate
+      tax_harvesting: Tax harvesting
+      tax_profile: Tax profile
+      budget_analyzer: 50/30/20 budget
+      wealth_projector: Wealth projection
+      retirement_stress: Retirement stress test
+    customize:
+      start: Edit widgets
+      done: Done
+      hidden_title: Hidden widgets
+      hidden_description: These widgets are hidden from the plan. Add one back to show it again.
+      none_hidden: Every widget is shown. Hide one with its eye button.
+      hide: "Hide %{title}"
+      all_hidden_title: All widgets are hidden
+      all_hidden_description: Use Edit widgets to add one back.
     show:
-      title: Financial Planning
+      title: Wealth
       subtitle: Savings rate, budget split, FIRE progress, protection, allocation and a long-term projection — all derived from your transactions.
       review_link: Open the year in review
     review:

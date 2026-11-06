@@ -1,100 +1,114 @@
-<%# Financial Planning: four read-only projections derived from the family's
-    existing ledger. Header + card grid follows the Plan hub's shape. %>
+<%# Financial planning (Wealth): read-only projections plus editable inputs,
+    laid out as cards. Widgets can be hidden/restored the same way as the
+    dashboard, through the edit button in the header. %>
 <div class="@container space-y-6 pb-6 lg:pb-12">
   <header>
-    <div class="flex items-center gap-2">
-      <h1 class="text-2xl font-semibold text-primary"><%= t(".title") %></h1>
-      <%= render DS::Pill.new(label: t("shared.preview"), size: :md) %>
-    </div>
-    <p class="text-sm text-secondary mt-1"><%= t(".subtitle") %></p>
-    <div class="mt-2">
-      <%= render DS::Link.new(text: t(".review_link"), href: review_financial_planning_path) %>
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-2xl font-semibold text-primary"><%= t(".title") %></h1>
+          <%= render DS::Pill.new(label: t("shared.preview"), size: :md) %>
+        </div>
+        <p class="text-sm text-secondary mt-1"><%= t(".subtitle") %></p>
+        <div class="mt-2">
+          <%= render DS::Link.new(text: t(".review_link"), href: review_financial_planning_path) %>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <% if @customizing_planning %>
+          <%= render DS::Link.new(
+                variant: "outline",
+                icon: "check",
+                text: t("financial_planning.customize.done"),
+                href: financial_planning_path
+              ) %>
+        <% else %>
+          <%= render DS::Link.new(
+                variant: "outline",
+                icon: "layout-grid",
+                text: t("financial_planning.customize.start"),
+                href: financial_planning_path(customize: true),
+                aria: { label: t("financial_planning.customize.start") }
+              ) %>
+        <% end %>
+      </div>
     </div>
   </header>
 
-  <%# The advisory summary sits above the individual figures: it is the answer
-      to "where should we look first", which is what a planner opens with. %>
-  <%= render "financial_planning/health_scorecard", scorecard: @health_scorecard %>
+  <% section_visible = ->(key) { !@planning_hidden_sections.include?(key) && (key != "tax_profile" || Current.user.admin?) } %>
+  <% known_hidden = @planning_hidden_sections.select { |key| @planning_sections.key?(key) && (key != "tax_profile" || Current.user.admin?) } %>
+  <% visible_section_keys = @planning_rows.reject { |row| row == :period_picker }.flatten.select { |key| section_visible.call(key) } %>
 
-  <%# Who the plan is for, before any of the figures that depend on it. %>
-  <%= render "financial_planning/household", members: @household_members, member: @household_member %>
+  <% if @customizing_planning %>
+    <%= render DS::Card.new(class: "gap-3") do %>
+      <div class="space-y-1">
+        <h2 class="text-base font-medium text-primary"><%= t("financial_planning.customize.hidden_title") %></h2>
+        <p class="text-sm text-secondary">
+          <%= known_hidden.any? ? t("financial_planning.customize.hidden_description") : t("financial_planning.customize.none_hidden") %>
+        </p>
+      </div>
 
-  <%# What the plan would leave behind if income stopped. %>
-  <%= render "financial_planning/protection",
-             policies: @insurance_policies,
-             policy: @insurance_policy,
-             gap: @protection_gap,
-             members: @household_members %>
-
-  <%# What happens after: will, nominations, executor, guardian, documents. %>
-  <%= render "financial_planning/estate", items: @estate_items, item: @estate_item %>
-
-  <%# The FIRE card edits the family's saved assumptions, so it needs the
-      PlanningSetting record rather than deriving them again. %>
-  <div class="grid grid-cols-1 @3xl:grid-cols-2 gap-4 items-stretch">
-    <%= render "financial_planning/savings_rate", rate: @savings_rate,
-                                                 year_to_date: @year_to_date_savings_rate %>
-    <%= render "financial_planning/fire_progress", fire: @fire_progress,
-                                                  setting: @planning_setting %>
-  </div>
-
-  <%# The two questions that come before "how much am I saving": how long could
-      we last without income, and what is the debt costing us? %>
-  <div class="grid grid-cols-1 @3xl:grid-cols-2 gap-4 items-stretch">
-    <%= render "financial_planning/emergency_fund", emergency_fund: @emergency_fund, setting: @planning_setting %>
-    <%= render "financial_planning/debt_summary", debt: @debt_summary %>
-  </div>
-
-  <%# What the money earned, and whether the goals can all be funded at once. %>
-  <div class="grid grid-cols-1 @3xl:grid-cols-2 gap-4 items-stretch">
-    <%= render "financial_planning/portfolio_return", portfolio: @portfolio_return %>
-    <%= render "financial_planning/goal_funding", funding: @goal_funding %>
-  </div>
-
-  <%# Where the invested money sits, and whether one position dominates. %>
-  <%= render "financial_planning/allocation", allocation: @portfolio_allocation, setting: @planning_setting %>
-
-  <%# What trading cost this year, as an absolute and a share of the portfolio. %>
-  <%= render "financial_planning/fee_audit", audit: @fee_audit %>
-
-  <%# Will the cash last until payday? Trailing averages, not a bill calendar.
-      Beside it, the coaching observations that follow from those same figures. %>
-  <div class="grid grid-cols-1 @3xl:grid-cols-2 gap-4 items-stretch">
-    <%= render "financial_planning/cash_flow_forecast", forecast: @cash_flow_forecast %>
-    <%= render "financial_planning/coaching", coaching: @coaching %>
-  </div>
-
-  <%# The diagnostics: what is missing behind the figures, and what tax work
-      can actually be supported by the data. %>
-  <div class="grid grid-cols-1 @3xl:grid-cols-2 gap-4 items-stretch">
-    <%= render "financial_planning/data_confidence", confidence: @data_confidence %>
-    <%= render "financial_planning/tax_readiness", readiness: @tax_readiness, accounts: @tradebook_accounts %>
-  </div>
-
-  <%# What was actually sold this year, from FIFO lots. Estimate only. %>
-  <%= render "financial_planning/realised_gains", gains: @realised_gains %>
-
-  <%# Per-person taxable gains after set-off and the long-term exemption. %>
-  <%= render "financial_planning/capital_gains_estimate", estimate: @capital_gains %>
-
-  <%# Losses available to book, with the costs of selling stated. %>
-  <%= render "financial_planning/tax_harvesting", harvesting: @tax_harvesting %>
-
-  <%# Declared per-person tax inputs. Admin-only: tax data is personal. %>
-  <% if Current.user.admin? %>
-    <%= render "financial_planning/tax_profile", users: @tax_users, profiles: @tax_profiles %>
+      <% if known_hidden.any? %>
+        <div class="flex flex-wrap gap-2">
+          <% known_hidden.each do |key| %>
+            <% section = @planning_sections.fetch(key) %>
+            <%= render DS::Button.new(
+                  variant: "outline",
+                  size: "sm",
+                  icon: "plus",
+                  text: t(section[:title]),
+                  href: section_hidden_financial_planning_path(key),
+                  method: :patch,
+                  params: { hidden: false }
+                ) %>
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
   <% end %>
 
-  <%# Only the analyzer follows @period; savings rate, FIRE and the projection
-      are anchored to today / trailing windows. %>
-  <div class="flex justify-end">
-    <%= render UI::PeriodPicker.new(selected: @period, url: financial_planning_path) %>
-  </div>
+  <% if visible_section_keys.empty? && !@customizing_planning %>
+    <%= render DS::Card.new do %>
+      <%= render DS::EmptyState.new(
+            icon: "layout-grid",
+            title: t("financial_planning.customize.all_hidden_title"),
+            description: t("financial_planning.customize.all_hidden_description")
+          ) do |empty_state| %>
+        <% empty_state.with_action do %>
+          <%= render DS::Link.new(
+                variant: "outline",
+                icon: "layout-grid",
+                text: t("financial_planning.customize.start"),
+                href: financial_planning_path(customize: true)
+              ) %>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% end %>
 
-  <%= render "financial_planning/budget_analyzer", analyzer: @budget_analyzer, period: @period %>
+  <% @planning_rows.each do |row| %>
+    <% if row == :period_picker %>
+      <% next if visible_section_keys.empty? %>
+      <div class="flex justify-end">
+        <%= render UI::PeriodPicker.new(selected: @period, url: financial_planning_path) %>
+      </div>
+      <% next %>
+    <% end %>
 
-  <%= render "financial_planning/wealth_projector", projector: @projector %>
+    <% keys = row.select { |key| section_visible.call(key) } %>
+    <% next if keys.empty? %>
 
-  <%# The plan against market paths, not just one line. %>
-  <%= render "financial_planning/retirement_stress", stress: @retirement_stress, setting: @planning_setting %>
+    <div class="grid grid-cols-1 @3xl:grid-cols-2 gap-4 items-stretch">
+      <% keys.each do |key| %>
+        <% section = @planning_sections.fetch(key) %>
+        <%= render "financial_planning/section",
+                   key: key,
+                   title: section[:title],
+                   partial: section[:partial],
+                   locals: @planning_locals.fetch(key),
+                   span_full: keys.size == 1 %>
+      <% end %>
+    </div>
+  <% end %>
 </div>

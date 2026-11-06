@@ -7,6 +7,57 @@ class FinancialPlanningController < ApplicationController
   before_action :require_preview_features!
   include Periodable
 
+  # Cards on the planning page, in the order they are laid out. Each key also
+  # names the section in user preferences, so the dashboard-style "edit widgets"
+  # mode can hide and restore them without touching the card partials.
+  PLANNING_SECTIONS = {
+    "health_scorecard" => { title: "financial_planning.sections.health_scorecard", partial: "financial_planning/health_scorecard" },
+    "household" => { title: "financial_planning.sections.household", partial: "financial_planning/household" },
+    "protection" => { title: "financial_planning.sections.protection", partial: "financial_planning/protection" },
+    "estate" => { title: "financial_planning.sections.estate", partial: "financial_planning/estate" },
+    "savings_rate" => { title: "financial_planning.sections.savings_rate", partial: "financial_planning/savings_rate" },
+    "fire_progress" => { title: "financial_planning.sections.fire_progress", partial: "financial_planning/fire_progress" },
+    "emergency_fund" => { title: "financial_planning.sections.emergency_fund", partial: "financial_planning/emergency_fund" },
+    "debt_summary" => { title: "financial_planning.sections.debt_summary", partial: "financial_planning/debt_summary" },
+    "portfolio_return" => { title: "financial_planning.sections.portfolio_return", partial: "financial_planning/portfolio_return" },
+    "goal_funding" => { title: "financial_planning.sections.goal_funding", partial: "financial_planning/goal_funding" },
+    "allocation" => { title: "financial_planning.sections.allocation", partial: "financial_planning/allocation" },
+    "fee_audit" => { title: "financial_planning.sections.fee_audit", partial: "financial_planning/fee_audit" },
+    "cash_flow_forecast" => { title: "financial_planning.sections.cash_flow_forecast", partial: "financial_planning/cash_flow_forecast" },
+    "coaching" => { title: "financial_planning.sections.coaching", partial: "financial_planning/coaching" },
+    "data_confidence" => { title: "financial_planning.sections.data_confidence", partial: "financial_planning/data_confidence" },
+    "tax_readiness" => { title: "financial_planning.sections.tax_readiness", partial: "financial_planning/tax_readiness" },
+    "realised_gains" => { title: "financial_planning.sections.realised_gains", partial: "financial_planning/realised_gains" },
+    "capital_gains_estimate" => { title: "financial_planning.sections.capital_gains_estimate", partial: "financial_planning/capital_gains_estimate" },
+    "tax_harvesting" => { title: "financial_planning.sections.tax_harvesting", partial: "financial_planning/tax_harvesting" },
+    "tax_profile" => { title: "financial_planning.sections.tax_profile", partial: "financial_planning/tax_profile" },
+    "budget_analyzer" => { title: "financial_planning.sections.budget_analyzer", partial: "financial_planning/budget_analyzer" },
+    "wealth_projector" => { title: "financial_planning.sections.wealth_projector", partial: "financial_planning/wealth_projector" },
+    "retirement_stress" => { title: "financial_planning.sections.retirement_stress", partial: "financial_planning/retirement_stress" }
+  }.freeze
+
+  PLANNING_ROWS = [
+    [ "health_scorecard" ],
+    [ "household" ],
+    [ "protection" ],
+    [ "estate" ],
+    [ "savings_rate", "fire_progress" ],
+    [ "emergency_fund", "debt_summary" ],
+    [ "portfolio_return", "goal_funding" ],
+    [ "allocation" ],
+    [ "fee_audit" ],
+    [ "cash_flow_forecast", "coaching" ],
+    [ "data_confidence", "tax_readiness" ],
+    [ "realised_gains" ],
+    [ "capital_gains_estimate" ],
+    [ "tax_harvesting" ],
+    [ "tax_profile" ],
+    :period_picker,
+    [ "budget_analyzer" ],
+    [ "wealth_projector" ],
+    [ "retirement_stress" ]
+  ].freeze
+
   def show
     # Reverse proxies in front of self-hosted instances (nginx, Caddy, Tailscale
     # Serve) cache aggressively, and a stale HTML page is worse than a slow one:
@@ -91,6 +142,52 @@ class FinancialPlanningController < ApplicationController
     # Succession checklist, plus a blank record for the add form.
     @estate_items = family.estate_items.order(:created_at)
     @estate_item = EstateItem.new
+
+    # Dashboard-style widget preferences for this page: hide/show only. The
+    # cards are rendered through a small wrapper so no card partial needs to
+    # know about the edit mode.
+    @customizing_planning = params[:customize].present?
+    @planning_hidden_sections = Current.user.financial_planning_hidden_sections
+    @planning_sections = PLANNING_SECTIONS
+    @planning_rows = PLANNING_ROWS
+    @planning_locals = {
+      "health_scorecard" => { scorecard: @health_scorecard },
+      "household" => { members: @household_members, member: @household_member },
+      "protection" => { policies: @insurance_policies, policy: @insurance_policy, gap: @protection_gap, members: @household_members },
+      "estate" => { items: @estate_items, item: @estate_item },
+      "savings_rate" => { rate: @savings_rate, year_to_date: @year_to_date_savings_rate },
+      "fire_progress" => { fire: @fire_progress, setting: @planning_setting },
+      "emergency_fund" => { emergency_fund: @emergency_fund, setting: @planning_setting },
+      "debt_summary" => { debt: @debt_summary },
+      "portfolio_return" => { portfolio: @portfolio_return },
+      "goal_funding" => { funding: @goal_funding },
+      "allocation" => { allocation: @portfolio_allocation, setting: @planning_setting },
+      "fee_audit" => { audit: @fee_audit },
+      "cash_flow_forecast" => { forecast: @cash_flow_forecast },
+      "coaching" => { coaching: @coaching },
+      "data_confidence" => { confidence: @data_confidence },
+      "tax_readiness" => { readiness: @tax_readiness, accounts: @tradebook_accounts },
+      "realised_gains" => { gains: @realised_gains },
+      "capital_gains_estimate" => { estimate: @capital_gains },
+      "tax_harvesting" => { harvesting: @tax_harvesting },
+      "tax_profile" => { users: @tax_users, profiles: @tax_profiles },
+      "budget_analyzer" => { analyzer: @budget_analyzer, period: @period },
+      "wealth_projector" => { projector: @projector },
+      "retirement_stress" => { stress: @retirement_stress, setting: @planning_setting }
+    }
+  end
+
+  # Hide or restore one planning card. The card list and titles are fixed
+  # server-side, so an unknown key is a 404 rather than an arbitrary preference.
+  def update_section_hidden
+    section_key = params[:section_key]
+    return head :not_found unless PLANNING_SECTIONS.key?(section_key)
+
+    hidden = ActiveModel::Type::Boolean.new.cast(params[:hidden])
+    Current.user.update_financial_planning_section_hidden(section_key, hidden)
+
+    changed = hidden ? { hidden_section: section_key } : { shown_section: section_key }
+    redirect_to financial_planning_path(customize: true, **changed), status: :see_other
   end
 
   # The yearly artefact a planner hands over: what changed, what is protected,
