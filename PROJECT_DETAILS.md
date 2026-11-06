@@ -1268,3 +1268,44 @@ data rewrite), then restart the app. No data migration or configuration change.
 Full suite: 14,736 runs, 94,016 assertions, 0 failures, 0 errors. RuboCop,
 ERB lint, Brakeman and Biome clean. The demo returns 200 for the dashboard,
 planning page, accounts and transactions after the change.
+
+# 27. Transactions scroll jank: closed popovers were listening to every scroll (2026-11-06)
+
+The remaining "Page Up / Page Down is laggy, and the lag grows with rows per page"
+was front-end, not SQL. Every DS popover and DS menu called floating-ui's
+`autoUpdate` in `connect()`, even while closed. The transactions list mounts a
+popover for each row's category, tags and actions (plus tooltips): 359 popovers for
+100 rows. Each `autoUpdate` installs scroll/resize observers, so one scroll of the
+transactions pane triggered hundreds of callbacks and layout reads.
+
+Measured in Chromium with a requestAnimationFrame recorder while sending three
+PageDown presses on 100 rows (359 popovers):
+
+| | max frame gap | frames > 50 ms |
+| --- | --- | --- |
+| Before | 83 ms | 2 |
+| After | 17 ms | 0 |
+
+17 ms is the same result as manually stopping every `autoUpdate` before the scroll,
+so the observers were the entire jank. With 20 rows the effect was smaller, which
+matches "lag is less with 20 rows".
+
+## Fix
+
+- `DS--popover`: start `autoUpdate` only when a panel opens; stop it when the panel
+  closes (outside click, Escape, second click, Cancel). A panel that connects open
+  still starts immediately.
+- `DS--menu`: same lifecycle change for action menus.
+- Category picker, tag picker and the user menu were re-tested opening and closing
+  in the browser after the change; no page errors.
+
+The previous content-visibility experiment is not needed for this. It stays
+removed (commit 310dfbde4) because fixed-position popover panels are descendants
+of the row and paint containment is a cross-browser risk.
+
+## Deploy note
+
+This is a JavaScript change: rebuild precompiled assets (normal Docker rebuild or
+`bin/rails assets:precompile`) and restart, then hard-refresh the browser once.
+No migration, no database change. Rows per page can be raised again (100 is smooth
+in testing) without the old scaling penalty.

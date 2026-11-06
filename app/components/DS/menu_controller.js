@@ -26,9 +26,11 @@ export default class extends Controller {
   connect() {
     this.boundUpdate = this.update.bind(this);
     this.addEventListeners();
-    this.startAutoUpdate();
-    // Every menu renders closed, so one that connects open is a copy Turbo
-    // cached while it was open, brought back by Back.
+    // Every menu renders closed; see DS--popover for why autoUpdate is not
+    // started until a menu opens (closed menus on a list otherwise install a
+    // scroll observer per row).
+    // A menu that connects open is a copy Turbo cached while it was open,
+    // brought back by Back.
     this.close();
   }
 
@@ -119,12 +121,16 @@ export default class extends Controller {
     this.contentTarget.classList.toggle("hidden", !nextShow);
     this.buttonTarget.setAttribute("aria-expanded", nextShow.toString());
     if (nextShow) {
+      this.startAutoUpdate();
       this.update();
       this.#focusFirstMenuItem();
+    } else {
+      this.stopAutoUpdate();
     }
   };
 
   close() {
+    this.stopAutoUpdate();
     this.contentTarget.classList.add("hidden");
     this.buttonTarget.setAttribute("aria-expanded", "false");
   }

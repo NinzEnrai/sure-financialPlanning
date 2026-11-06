@@ -29,7 +29,12 @@ export default class extends Controller {
   connect() {
     this.boundUpdate = this.update.bind(this);
     this.addEventListeners();
-    this.startAutoUpdate();
+    // Do not start autoUpdate while closed. The transactions list mounts a
+    // popover (category, tags, actions) on every row, sometimes hundreds on a
+    // page; each autoUpdate installs scroll and resize observers, so a closed
+    // list turned every scroll into hundreds of layout reads and dropped
+    // frames. Start positioning only for the panel that is actually open.
+    if (this.show) this.startAutoUpdate();
   }
 
   // Derived from the content element's own class rather than tracked as
@@ -87,9 +92,12 @@ export default class extends Controller {
     this.contentTarget.classList.toggle("hidden", !nextShow);
     this.buttonTarget.setAttribute("aria-expanded", nextShow.toString());
     if (nextShow) {
+      this.startAutoUpdate();
       this.mountFrame();
       this.update();
       this.focusFirstElement();
+    } else {
+      this.stopAutoUpdate();
     }
   };
 
@@ -116,6 +124,7 @@ export default class extends Controller {
   // Used as an action (a Cancel button in the panel), close() returns focus
   // to the trigger like Escape does, instead of dropping it to <body>.
   close(event) {
+    this.stopAutoUpdate();
     this.contentTarget.classList.add("hidden");
     this.buttonTarget.setAttribute("aria-expanded", "false");
     if (event) this.buttonTarget.focus();
