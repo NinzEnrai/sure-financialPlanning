@@ -506,6 +506,7 @@ Rails.application.routes.draw do
     patch :mark_reviewed
     patch :tax_profile, action: :update_tax_profile
     patch "sections/:section_key/hidden", action: :update_section_hidden, as: :section_hidden
+    patch "preferences", action: :update_preferences, as: :preferences
     post :import_tradebook
     patch :setting, action: :update_setting
     patch :bucket, action: :update_bucket

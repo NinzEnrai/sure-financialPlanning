@@ -36,6 +36,9 @@ en:
       hide: "Hide %{title}"
       all_hidden_title: All widgets are hidden
       all_hidden_description: Use Edit widgets to add one back.
+      drag: Drag to reorder, or focus a card and press Enter to move it with the arrow keys
+      section_aria: "%{title}. Press Enter or Space to grab for reordering, then use the arrow keys."
+      sections_aria_label: Wealth widgets, drag to reorder
     show:
       title: Wealth
       subtitle: Savings rate, budget split, FIRE progress, protection, allocation and a long-term projection — all derived from your transactions.

@@ -36,26 +36,12 @@ class FinancialPlanningController < ApplicationController
     "retirement_stress" => { title: "financial_planning.sections.retirement_stress", partial: "financial_planning/retirement_stress" }
   }.freeze
 
-  PLANNING_ROWS = [
-    [ "health_scorecard" ],
-    [ "household" ],
-    [ "protection" ],
-    [ "estate" ],
-    [ "savings_rate", "fire_progress" ],
-    [ "emergency_fund", "debt_summary" ],
-    [ "portfolio_return", "goal_funding" ],
-    [ "allocation" ],
-    [ "fee_audit" ],
-    [ "cash_flow_forecast", "coaching" ],
-    [ "data_confidence", "tax_readiness" ],
-    [ "realised_gains" ],
-    [ "capital_gains_estimate" ],
-    [ "tax_harvesting" ],
-    [ "tax_profile" ],
-    :period_picker,
-    [ "budget_analyzer" ],
-    [ "wealth_projector" ],
-    [ "retirement_stress" ]
+  # Cards that look wrong at half width. Everything else sits in the two-column
+  # grid; the set is a presentation default, not a constraint on ordering.
+  PLANNING_FULL_WIDTH_SECTIONS = %w[
+    health_scorecard household protection estate allocation fee_audit
+    realised_gains capital_gains_estimate tax_harvesting tax_profile
+    budget_analyzer wealth_projector retirement_stress
   ].freeze
 
   def show
@@ -149,7 +135,11 @@ class FinancialPlanningController < ApplicationController
     @customizing_planning = params[:customize].present?
     @planning_hidden_sections = Current.user.financial_planning_hidden_sections
     @planning_sections = PLANNING_SECTIONS
-    @planning_rows = PLANNING_ROWS
+    # Saved drag order first, then any card the saved order doesn't know yet
+    # (a newly shipped widget), so an old preference never hides a new card.
+    saved_order = Current.user.financial_planning_section_order & PLANNING_SECTIONS.keys
+    @planning_ordered_sections = saved_order + (PLANNING_SECTIONS.keys - saved_order)
+    @planning_full_width_sections = PLANNING_FULL_WIDTH_SECTIONS
     @planning_locals = {
       "health_scorecard" => { scorecard: @health_scorecard },
       "household" => { members: @household_members, member: @household_member },
@@ -175,6 +165,24 @@ class FinancialPlanningController < ApplicationController
       "wealth_projector" => { projector: @projector },
       "retirement_stress" => { stress: @retirement_stress, setting: @planning_setting }
     }
+  end
+
+  # Save the dragged widget order. Called by the sortable-list controller as a
+  # JSON PATCH; only known section keys are accepted.
+  def update_preferences
+    keys = params.dig(:preferences, :financial_planning_section_order)
+    unless keys.is_a?(Array)
+      head :unprocessable_entity
+      return
+    end
+
+    incoming = keys.map(&:to_s) & PLANNING_SECTIONS.keys
+    # The sortable list only contains visible cards. Keep any hidden card's old
+    # slot after the visible ones so hiding a widget and reordering the rest
+    # does not shuffle it to the end when it comes back.
+    existing = Current.user.financial_planning_section_order & PLANNING_SECTIONS.keys
+    Current.user.update_financial_planning_section_order(incoming + (existing - incoming))
+    head :ok
   end
 
   # Hide or restore one planning card. The card list and titles are fixed

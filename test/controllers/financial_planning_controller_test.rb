@@ -45,6 +45,30 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Hidden widgets/, response.body)
   end
 
+  test "saves and renders a custom widget order" do
+    patch preferences_financial_planning_path,
+          params: { preferences: { financial_planning_section_order: %w[retirement_stress health_scorecard fee_audit] } },
+          as: :json
+
+    assert_response :ok
+    assert_equal %w[retirement_stress health_scorecard fee_audit], @user.reload.financial_planning_section_order
+
+    get financial_planning_url
+
+    assert_response :success
+    body = response.body
+    assert_operator body.index('data-planning-section="retirement_stress"'), :<, body.index('data-planning-section="health_scorecard"')
+    assert_operator body.index('data-planning-section="health_scorecard"'), :<, body.index('data-planning-section="fee_audit"')
+  end
+
+  test "rejects a widget order that is not a list" do
+    patch preferences_financial_planning_path,
+          params: { preferences: { financial_planning_section_order: "fee_audit" } },
+          as: :json
+
+    assert_response :unprocessable_entity
+  end
+
   test "hides and restores a planning widget" do
     get financial_planning_url(customize: true)
     assert_select "[data-planning-section='fee_audit']"

@@ -718,6 +718,16 @@ class User < ApplicationRecord
     end
   end
 
+  def financial_planning_section_order
+    preferences&.[]("financial_planning_section_order") || []
+  end
+
+  def update_financial_planning_section_order(keys)
+    with_locked_preferences do |prefs|
+      prefs["financial_planning_section_order"] = Array(keys).map(&:to_s)
+    end
+  end
+
   # Adds or removes one key rather than taking the whole list, so a stale tab
   # hiding one widget can't bring back another hidden elsewhere.
   def update_dashboard_section_hidden(section_key, hidden)

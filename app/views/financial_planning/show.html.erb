@@ -38,7 +38,7 @@
 
   <% section_visible = ->(key) { !@planning_hidden_sections.include?(key) && (key != "tax_profile" || Current.user.admin?) } %>
   <% known_hidden = @planning_hidden_sections.select { |key| @planning_sections.key?(key) && (key != "tax_profile" || Current.user.admin?) } %>
-  <% visible_section_keys = @planning_rows.reject { |row| row == :period_picker }.flatten.select { |key| section_visible.call(key) } %>
+  <% visible_section_keys = @planning_ordered_sections.select { |key| section_visible.call(key) } %>
 
   <% if @customizing_planning %>
     <%= render DS::Card.new(class: "gap-3") do %>
@@ -87,27 +87,31 @@
     <% end %>
   <% end %>
 
-  <% @planning_rows.each do |row| %>
-    <% if row == :period_picker %>
-      <% next if visible_section_keys.empty? %>
-      <div class="flex justify-end">
-        <%= render UI::PeriodPicker.new(selected: @period, url: financial_planning_path) %>
-      </div>
-      <% next %>
-    <% end %>
+  <% if visible_section_keys.any? %>
+    <div class="flex justify-end">
+      <%= render UI::PeriodPicker.new(selected: @period, url: financial_planning_path) %>
+    </div>
 
-    <% keys = row.select { |key| section_visible.call(key) } %>
-    <% next if keys.empty? %>
-
-    <div class="grid grid-cols-1 @3xl:grid-cols-2 gap-4 items-stretch">
-      <% keys.each do |key| %>
+    <%# Drag to reorder, exactly like the dashboard. Each card is one grid item
+        and keeps its preferred width; the saved order is per user. %>
+    <div class="grid grid-cols-1 @3xl:grid-cols-2 gap-4 items-stretch"
+         data-controller="sortable-list"
+         data-sortable-list-url-value="<%= preferences_financial_planning_path %>"
+         data-sortable-list-param-value="preferences.financial_planning_section_order"
+         data-sortable-list-hold-delay-value="800"
+         data-sortable-list-drop-target-value="nearest"
+         data-sortable-list-own-keys-only-value="true"
+         data-action="dragover->sortable-list#dragOver drop->sortable-list#drop turbo:before-visit@window->sortable-list#saveBeforeVisit"
+         role="list"
+         aria-label="<%= t("financial_planning.customize.sections_aria_label") %>">
+      <% visible_section_keys.each do |key| %>
         <% section = @planning_sections.fetch(key) %>
         <%= render "financial_planning/section",
                    key: key,
                    title: section[:title],
                    partial: section[:partial],
                    locals: @planning_locals.fetch(key),
-                   span_full: keys.size == 1 %>
+                   span_full: @planning_full_width_sections.include?(key) %>
       <% end %>
     </div>
   <% end %>

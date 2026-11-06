@@ -1377,3 +1377,29 @@ the hidden-widgets card, restore it).
 
 Deploy note: ERB/locale-only change (plus Ruby for the preference method and
 route); restart the app, no migration or asset rebuild.
+
+# 30. Wealth page: drag-to-reorder widgets (2026-11-06)
+
+The Wealth page now uses the dashboard's reordering model. Every card is a
+sortable item in one responsive grid, with the same grab handle, keyboard
+reordering (focus a card, Enter/Space to grab, arrow keys to move, Enter to
+drop), touch press-and-hold, and per-user persistence.
+
+- The order is saved as `financial_planning_section_order` in the user
+  preferences JSON by PATCH /financial_planning/preferences (JSON, called by the
+  sortable-list controller). No migration.
+- The controller accepts only known section keys and keeps hidden cards' old
+  slots after the visible ones, so hiding a widget and reordering the rest does
+  not permanently move the hidden one.
+- The page is now one grid rather than hard-coded rows. Widths are a fixed
+  presentation default (`PLANNING_FULL_WIDTH_SECTIONS`): the broad cards — health,
+  household, protection, estate, allocation, charges, realised/capital gains,
+  harvesting, tax profile, budget, projection and stress test — span both
+  columns; the rest sit two-up. The order is free across widths.
+- The period picker sits above the grid (it only drives the budget analyzer).
+- The saved order is merged with new sections on render: a newly shipped card
+  appears after the saved ones instead of being hidden by an old preference.
+
+Verified in Chromium: keyboard reordering moved the first card, persisted across
+a reload, and no page errors occurred. Controller tests cover saving/rendering a
+custom order and rejecting a non-list payload.

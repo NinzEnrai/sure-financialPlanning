@@ -1,9 +1,24 @@
 <%# locals: (key:, title:, partial:, locals: {}, span_full: false) %>
-<%# Wrapper for one planning/Wealth card. In edit mode it adds the same eye
-    control the dashboard uses, without every card partial knowing about
-    customisation. %>
-<div class="relative group <%= "@3xl:col-span-2" if span_full %>" data-planning-section="<%= key %>">
+<%# Wrapper for one Wealth card. It is the sortable item (drag handle below and
+    keyboard reordering on the wrapper), and in edit mode it also carries the
+    same eye control the dashboard uses. %>
+<div class="relative group <%= "@3xl:col-span-2" if span_full %>"
+     data-planning-section="<%= key %>"
+     data-sortable-list-target="item"
+     data-sortable-list-id="<%= key %>"
+     draggable="true"
+     tabindex="0"
+     role="listitem"
+     aria-grabbed="false"
+     aria-label="<%= t("financial_planning.customize.section_aria", title: t(title)) %>"
+     data-action="dragstart->sortable-list#dragStart dragend->sortable-list#dragEnd touchstart->sortable-list#touchStart touchmove->sortable-list#touchMove touchend->sortable-list#touchEnd touchcancel->sortable-list#touchCancel keydown->sortable-list#handleKeyDown">
   <%= render partial: partial, locals: locals %>
+
+  <span class="absolute left-2 top-2 z-20 cursor-grab active:cursor-grabbing hidden lg:flex items-center justify-center w-6 h-6 text-secondary hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
+        aria-hidden="true"
+        title="<%= t("financial_planning.customize.drag") %>">
+    <%= icon "grip-vertical", size: "sm" %>
+  </span>
 
   <% if @customizing_planning %>
     <div class="absolute right-2 top-2 z-20">
