@@ -12,13 +12,17 @@
 # widget show cash savings and total savings without conflating the two. There is
 # no debt bucket: this family doesn't carry debt.
 #
-# `invested` is measured two independent ways -- recorded `investment_contribution`
-# transfers, and the change in holdings cost basis -- and takes the larger. Both
-# answer "how much money went into assets"; the first only sees transfers the
-# family logged by hand, so a broker that syncs its own holdings (Kite) leaves it
-# at zero while the second sees the purchase. They are never summed, because a
-# family that both logs the transfer and syncs the holdings would otherwise
-# count the same money twice.
+# `invested` is measured three independent ways -- recorded `investment_contribution`
+# transfers, spending in categories the family mapped to the Savings bucket
+# (a manual SIP or broker payment entered as a transaction), and the change in
+# holdings cost basis -- and takes the larger. All three answer "how much money
+# went into assets"; the first only sees transfers the family logged by hand,
+# the second sees ordinary categorised payments, and the third sees a broker
+# that syncs its own holdings (Kite). They are never summed, because a family
+# that both logs the transfer and syncs the holdings would otherwise count the
+# same money twice. Only the holdings measure is capped at period income,
+# because a first sync reports everything ever paid; real transfers and
+# categorised investments are not artifacts and are reported in full.
 class FinancialPlanning::SavingsRate
   attr_reader :family, :period
 
@@ -50,7 +54,7 @@ class FinancialPlanning::SavingsRate
   # entered as a transaction -- so subtracting it here would charge consumption
   # for something that was saved.
   def expenses
-    @expenses ||= total_expenses - contribution_total
+    @expenses ||= total_expenses - investment_expense_total
   end
 
   # Cash that stayed in the family's accounts: income less everything that left
@@ -159,21 +163,27 @@ class FinancialPlanning::SavingsRate
       income_statement.totals_for(scope_period).expense_money.amount
     end
 
-    # Both measures of "money went into investments", the larger winning. See the
-    # class comment for why they are combined this way rather than added.
+    # Three measures of "money went into investments", the larger winning. See
+    # the class comment for why they are combined this way rather than added.
     def invested_for(scope_period)
-      measured = [ contributions_for(scope_period), holdings_invested_for(scope_period) ].max
-      measured = 0 if measured.negative?
+      # Real cash movements: recorded transfers and savings-bucket spending.
+      # These are actual money the household moved, so they are never capped.
+      actual = [
+        contributions_for(scope_period),
+        savings_bucket_invested_for(scope_period)
+      ].max
+      actual = 0 if actual.negative?
 
-      # A portfolio synced for the first time reports everything the family ever
-      # paid for, which would dwarf one month's earnings and drag the trailing
-      # average that drives the projection. Earning more than you invested in a
-      # period is the signature of that artifact, so cap it there.
-      #
-      # A period with no income gets no cap: investing money saved in an earlier
-      # month is legitimate, and a zero ceiling would report nothing at all.
+      # A synced portfolio's first snapshot reports everything the family ever
+      # paid for, which would dwarf one month's earnings. Only this measure gets
+      # the income ceiling; capping a real SIP payment at a low-income month's
+      # income would hide the investment the household actually made.
+      holdings = holdings_invested_for(scope_period)
+      holdings = 0 if holdings.negative?
       ceiling = income_for(scope_period)
-      ceiling.positive? ? [ measured, ceiling ].min : measured
+      holdings = [ holdings, ceiling ].min if ceiling.positive?
+
+      [ actual, holdings ].max.round(2)
     end
 
     def income_for(scope_period)
@@ -182,6 +192,18 @@ class FinancialPlanning::SavingsRate
 
     def contribution_total
       @contribution_total ||= contributions_for(period)
+    end
+
+    # The part of the period's expense total that is really investment, not
+    # consumption: transfers labelled as contributions, plus spending in the
+    # categories the household mapped to the Savings bucket. max(), not a sum,
+    # because a contribution can also carry a savings-bucket category and must
+    # not be subtracted twice.
+    def investment_expense_total
+      @investment_expense_total ||= [
+        contribution_total,
+        savings_bucket_invested_for(period)
+      ].max
     end
 
     def contributions_for(scope_period)
@@ -193,6 +215,25 @@ class FinancialPlanning::SavingsRate
         start_date: scope_period.start_date,
         end_date: scope_period.end_date
       )
+    end
+
+    # Money paid to investments recorded as ordinary transactions: anything in
+    # a category the family mapped to the Savings bucket in the 50/30/20
+    # settings (by default "Savings & Investments" and "Other Investments",
+    # including family overrides). This is how a manual SIP or broker payment
+    # entered as a transaction becomes "invested" rather than consumption;
+    # without it those payments read as spending and the card showed no
+    # investment at all.
+    def savings_bucket_invested_for(scope_period)
+      @savings_bucket_invested ||= {}
+      key = [ scope_period.start_date, scope_period.end_date ]
+      return @savings_bucket_invested[key] if @savings_bucket_invested.key?(key)
+
+      analyzer = FinancialPlanning::BudgetAnalyzer.new(
+        family, period: scope_period, user: user, income_statement: income_statement
+      )
+      @savings_bucket_invested[key] =
+        analyzer.buckets.find { |bucket| bucket.key == "savings" }&.amount.to_d.round(2)
     end
 
     # One series for the instance, not one per month: the sparkline differences
@@ -214,7 +255,10 @@ class FinancialPlanning::SavingsRate
       month_income = scope_totals.income_money.amount
       month_total_expenses = scope_totals.expense_money.amount
       month_invested = invested_for(scope_period)
-      month_expenses = month_total_expenses - contributions_for(scope_period)
+      month_expenses = month_total_expenses - [
+        contributions_for(scope_period),
+        savings_bucket_invested_for(scope_period)
+      ].max
       month_cash_savings = month_income - month_total_expenses
       month_savings = month_cash_savings + month_invested
 

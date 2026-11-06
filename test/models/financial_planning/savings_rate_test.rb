@@ -88,6 +88,39 @@ class FinancialPlanning::SavingsRateTest < ActiveSupport::TestCase
     assert_equal 100.0, rate.total_percent
   end
 
+  test "spending in a savings-bucket category is invested, not consumption" do
+    setting = @family.planning_setting || @family.create_planning_setting
+    setting.update!(
+      category_buckets: setting.category_buckets.merge(categories(:food_and_drink).id.to_s => "savings")
+    )
+    create_transaction(amount: -4000, date: Date.current) # income
+    create_transaction(amount: 1000, date: Date.current, category: categories(:food_and_drink))
+
+    rate = FinancialPlanning::SavingsRate.new(@family, period: @period, user: @user)
+
+    assert_equal 4000, rate.income
+    assert_equal 1000, rate.invested
+    assert_equal 0, rate.expenses
+    assert_equal 3000, rate.cash_savings
+    assert_equal 4000, rate.savings
+    assert_equal 75.0, rate.percent
+    assert_equal 100.0, rate.total_percent
+  end
+
+  test "savings-bucket investing is reported even when it exceeds income" do
+    setting = @family.planning_setting || @family.create_planning_setting
+    setting.update!(
+      category_buckets: setting.category_buckets.merge(categories(:food_and_drink).id.to_s => "savings")
+    )
+    create_transaction(amount: -1000, date: Date.current) # small income month
+    create_transaction(amount: 3000, date: Date.current, category: categories(:food_and_drink))
+
+    rate = FinancialPlanning::SavingsRate.new(@family, period: @period, user: @user)
+
+    assert_equal 3000, rate.invested
+    assert_equal 0, rate.expenses
+  end
+
   test "both rates agree when nothing was invested" do
     create_transaction(amount: -4000, date: Date.current)
     create_transaction(amount: 1000, date: Date.current)

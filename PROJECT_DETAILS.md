@@ -1309,3 +1309,38 @@ This is a JavaScript change: rebuild precompiled assets (normal Docker rebuild o
 `bin/rails assets:precompile`) and restart, then hard-refresh the browser once.
 No migration, no database change. Rows per page can be raised again (100 is smooth
 in testing) without the old scaling penalty.
+
+# 28. Savings Rate: spending in the Savings bucket counts as investing (2026-11-06)
+
+The Savings Rate card only recognised investments from a recorded
+`investment_contribution` transfer or a synced broker holdings change. A household
+that records a monthly SIP or broker payment as an ordinary transaction, in a
+category it treats as savings, saw it counted as spending and `invested` stayed at
+zero -- the card said "no investments" while ₹10k a month was actually being put
+away.
+
+The card now uses the household's own 50/30/20 mapping: any spending in a
+category assigned to the **Savings bucket** (by default "Savings & Investments"
+and "Other Investments"; a family can override any category from the Budget card)
+is counted as invested and removed from consumption. It appears in the invested
+line, the "Saved incl. investments" figure and the dashed chart line, for both
+this month and year to date.
+
+Implementation notes:
+
+- The measure is the Savings bucket total from `FinancialPlanning::BudgetAnalyzer`,
+  so it uses the same category mapping as the budget card and cannot disagree
+  with it.
+- `invested` is the larger of three measures: recorded contribution transfers,
+  Savings-bucket spending, and holdings cost-basis change. They are not summed,
+  because the same purchase can be recorded more than one way.
+- Only the holdings measure is capped at period income (its first-sync artifact
+  guard). Real transfers and categorised investments are reported in full, even
+  in a month where investment exceeds recorded income.
+- `expenses` on the rate subtracts the larger of contribution transfers and
+  Savings-bucket spending, so the annual review's expense figure does not charge
+  investing as consumption either.
+
+Tests: savings-bucket spending is invested and not spending (with a bucket
+override), investing above income is still reported, and the existing
+contribution/holdings/cap tests remain green.
