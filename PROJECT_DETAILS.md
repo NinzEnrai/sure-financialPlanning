@@ -1217,3 +1217,54 @@ Brakeman and Biome clean; `zeitwerk:check` passes in production mode; the Tailwi
 build includes every class used by the new cards; `RAILS_ENV=production` asset
 precompile completes; and the running demo returns 200 for the dashboard, planning
 page, review page, accounts and reports.
+
+# 26. Transactions list performance (2026-11-06)
+
+The transaction list was slow on a production-sized ledger, and scrolling it felt
+laggy. Two separate causes: a query whose cost grew with the whole ledger on every
+page, and a page heavy enough that browsers had to lay out and paint every row.
+
+## 26.1 What was measured
+
+On the demo database plus 30,000 synthetic transactions (38,404 entries total):
+
+| Request | Before | After |
+| --- | --- | --- |
+| /transactions page 1 (50 rows) | ~1.64-1.82 s | ~0.73-1.00 s |
+| /transactions page 2 warm | ~1.76 s | ~0.77 s |
+| SQL time on one page | ~1.09 s | ~83 ms |
+
+Profiling each controller component showed the transfer-hint badge query
+(`transaction_ids_with_transfer_candidates`) taking **958 ms** on a single page:
+it started from every unmatched transaction in the family and joined outward, so
+its cost was the size of the ledger, not the size of the page. The list query
+itself was ~120 ms; the summary totals are already cached per filter/family.
+
+## 26.2 Fixes
+
+- **Page-driven transfer-hint query.** Hints now start from a CTE of the page's
+  transaction ids and probe the existing `(currency, amount, date, account)`
+  index for each row. All hint semantics are preserved (same 2-day window, 3%
+  FX tolerance, rejected/matched pairs excluded, both accounts active, category
+  and writable-account filters) — the 57 transfer-matching model tests and 131
+  transactions/transfer controller tests pass unchanged. 958 ms → ~70 ms at
+  38k entries.
+- **Composite index `entries(entryable_type, entryable_id)`,** created
+  concurrently in migration `20261106130000`, so looking up a page of entries by
+  polymorphic id does not scan the whole table on a large production ledger.
+- **Scroll smoothness:** transaction rows now set
+  `content-visibility: auto; contain-intrinsic-size: auto 84px;`. The browser
+  skips layout and paint for rows outside the viewport, which is the standard fix
+  for a long list that paints slowly; rows are measured as they approach the view
+  so the scrollbar stays stable.
+
+## 26.3 Deploying
+
+`bin/rails db:migrate` adds the index concurrently (safe on a live table; no
+data rewrite), then restart the app. No data migration or configuration change.
+
+## 26.4 Verification
+
+Full suite: 14,736 runs, 94,016 assertions, 0 failures, 0 errors. RuboCop,
+ERB lint, Brakeman and Biome clean. The demo returns 200 for the dashboard,
+planning page, accounts and transactions after the change.

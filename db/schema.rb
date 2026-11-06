@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_05_220000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_06_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -737,6 +737,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_220000) do
     t.index ["account_id"], name: "index_entries_on_account_id"
     t.index ["currency", "amount", "date", "account_id"], name: "index_entries_on_transfer_match_lookup", where: "(((entryable_type)::text = 'Transaction'::text) AND (excluded = false))"
     t.index ["date"], name: "index_entries_on_date"
+    t.index ["entryable_type", "entryable_id"], name: "index_entries_on_entryable_type_and_id"
     t.index ["entryable_type"], name: "index_entries_on_entryable_type"
     t.index ["import_id"], name: "index_entries_on_import_id"
     t.index ["import_locked"], name: "index_entries_on_import_locked_true", where: "(import_locked = true)"
@@ -759,8 +760,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_220000) do
     t.datetime "updated_at", null: false
     t.index ["family_id"], name: "index_estate_items_on_family_id"
     t.index ["household_member_id"], name: "index_estate_items_on_household_member_id"
-    t.check_constraint "kind::text = ANY (ARRAY['will'::character varying, 'nomination'::character varying, 'executor'::character varying, 'guardian'::character varying, 'document'::character varying]::text[])", name: "estate_items_kind_check"
-    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'in_place'::character varying, 'not_applicable'::character varying]::text[])", name: "estate_items_status_check"
+    t.check_constraint "kind::text = ANY (ARRAY['will'::character varying::text, 'nomination'::character varying::text, 'executor'::character varying::text, 'guardian'::character varying::text, 'document'::character varying::text])", name: "estate_items_kind_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'in_place'::character varying::text, 'not_applicable'::character varying::text])", name: "estate_items_status_check"
   end
 
   create_table "eval_datasets", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

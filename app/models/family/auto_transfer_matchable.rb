@@ -148,12 +148,7 @@ module Family::AutoTransferMatchable
       unmatched_ids = transactions.reject { |transaction| transaction.transfer? || transaction.transfer.present? }.map(&:id)
       return [] if unmatched_ids.empty?
 
-      candidates = transfer_match_candidates(
-        date_window: TRANSFER_HINT_DATE_WINDOW,
-        exchange_rate_tolerance: TRANSFER_HINT_EXCHANGE_RATE_TOLERANCE,
-        transaction_ids: unmatched_ids,
-        include_rejected: false
-      ).to_a
+      candidates = transfer_hint_candidate_pairs(unmatched_ids).to_a
       return [] if candidates.empty?
 
       leg_ids = candidates.flat_map { |candidate| [ candidate.inflow_transaction_id, candidate.outflow_transaction_id ] }
@@ -169,6 +164,175 @@ module Family::AutoTransferMatchable
           writable_account_ids.include?(account_ids[inflow_id]) &&
           writable_account_ids.include?(account_ids[outflow_id])
       end
+    end
+
+    # Page-driven transfer hints. The general candidate query starts from every
+    # unmatched transaction in the family and joins outward, which is seconds of
+    # work for a fifty-row page once a family has tens of thousands of
+    # transactions. This variant starts from the page's own ids and probes the
+    # (currency, amount, date, account) index for each, so its cost scales with
+    # the page, not with the ledger. It keeps the full hint semantics: the
+    # narrower date window and tolerance, rejected pairs excluded, and both
+    # accounts active in this family.
+    def transfer_hint_candidate_pairs(transaction_ids)
+      return [] if transaction_ids.empty?
+
+      Entry.find_by_sql([
+        transfer_hint_candidates_sql,
+        {
+          family_id: id,
+          family_currency: primary_currency_code,
+          transaction_ids: transaction_ids,
+          date_window: TRANSFER_HINT_DATE_WINDOW,
+          lower_exchange_rate_bound: 1 - TRANSFER_HINT_EXCHANGE_RATE_TOLERANCE,
+          upper_exchange_rate_bound: 1 + TRANSFER_HINT_EXCHANGE_RATE_TOLERANCE
+        }
+      ])
+    end
+
+    def transfer_hint_candidates_sql
+      <<~SQL.squish
+        WITH page_transactions AS (
+          SELECT
+            page_entries.entryable_id AS transaction_id,
+            page_entries.account_id,
+            page_entries.currency,
+            page_entries.amount,
+            page_entries.date
+          FROM entries page_entries
+          WHERE
+            page_entries.entryable_type = 'Transaction' AND
+            page_entries.excluded = FALSE AND
+            page_entries.entryable_id IN (:transaction_ids)
+        )
+        SELECT hint_candidates.*
+        FROM (
+          SELECT
+            page_inflow.transaction_id AS inflow_transaction_id,
+            counterpart.entryable_id AS outflow_transaction_id,
+            ABS(page_inflow.date - counterpart.date) AS date_diff,
+            CASE WHEN page_inflow.currency = counterpart.currency THEN 0 ELSE 1 END AS match_rank
+          FROM page_transactions page_inflow
+          JOIN accounts inflow_accounts ON inflow_accounts.id = page_inflow.account_id
+          JOIN entries counterpart ON (
+            counterpart.entryable_type = 'Transaction' AND
+            counterpart.excluded = FALSE AND
+            counterpart.amount > 0 AND
+            counterpart.account_id <> page_inflow.account_id AND
+            counterpart.date BETWEEN page_inflow.date - :date_window AND page_inflow.date + :date_window AND
+            (
+              (page_inflow.currency = counterpart.currency AND counterpart.amount = -page_inflow.amount) OR
+              page_inflow.currency <> counterpart.currency
+            )
+          )
+          JOIN accounts outflow_accounts ON outflow_accounts.id = counterpart.account_id
+          LEFT JOIN exchange_rates direct_rates ON (
+            direct_rates.date = counterpart.date AND
+            direct_rates.from_currency = counterpart.currency AND
+            direct_rates.to_currency = page_inflow.currency
+          )
+          LEFT JOIN exchange_rates outflow_family_rates ON (
+            outflow_family_rates.date = counterpart.date AND
+            outflow_family_rates.from_currency = counterpart.currency AND
+            outflow_family_rates.to_currency = :family_currency
+          )
+          LEFT JOIN exchange_rates inflow_family_rates ON (
+            inflow_family_rates.date = counterpart.date AND
+            inflow_family_rates.from_currency = page_inflow.currency AND
+            inflow_family_rates.to_currency = :family_currency
+          )
+          WHERE
+            page_inflow.amount < 0 AND
+            inflow_accounts.family_id = :family_id AND
+            outflow_accounts.family_id = :family_id AND
+            inflow_accounts.status IN ('draft', 'active') AND
+            outflow_accounts.status IN ('draft', 'active') AND
+            (
+              (page_inflow.currency = counterpart.currency AND counterpart.amount = -page_inflow.amount) OR
+              (
+                page_inflow.currency <> counterpart.currency AND
+                ABS(page_inflow.amount / NULLIF(counterpart.amount * COALESCE(
+                  NULLIF(direct_rates.rate, 0),
+                  (CASE WHEN counterpart.currency = :family_currency THEN 1 ELSE outflow_family_rates.rate END) /
+                  NULLIF(CASE WHEN page_inflow.currency = :family_currency THEN 1 ELSE inflow_family_rates.rate END, 0)
+                ), 0)) BETWEEN :lower_exchange_rate_bound AND :upper_exchange_rate_bound
+              )
+            ) AND
+            NOT EXISTS (
+              SELECT 1 FROM transfers matched
+              WHERE matched.inflow_transaction_id = page_inflow.transaction_id
+                 OR matched.outflow_transaction_id = counterpart.entryable_id
+            ) AND
+            NOT EXISTS (
+              SELECT 1 FROM rejected_transfers rejected
+              WHERE rejected.inflow_transaction_id = page_inflow.transaction_id
+                AND rejected.outflow_transaction_id = counterpart.entryable_id
+            )
+          UNION
+          SELECT
+            counterpart.entryable_id AS inflow_transaction_id,
+            page_outflow.transaction_id AS outflow_transaction_id,
+            ABS(page_outflow.date - counterpart.date) AS date_diff,
+            CASE WHEN page_outflow.currency = counterpart.currency THEN 0 ELSE 1 END AS match_rank
+          FROM page_transactions page_outflow
+          JOIN accounts outflow_accounts ON outflow_accounts.id = page_outflow.account_id
+          JOIN entries counterpart ON (
+            counterpart.entryable_type = 'Transaction' AND
+            counterpart.excluded = FALSE AND
+            counterpart.amount < 0 AND
+            counterpart.account_id <> page_outflow.account_id AND
+            counterpart.date BETWEEN page_outflow.date - :date_window AND page_outflow.date + :date_window AND
+            (
+              (page_outflow.currency = counterpart.currency AND counterpart.amount = -page_outflow.amount) OR
+              page_outflow.currency <> counterpart.currency
+            )
+          )
+          JOIN accounts inflow_accounts ON inflow_accounts.id = counterpart.account_id
+          LEFT JOIN exchange_rates direct_rates ON (
+            direct_rates.date = counterpart.date AND
+            direct_rates.from_currency = page_outflow.currency AND
+            direct_rates.to_currency = counterpart.currency
+          )
+          LEFT JOIN exchange_rates outflow_family_rates ON (
+            outflow_family_rates.date = counterpart.date AND
+            outflow_family_rates.from_currency = page_outflow.currency AND
+            outflow_family_rates.to_currency = :family_currency
+          )
+          LEFT JOIN exchange_rates inflow_family_rates ON (
+            inflow_family_rates.date = counterpart.date AND
+            inflow_family_rates.from_currency = counterpart.currency AND
+            inflow_family_rates.to_currency = :family_currency
+          )
+          WHERE
+            page_outflow.amount > 0 AND
+            inflow_accounts.family_id = :family_id AND
+            outflow_accounts.family_id = :family_id AND
+            inflow_accounts.status IN ('draft', 'active') AND
+            outflow_accounts.status IN ('draft', 'active') AND
+            (
+              (page_outflow.currency = counterpart.currency AND counterpart.amount = -page_outflow.amount) OR
+              (
+                page_outflow.currency <> counterpart.currency AND
+                ABS(counterpart.amount / NULLIF(page_outflow.amount * COALESCE(
+                  NULLIF(direct_rates.rate, 0),
+                  (CASE WHEN page_outflow.currency = :family_currency THEN 1 ELSE outflow_family_rates.rate END) /
+                  NULLIF(CASE WHEN counterpart.currency = :family_currency THEN 1 ELSE inflow_family_rates.rate END, 0)
+                ), 0)) BETWEEN :lower_exchange_rate_bound AND :upper_exchange_rate_bound
+              )
+            ) AND
+            NOT EXISTS (
+              SELECT 1 FROM transfers matched
+              WHERE matched.inflow_transaction_id = counterpart.entryable_id
+                 OR matched.outflow_transaction_id = page_outflow.transaction_id
+            ) AND
+            NOT EXISTS (
+              SELECT 1 FROM rejected_transfers rejected
+              WHERE rejected.inflow_transaction_id = counterpart.entryable_id
+                AND rejected.outflow_transaction_id = page_outflow.transaction_id
+            )
+        ) hint_candidates
+        ORDER BY hint_candidates.match_rank ASC, hint_candidates.date_diff ASC
+      SQL
     end
 
     # Create the transfer for a matched candidate, tolerating a concurrent sync
