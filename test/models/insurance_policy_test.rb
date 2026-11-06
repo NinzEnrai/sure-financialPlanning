@@ -24,6 +24,21 @@ class InsurancePolicyTest < ActiveSupport::TestCase
     assert_not_empty policy.errors[:premium_amount]
   end
 
+  test "cannot name a household member from another family" do
+    other = families(:empty).household_members.create!(name: "Someone else", relationship: "other")
+    policy = @family.insurance_policies.build(
+      policy_type: "health",
+      provider: "Test Insurer",
+      cover_amount: 100,
+      premium_amount: 10,
+      premium_frequency: "monthly",
+      household_member: other
+    )
+
+    assert_not policy.valid?
+    assert_includes policy.errors[:household_member], "must belong to this family"
+  end
+
   test "annualises the premium by payment frequency" do
     policy = build_policy(policy_type: "health", premium_amount: 1000, premium_frequency: "monthly")
 

@@ -19,6 +19,11 @@ class TaxProfile < ApplicationRecord
   validates(*DEDUCTION_ATTRIBUTES, numericality: { greater_than_or_equal_to: 0 })
   validate :user_belongs_to_family
 
+  # The form submits empty select/input values as "", and a decimal column casts
+  # that to nil. Without normalising, clearing the regime would fail the
+  # inclusion check and clearing a deduction would fail numericality.
+  before_validation :normalize_optional_fields
+
   def total_declared_deductions
     DEDUCTION_ATTRIBUTES.sum { |attribute| public_send(attribute).to_d }.round(2)
   end
@@ -28,6 +33,11 @@ class TaxProfile < ApplicationRecord
   end
 
   private
+    def normalize_optional_fields
+      self.regime = regime.presence
+      DEDUCTION_ATTRIBUTES.each { |attribute| self[attribute] = 0 if self[attribute].nil? }
+    end
+
     def user_belongs_to_family
       return if user.nil? || family.nil? || user.family_id == family_id
 

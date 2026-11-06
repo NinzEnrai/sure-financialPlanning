@@ -13,6 +13,27 @@ class FinancialPlanning::CapitalGainsEstimateTest < ActiveSupport::TestCase
     @admin_account.update!(owner: @admin)
     @member_account = create_portfolio_account(@family, balance: 0)
     @member_account.update!(owner: @member)
+    # The admin can only see another person's estimate when the account itself is
+    # shared with them, which is the same rule /accounts applies.
+    AccountShare.create!(
+      account: @member_account, user: @admin,
+      permission: "read_only", include_in_finances: true
+    )
+  end
+
+  test "does not include another member's unshared account" do
+    unshared = create_portfolio_account(@family, balance: 0)
+    unshared.update!(owner: @member)
+    private_security = create_portfolio_security(ticker: "PRIVCG#{SecureRandom.hex(3)}")
+    trade(account: unshared, qty: 10, price: 100, date: 2.years.ago.to_date, security: private_security)
+    trade(account: unshared, qty: -10, price: 200, date: 1.month.ago.to_date, security: private_security)
+
+    estimate = build_estimate
+    leaked = estimate.estimates.any? do |person|
+      person.realised_gains.rows.any? { |row| row.security == private_security }
+    end
+
+    assert_not leaked
   end
 
   test "exempts long-term gains below the Indian threshold per person" do

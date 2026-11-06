@@ -11,6 +11,7 @@ class EstateItem < ApplicationRecord
   validates :kind, inclusion: { in: KINDS }
   validates :status, inclusion: { in: STATUSES }
   validates :title, presence: true, length: { maximum: 200 }
+  validate :household_member_belongs_to_family
 
   def in_place?
     status == "in_place"
@@ -25,4 +26,11 @@ class EstateItem < ApplicationRecord
   def review_overdue?(as_of: Date.current)
     review_on.present? && review_on < as_of
   end
+
+  private
+    def household_member_belongs_to_family
+      return if household_member.nil? || family.nil? || household_member.family_id == family_id
+
+      errors.add(:household_member, "must belong to this family")
+    end
 end

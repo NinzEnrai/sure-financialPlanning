@@ -5,8 +5,9 @@ class FinancialPlanning::TaxHarvestingTest < ActiveSupport::TestCase
 
   setup do
     @family = families(:empty)
-    @user = users(:family_admin)
+    @user = users(:empty)
     @account = create_portfolio_account(@family, balance: 0)
+    @account.update!(owner: @user)
 
     @loser = create_portfolio_security(ticker: "LOSE#{SecureRandom.hex(4)}")
     @winner = create_portfolio_security(ticker: "WIN#{SecureRandom.hex(4)}")

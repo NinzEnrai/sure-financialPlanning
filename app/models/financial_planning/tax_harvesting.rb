@@ -99,7 +99,12 @@ class FinancialPlanning::TaxHarvesting
     end
 
     def engine
-      @engine ||= @tax_lots || Portfolio::TaxLots.new(account_ids: family.accounts.visible.pluck(:id), as_of: as_of)
+      @engine ||= @tax_lots || Portfolio::TaxLots.new(account_ids: visible_account_ids, as_of: as_of)
+    end
+
+    def visible_account_ids
+      scope = user ? family.accounts.visible.accessible_by(user) : family.accounts.visible
+      scope.pluck(:id)
     end
 
     def estimate

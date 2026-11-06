@@ -187,10 +187,14 @@ class FinancialPlanning::RealisedGains
 
     def account_ids
       @account_ids ||= if @account_ids_override.nil?
-        family.accounts.visible.pluck(:id)
+        visible_accounts.pluck(:id)
       else
         Array(@account_ids_override)
       end
+    end
+
+    def visible_accounts
+      user ? family.accounts.visible.accessible_by(user) : family.accounts.visible
     end
 
     def convert(amount, from_currency, date)

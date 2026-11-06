@@ -96,7 +96,10 @@ class FinancialPlanning::FeeAudit
     end
 
     def account_ids
-      @account_ids ||= family.accounts.visible.pluck(:id)
+      @account_ids ||= begin
+        scope = user ? family.accounts.visible.accessible_by(user) : family.accounts.visible
+        scope.pluck(:id)
+      end
     end
 
     def trades

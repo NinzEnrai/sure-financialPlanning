@@ -87,6 +87,15 @@ class FinancialPlanning::WealthProjector
     # rearranged to  (1+g)^n = (target*g + annual) / (opening*g + annual).
     # The gap therefore closes geometrically, not at a flat monthly rate.
     annual = monthly_contribution * 12
+
+    # The rearrangement below divides by the growth rate. At 0% the balance
+    # climbs linearly, so the monthly contribution alone answers it and the
+    # "saving behaviour" question is still valid.
+    if growth_rate.zero?
+      months = ((target - opening_balance) / monthly_contribution).ceil
+      return months.positive? ? months : nil
+    end
+
     ratio = ((target * growth_rate) + annual) / ((opening_balance * growth_rate) + annual)
 
     return nil unless ratio.finite? && ratio > 1

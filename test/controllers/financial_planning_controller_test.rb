@@ -63,6 +63,17 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     assert_in_delta 175_000, profile.total_declared_deductions, 0.01
   end
 
+  test "clears a person's tax regime when the blank option is submitted" do
+    @family.tax_profiles.create!(user: users(:family_admin), regime: "new")
+
+    patch tax_profile_financial_planning_path(user_id: users(:family_admin).id), params: {
+      tax_profile: { regime: "" }
+    }
+
+    assert_redirected_to financial_planning_path
+    assert_nil @family.reload.tax_profiles.find_by(user: users(:family_admin)).regime
+  end
+
   test "rejects tax inputs for somebody outside the family" do
     outsider = families(:empty).users.create!(
       email: "outsider-#{SecureRandom.hex(3)}@example.com",
@@ -89,6 +100,23 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/translation missing/, response.body)
   end
 
+  test "renders the planning pages for a household with no data" do
+    family = families(:empty)
+    user = family.users.create!(
+      email: "empty-#{SecureRandom.hex(4)}@example.com",
+      password: "password123",
+      first_name: "Empty"
+    )
+    user.update!(preferences: (user.preferences || {}).merge("preview_features_enabled" => true))
+    sign_in user
+
+    get financial_planning_url
+    assert_response :success
+
+    get review_financial_planning_url
+    assert_response :success
+  end
+
   test "renders the fee audit card" do
     get financial_planning_url
 
@@ -102,6 +130,18 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "[data-testid='tax-profile']"
     assert_select "select[name='tax_profile[regime]']"
+  end
+
+  test "the page has no nested forms" do
+    # A button_to inside a form_with nests a <form> in a <form>; browsers ignore
+    # the inner tag, so the button submits the outer form. Render a household
+    # member so every edit form is on the page, then prove the markup is valid.
+    @family.household_members.create!(name: "Nested form guard", relationship: "self")
+
+    get financial_planning_url
+
+    assert_response :success
+    assert_equal 0, nested_form_count(response.body)
   end
 
   test "renders the retirement stress test card" do
@@ -173,6 +213,33 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to financial_planning_path
     assert_match(/Imported 1/, flash[:notice])
+  end
+
+  test "treats a non-file tradebook param as a missing upload" do
+    assert_no_difference -> { Entry.count } do
+      post import_tradebook_financial_planning_path, params: {
+        account_id: accounts(:investment).id, tradebook: "not a file"
+      }
+    end
+
+    assert_redirected_to financial_planning_path
+    assert_predicate flash[:alert], :present?
+  end
+
+  test "cannot import into another member's unshared account" do
+    unshared = @family.accounts.create!(
+      name: "Jakob's brokerage", balance: 0, currency: "USD",
+      accountable: Investment.new, owner: users(:family_member)
+    )
+    csv = "symbol,isin,trade_date,trade_type,quantity,price,trade_id\nAAPL,,#{(Date.current - 5.days).iso8601},buy,2,215,TR-PRIV\n"
+    file = upload(csv)
+
+    assert_no_difference -> { unshared.entries.count } do
+      post import_tradebook_financial_planning_path, params: { account_id: unshared.id, tradebook: file }
+    end
+
+    assert_redirected_to financial_planning_path
+    assert_predicate flash[:alert], :present?
   end
 
   test "refuses a tradebook import without a file" do
@@ -628,6 +695,22 @@ class FinancialPlanningControllerTest < ActionDispatch::IntegrationTest
     end
 
   private
+    def nested_form_count(html)
+      depth = 0
+      nested = 0
+
+      html.scan(/<\/?form\b[^>]*>/) do |tag|
+        if tag.start_with?("</")
+          depth -= 1 if depth.positive?
+        else
+          nested += 1 if depth.positive?
+          depth += 1
+        end
+      end
+
+      nested
+    end
+
     def upload(csv)
       file = Tempfile.new([ "tradebook", ".csv" ])
       file.write(csv)

@@ -23,6 +23,21 @@ class FinancialPlanning::FeeAuditTest < ActiveSupport::TestCase
     assert_equal 1, audit.by_account.size
   end
 
+  test "does not count fees on another member's unshared account" do
+    family = families(:dylan_family)
+    admin = users(:family_admin)
+    unshared = family.accounts.create!(
+      name: "Jakob's brokerage", balance: 1000, currency: "USD",
+      accountable: Investment.new, owner: users(:family_member)
+    )
+    security = create_portfolio_security(ticker: "PRIV#{SecureRandom.hex(4)}")
+    create_portfolio_trade(account: unshared, security: security, qty: 1, price: 100, fee: 10)
+
+    audit = FinancialPlanning::FeeAudit.new(family, user: admin)
+
+    assert_not audit.rows.any? { |row| row[:account] == unshared }
+  end
+
   test "ignores trades without fees" do
     trade(qty: 10, price: 100, fee: 0)
 

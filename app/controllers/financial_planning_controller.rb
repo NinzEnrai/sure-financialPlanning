@@ -28,7 +28,10 @@ class FinancialPlanningController < ApplicationController
     investment_statement = family.investment_statement(user: user)
     active_goals = Goal.prepared_for(family, scope: family.goals.where(state: "active"))
     funding_goals = Goal.active_prepared_for(family)
-    tax_lots = Portfolio::TaxLots.new(account_ids: family.accounts.visible.pluck(:id), as_of: Date.current)
+    tax_lots = Portfolio::TaxLots.new(
+      account_ids: family.accounts.visible.accessible_by(user).pluck(:id),
+      as_of: Date.current
+    )
 
     @savings_rate = FinancialPlanning::SavingsRate.new(family, period: current_month_period, user: user, income_statement: income_statement)
     @year_to_date_savings_rate = FinancialPlanning::SavingsRate.new(family, period: year_to_date_period, user: user, income_statement: income_statement)
@@ -77,6 +80,7 @@ class FinancialPlanningController < ApplicationController
     @data_confidence = FinancialPlanning::DataConfidence.new(family, user: user)
     @tax_readiness = FinancialPlanning::TaxReadiness.new(family, user: user, data_confidence: @data_confidence)
     @tradebook_accounts = family.accounts.visible
+      .accessible_by(user)
       .where(accountable_type: %w[Investment Crypto])
       .order(:name)
 
@@ -111,11 +115,14 @@ class FinancialPlanningController < ApplicationController
   # rows that already exist.
   def import_tradebook
     account = Current.family.accounts.visible
+      .accessible_by(Current.user)
       .where(accountable_type: %w[Investment Crypto])
       .find_by(id: params[:account_id])
     file = params[:tradebook]
 
-    if account.nil? || file.blank?
+    # A crafted POST can send a string where the form sends a file; treat that as
+    # a missing upload rather than raising on .read.
+    if account.nil? || !file.respond_to?(:read)
       redirect_to financial_planning_path, alert: t(".missing")
       return
     end

@@ -57,7 +57,7 @@ class FinancialPlanning::DataConfidence
   end
 
   def account_ids
-    @account_ids ||= family.accounts.visible.pluck(:id)
+    @account_ids ||= account_scope.pluck(:id)
   end
 
   private
@@ -99,7 +99,7 @@ class FinancialPlanning::DataConfidence
       return Check.new(key: :purchase_dates, status: :good, count: 0, total: 0) if ids.empty?
 
       traded = Trade
-        .where(id: Entry.where(account_id: account_ids, entryable_type: "Trade").select(:entryable_id))
+        .where(id: Entry.where(account_id: account_ids, entryable_type: "Trade", excluded: false).select(:entryable_id))
         .distinct.pluck(:security_id)
       missing = ids - traded
 
@@ -128,7 +128,7 @@ class FinancialPlanning::DataConfidence
     end
 
     def excluded_accounts_check
-      excluded = family.accounts.visible.where(exclude_from_reports: true).count
+      excluded = account_scope.where(exclude_from_reports: true).count
 
       Check.new(
         key: :excluded_accounts,
@@ -139,7 +139,14 @@ class FinancialPlanning::DataConfidence
     end
 
     def accounts
-      @accounts ||= family.accounts.visible.to_a
+      @accounts ||= account_scope.to_a
+    end
+
+    # Account sharing is part of Sure's tenancy model: a member must not see
+    # another member's unshared accounts through a planning card. Fall back to
+    # the family scope only when there is no user (background jobs).
+    def account_scope
+      user ? family.accounts.visible.accessible_by(user) : family.accounts.visible
     end
 
     def cache_key
@@ -149,6 +156,8 @@ class FinancialPlanning::DataConfidence
         family.entries_cache_version,
         family.accounts_status_version,
         Security.maximum(:updated_at)&.to_i,
+        Security::Price.maximum(:updated_at)&.to_i,
+        Holding.maximum(:updated_at)&.to_i,
         ExchangeRate.maximum(:updated_at)&.to_i
       ]
     end

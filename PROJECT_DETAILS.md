@@ -1178,3 +1178,42 @@ as the shape of the problem, not as the answer:
 - **Log in to Zerodha once a month** (the agreed pace — monthly resync). The daily
   "session expired / reconnect" prompt is expected noise, not a fault.
 - **Download the Console tradebook CSV once** so step 4 above has something to import.
+
+# 25. Bug-fix pass before production (2026-11-06)
+
+A focused hunt through the planning module found seven real bugs, each fixed with a
+regression test. All were verified on the running demo and the full suite.
+
+1. **"Remove" on a household member submitted the wrong form.** The delete
+   `button_to` was nested inside the edit `form_with`; browsers ignore a nested
+   `<form>` start tag, so the button posted the edit form instead of deleting.
+   The delete form now sits outside the edit form, and a page-level test scans the
+   rendered HTML for any nested `<form>` tags.
+2. **Excluded trades were counted as tax data.** The tax-readiness trade count and
+   the data-confidence purchase-date check did not filter `excluded: false`, so a
+   transaction the user had deliberately excluded still counted as a recorded
+   trade. Both now join through non-excluded entries only, with tests.
+3. **Planning cards leaked unshared accounts.** Data confidence, tax readiness,
+   realised gains, tax harvesting, capital-gains estimates, the fee audit and the
+   Console tradebook importer used the family-wide `accounts.visible` scope instead
+   of `accessible_by(user)`. In a family where accounts are shared selectively, a
+   member could see another member's unshared trades, fees and tax figures — and
+   could import a tradebook into an unshared account by guessing its id. All of
+   them are now scoped the same way `/accounts` is, with privacy regression tests.
+4. **Cross-family household links.** Insurance policies and estate items accepted
+   a `household_member_id` from another family through crafted params. Both models
+   now validate that the member belongs to the family.
+5. **The tax profile could not be cleared.** Clearing the regime select submitted
+   `""`, which failed the inclusion check; clearing a deduction submitted `nil`,
+   which failed numericality. Both are normalised to "unset" before validation.
+6. **Zero-growth projections had no ETA.** `months_to_target` divided through the
+   growth-rate rearrangement and returned nil at 0% growth even though monthly
+   contributions alone reach the target. The linear case is now handled and tested.
+7. **A non-file tradebook param raised.** A crafted POST with a string instead of
+   an upload reached `.read`; it is now treated as a missing upload, with a test.
+
+Verification for this pass: full suite green (see commit), RuboCop, ERB lint,
+Brakeman and Biome clean; `zeitwerk:check` passes in production mode; the Tailwind
+build includes every class used by the new cards; `RAILS_ENV=production` asset
+precompile completes; and the running demo returns 200 for the dashboard, planning
+page, review page, accounts and reports.

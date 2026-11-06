@@ -50,15 +50,21 @@
                 label: t(".relationship") %>
             <%= form.date_field :date_of_birth, label: t(".date_of_birth"), max: Date.current %>
             <%= form.toggle :dependent, label: t(".dependent") %>
-            <div class="flex items-center justify-between gap-3 @md:col-span-2">
-              <%= button_to t(".remove"),
-                            financial_planning_household_member_path(person),
-                            method: :delete,
-                            form_class: "inline",
-                            class: "text-xs text-destructive underline underline-offset-2 focus-ring" %>
+            <div class="flex justify-end @md:col-span-2">
               <%= form.submit t(".save_changes") %>
             </div>
           <% end %>
+
+          <%# Outside the edit form on purpose: a button_to inside it would nest a
+              <form> in a <form>, which browsers refuse to parse, so "remove" would
+              submit the edit instead of the delete. %>
+          <div class="mt-2">
+            <%= button_to t(".remove"),
+                          financial_planning_household_member_path(person),
+                          method: :delete,
+                          form_class: "inline",
+                          class: "text-xs text-destructive underline underline-offset-2 focus-ring" %>
+          </div>
         <% end %>
       <% end %>
     </div>

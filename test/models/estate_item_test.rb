@@ -14,6 +14,14 @@ class EstateItemTest < ActiveSupport::TestCase
     assert_includes item.errors[:title], "can't be blank"
   end
 
+  test "cannot name a household member from another family" do
+    other = families(:empty).household_members.create!(name: "Someone else", relationship: "other")
+    item = @family.estate_items.build(kind: "will", title: "Will", household_member: other)
+
+    assert_not item.valid?
+    assert_includes item.errors[:household_member], "must belong to this family"
+  end
+
   test "accepts every documented kind and status" do
     EstateItem::KINDS.each do |kind|
       assert @family.estate_items.build(kind: kind, title: "Item").valid?

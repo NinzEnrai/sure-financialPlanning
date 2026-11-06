@@ -69,6 +69,14 @@ class FinancialPlanning::WealthProjectorTest < ActiveSupport::TestCase
     assert_equal 0, projector.months_to_target(5_000)
   end
 
+  test "months to target works at a zero growth rate" do
+    projector = FinancialPlanning::WealthProjector.new(
+      @family, user: @user, opening_balance: 0, monthly_contribution: 100, growth_rate: 0
+    )
+
+    assert_equal 100, projector.months_to_target(10_000)
+  end
+
   test "months to target inverts the projection curve" do
     projector = FinancialPlanning::WealthProjector.new(
       @family, user: @user, opening_balance: 1000, monthly_contribution: 100

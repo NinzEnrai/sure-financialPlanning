@@ -33,6 +33,16 @@ class FinancialPlanning::TaxReadinessTest < ActiveSupport::TestCase
     assert_equal :attention, check(readiness, :purchase_dates).status
   end
 
+  test "an excluded trade is not counted as tax data" do
+    entry = create_trade(@security, account: @account, qty: 1, date: Date.current, price: 100)
+    entry.update!(excluded: true)
+
+    readiness = build_readiness
+
+    assert_equal :attention, check(readiness, :trades).status
+    assert_equal 0, check(readiness, :trades).count
+  end
+
   test "clears the trade, price and purchase-date checks once they exist" do
     Security::Price.create!(security: @security, date: Date.current, price: 100, currency: "USD")
     create_trade(@security, account: @account, qty: 1, date: Date.current, price: 100)

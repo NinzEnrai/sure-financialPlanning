@@ -109,13 +109,17 @@ class FinancialPlanning::TaxReadiness
     end
 
     def tax_advantaged_check
-      count = family.accounts.visible.to_a.count { |account| account.tax_treatment.present? }
+      count = Account.where(id: data_confidence.account_ids).to_a.count { |account| account.tax_treatment.present? }
 
       Check.new(key: :tax_advantaged, status: :good, count: count, total: nil)
     end
 
     def period_entries
-      @period_entries ||= Entry.where(account_id: data_confidence.account_ids, date: start_date..end_date)
+      @period_entries ||= Entry.where(
+        account_id: data_confidence.account_ids,
+        date: start_date..end_date,
+        excluded: false
+      )
     end
 
     def data_confidence
@@ -132,6 +136,8 @@ class FinancialPlanning::TaxReadiness
         family.entries_cache_version,
         family.accounts_status_version,
         Security.maximum(:updated_at)&.to_i,
+        Security::Price.maximum(:updated_at)&.to_i,
+        Holding.maximum(:updated_at)&.to_i,
         ExchangeRate.maximum(:updated_at)&.to_i
       ]
     end

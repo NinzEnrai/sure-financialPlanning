@@ -27,11 +27,32 @@ class FinancialPlanning::DataConfidenceTest < ActiveSupport::TestCase
     )
   end
 
+  test "ignores another member's unshared accounts" do
+    other = @family.accounts.create!(
+      name: "Jakob's brokerage", balance: 1000, currency: "USD",
+      accountable: Investment.new, owner: users(:family_member)
+    )
+
+    confidence = FinancialPlanning::DataConfidence.new(@family, user: @user)
+
+    assert_not_includes confidence.account_ids, other.id
+  end
+
   test "flags stale prices and missing purchase dates for held securities" do
     confidence = build_confidence
 
     assert_equal :watch, check(confidence, :price_history).status
     assert_equal 1, check(confidence, :price_history).count
+    assert_equal :watch, check(confidence, :purchase_dates).status
+    assert_equal 1, check(confidence, :purchase_dates).count
+  end
+
+  test "an excluded trade does not count as a purchase date" do
+    entry = create_trade(@security, account: @account, qty: 1, date: Date.current, price: 100)
+    entry.update!(excluded: true)
+
+    confidence = build_confidence
+
     assert_equal :watch, check(confidence, :purchase_dates).status
     assert_equal 1, check(confidence, :purchase_dates).count
   end

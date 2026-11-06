@@ -29,6 +29,7 @@ class InsurancePolicy < ApplicationRecord
   validates :provider, presence: true, length: { maximum: 120 }
   validates :cover_amount, :premium_amount,
             numericality: { greater_than_or_equal_to: 0 }
+  validate :household_member_belongs_to_family
 
   def annual_premium
     (premium_amount.to_d * PREMIUM_FREQUENCIES.fetch(premium_frequency)).round(2)
@@ -53,4 +54,11 @@ class InsurancePolicy < ApplicationRecord
   def renewal_overdue?(as_of: Date.current)
     renewal_date.present? && renewal_date < as_of
   end
+
+  private
+    def household_member_belongs_to_family
+      return if household_member.nil? || family.nil? || household_member.family_id == family_id
+
+      errors.add(:household_member, "must belong to this family")
+    end
 end

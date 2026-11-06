@@ -21,6 +21,15 @@ class TaxProfileTest < ActiveSupport::TestCase
     assert @profile.valid?
   end
 
+  test "treats a blank regime and blank deductions as unset rather than invalid" do
+    @profile.regime = ""
+    @profile.deductions_80c = nil
+
+    assert @profile.valid?
+    assert_nil @profile.regime
+    assert_equal 0, @profile.deductions_80c
+  end
+
   test "rejects negative deductions" do
     @profile.deductions_80c = -1
 

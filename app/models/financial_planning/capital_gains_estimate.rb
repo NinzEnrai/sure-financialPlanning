@@ -115,11 +115,17 @@ class FinancialPlanning::CapitalGainsEstimate
     end
 
     def accounts_by_owner
-      family.accounts.visible.group_by(&:owner_id).transform_values { |accounts| accounts.map(&:id) }
+      visible_accounts.group_by(&:owner_id).transform_values { |accounts| accounts.map(&:id) }
     end
 
     def owners
-      @owners ||= User.where(id: family.accounts.visible.distinct.pluck(:owner_id).compact).index_by(&:id)
+      @owners ||= User.where(id: visible_accounts.distinct.pluck(:owner_id).compact).index_by(&:id)
+    end
+
+    # Same tenancy rule as the rest of the planning page: a member sees only
+    # their own and shared accounts, never another member's unshared ones.
+    def visible_accounts
+      user ? family.accounts.visible.accessible_by(user) : family.accounts.visible
     end
 
     def readiness
